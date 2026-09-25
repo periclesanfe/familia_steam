@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatarBRL } from '@/domain/dinheiro'
 import type { Parametros } from '@/domain/regulamento'
 import { convocarAcao } from '@/features/votacoes/acoes'
+import { formatarDataCivil } from '@/lib/formato'
 
 type Opcoes = {
   efeitos: readonly string[]
@@ -33,7 +34,12 @@ type Opcoes = {
   integrantes: { id: string; pessoaId: string; apelido: string }[]
   ciclos: { id: string; numero: number }[]
   rodadas: { id: string; sequencia: number; mesReferencia: string; ciclo: { numero: number } }[]
-  regulamento: { numero: string; texto: string; parametros: Parametros } | null
+  regulamento: {
+    numero: string
+    texto: string
+    parametros: Parametros
+    vigencia: readonly [string, string]
+  } | null
 }
 
 const ASSUNTOS = [
@@ -340,6 +346,12 @@ export function FormNovaVotacao({
                 defaultValue={opcoes.regulamento.texto}
               />
             </Field>
+            <p className="text-sm text-warning">
+              {opcoes.regulamento.vigencia[0] === opcoes.regulamento.vigencia[1]
+                ? `Se aprovada, vale a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[0])}.`
+                : `Aprovada ainda este mês, vale a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[0])}; se só no fim do prazo, a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[1])}.`}{' '}
+              O diff contra a versão vigente aparece na página da votação.
+            </p>
             <Field>
               <FieldLabel htmlFor="efeito.resumo">Resumo das mudanças</FieldLabel>
               <Input id="efeito.resumo" name="efeito.resumo" required minLength={10} />

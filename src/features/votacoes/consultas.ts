@@ -1,9 +1,10 @@
 import 'server-only'
 
-import { efeitoSchema } from '@/domain/efeitos'
+import { diffLinhas, trechosDoDiff } from '@/domain/diff'
+import { type Efeito, efeitoSchema } from '@/domain/efeitos'
 import { apurarVotacao } from '@/domain/quorum'
-import { parametrosSchema, versaoAplicavelSync } from '@/domain/regulamento'
-import { deDb } from '@/domain/tempo'
+import { parametrosSchema, versaoAplicavelSync, vigenciaDeAlteracao } from '@/domain/regulamento'
+import { dataLocal, deDb, somarHoras } from '@/domain/tempo'
 import { db } from '@/server/db'
 
 import { descreverEfeito } from './descricao'
@@ -41,7 +42,7 @@ export async function detalheVotacao(id: string, pessoaId: string, agora: Date) 
     include: {
       votos: { orderBy: { votadoEm: 'asc' } },
       ata: { select: { numero: true } },
-      versaoRegulamento: { select: { numero: true } },
+      versaoRegulamento: { select: { numero: true, textoMarkdown: true, parametros: true } },
     },
   })
   if (!v) return null
@@ -76,6 +77,7 @@ export async function detalheVotacao(id: string, pessoaId: string, agora: Date) 
       v.status === 'ABERTA' &&
       v.convocadaPorId === pessoaId &&
       v.assunto !== 'VETO_JOGO' &&
+      v.assunto !== 'CESSAO_VEZ' &&
       v.votos.every((x) => x.pessoaId === v.convocadaPorId),
     abertaEm: v.abertaEm,
     encerraEm: v.encerraEm,
@@ -100,6 +102,26 @@ export async function detalheVotacao(id: string, pessoaId: string, agora: Date) 
       v.eleitoresIds.includes(pessoaId) &&
       !v.impedidosIds.includes(pessoaId) &&
       !votaram.has(pessoaId),
+    alteracao: efeito.tipo === 'ALTERACAO_REGULAMENTO' ? alteracao(v, efeito) : null,
+  }
+}
+
+/** RN-REG-03: diff contra a versão vigente na convocação, parâmetros alterados e vigência. */
+function alteracao(
+  v: {
+    encerraEm: Date
+    encerradaEm: Date | null
+    versaoRegulamento: { textoMarkdown: string; parametros: unknown }
+  },
+  e: Extract<Efeito, { tipo: 'ALTERACAO_REGULAMENTO' }>,
+) {
+  const antes = parametrosSchema.parse(v.versaoRegulamento.parametros)
+  return {
+    trechos: trechosDoDiff(diffLinhas(v.versaoRegulamento.textoMarkdown, e.texto)),
+    parametros: (Object.keys(antes) as (keyof typeof antes)[])
+      .filter((k) => antes[k] !== e.parametros[k])
+      .map((k) => ({ nome: k, antes: String(antes[k]), depois: String(e.parametros[k]) })),
+    vigenteDesde: vigenciaDeAlteracao(v.encerradaEm ?? v.encerraEm),
   }
 }
 
@@ -182,6 +204,15 @@ export async function opcoesDeConvocacao(agora: Date) {
           numero: vigente.numero,
           texto: vigente.textoMarkdown,
           parametros: parametrosSchema.parse(vigente.parametros),
+          // RN-REG-03 (D-20): vigência se aprovada já ou só no fim do prazo da votação
+          vigencia: [
+            dataLocal(vigenciaDeAlteracao(agora)),
+            dataLocal(
+              vigenciaDeAlteracao(
+                somarHoras(agora, parametrosSchema.parse(vigente.parametros).horasVotacao),
+              ),
+            ),
+          ] as const,
         }
       : null,
   }
