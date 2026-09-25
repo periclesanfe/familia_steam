@@ -33,4 +33,5 @@ export const db = globalComPrisma.prisma ?? criarCliente()
 
 if (process.env.NODE_ENV !== 'production') globalComPrisma.prisma = db
 
-export type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0]
+/** Cliente de transação interativa, com o mesmo `omit` global do db. */
+export type Tx = Omit<typeof db, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>

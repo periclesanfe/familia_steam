@@ -146,7 +146,12 @@ export async function executarRodada(
 }
 
 /** Fatos do corte para o domínio, em número fixo de consultas (13 DP-03). */
-async function carregarEntrada(tx: Tx, cicloId: string, rodadaId: string, T: Date) {
+export async function carregarEntrada(
+  tx: Tx, // também o db, na prévia da elegibilidade
+  cicloId: string,
+  rodadaId: string,
+  T: Date,
+) {
   const [participacoes, rodadas, declaracoes] = await Promise.all([
     tx.participacaoCiclo.findMany({
       where: { cicloId },

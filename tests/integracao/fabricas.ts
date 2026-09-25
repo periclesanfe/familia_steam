@@ -66,7 +66,10 @@ export async function prepararCiclo1(assinaturaEm = new Date('2026-09-28T12:00:0
   return ids
 }
 
-/** Paga (DECLARADO, Pix direto ao credor) todas as contribuições abertas não autoquitadas. */
+/**
+ * Paga todas as contribuições abertas não autoquitadas. Forma diversa CONFIRMADA (conta pela
+ * RN-FIN-06 e dispensa comprovante pelo CHECK pagamento_comprovante).
+ */
 export async function pagarTudo(pixEm: Date) {
   const abertas = await dono.obrigacao.findMany({
     where: {
@@ -83,7 +86,9 @@ export async function pagarTudo(pixEm: Date) {
       recebedorId: o.credorId,
       valorCentavos: o.valorCentavos,
       pixEm,
-      status: 'DECLARADO' as const,
+      status: 'CONFIRMADO' as const,
+      formaDiversa: true,
+      confirmadoEm: pixEm,
       registradoPorId: o.devedorId,
       registradoEm: pixEm,
     })),
