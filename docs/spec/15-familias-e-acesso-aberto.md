@@ -71,7 +71,7 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
   - avaliações e data de inclusão;
   - quem da família já possui o jogo e quem mais o deseja;
   - filtros (em promoção, compartilhável, abaixo de R$ X).
-- **Biblioteca da família:** grade de capas com dono(s), horas jogadas e selo de compartilhável.
+- **Biblioteca da família:** grade de capas com os avatares dos donos, cópias, horas jogadas somadas, gêneros, avaliação da loja e selo de compartilhável; totais no topo (jogos diferentes, compartilháveis, horas). Busca, filtros (compartilháveis, verificando, mais de uma cópia, por dono) e ordenação (nome, mais jogados, mais cópias, melhor avaliados) no cliente, sobre os dados já carregados; a grade mostra 48 por vez ("Mostrar mais").
 
 ## 6. Calendário de promoções (M10c)
 

@@ -4,51 +4,31 @@ import Link from 'next/link'
 import { BotaoEnviar } from '@/components/BotaoEnviar'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { FormAcao } from '@/components/FormAcao'
-import { StatusBadge } from '@/components/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { dataLocal } from '@/domain/tempo'
 import { registrarExecucaoAcao } from '@/features/familia/acoes'
 import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
 import { familiaDe, indicacoesDaFamilia } from '@/features/familias/consultas'
-import { bibliotecaDaFamilia, type Compartilhavel, familia } from '@/features/steam/consultas'
+import { GradeBiblioteca } from '@/features/steam/componentes/GradeBiblioteca'
+import { bibliotecaDaFamilia, familia } from '@/features/steam/consultas'
 import { formatarDataCivil } from '@/lib/formato'
-import type { Tom } from '@/lib/rotulos'
 import { paginaExige } from '@/server/auth/guardas'
 import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Família' }
 
-const COMPARTILHAVEL: Record<Compartilhavel, { rotulo: string; tom: Tom }> = {
-  SIM: { rotulo: 'Compartilhável', tom: 'sucesso' },
-  NAO: { rotulo: 'Não compartilhável', tom: 'inativo' },
-  VERIFICANDO: { rotulo: 'Verificando…', tom: 'neutro' },
-}
-const FILTROS = [
-  ['todos', 'Todos'],
-  ['compartilhaveis', 'Compartilháveis'],
-  ['verificando', 'Verificando'],
-] as const
-
 // 07 §3.10: integrantes, vagas, biblioteca compartilhável (RN-STM-12) e regras da Steam (RN-STM-13).
-export default async function FamiliaPage({ searchParams }: PageProps<'/familia'>) {
+export default async function FamiliaPage() {
   const { pessoaId } = await paginaExige(['MEMBRO'])
   const t = agora()
-  const [{ filtro, busca }, f, biblioteca, indicacoes, nomeFamilia] = await Promise.all([
-    searchParams,
+  const [f, biblioteca, indicacoes, nomeFamilia] = await Promise.all([
     familia(t),
     bibliotecaDaFamilia(),
     indicacoesDaFamilia(pessoaId, t),
     familiaDe(pessoaId),
   ])
-  const termo = typeof busca === 'string' ? busca.toLocaleLowerCase('pt-BR') : ''
-  const jogos = biblioteca.filter(
-    (j) =>
-      (filtro !== 'compartilhaveis' || j.compartilhavel === 'SIM') &&
-      (filtro !== 'verificando' || j.compartilhavel === 'VERIFICANDO') &&
-      (!termo || j.nome.toLocaleLowerCase('pt-BR').includes(termo)),
-  )
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -169,68 +149,33 @@ export default async function FamiliaPage({ searchParams }: PageProps<'/familia'
         </Card>
       </div>
 
-      <section aria-labelledby="biblioteca" className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section aria-labelledby="biblioteca" className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
           <h2 id="biblioteca" className="text-lg font-semibold">
-            Biblioteca da família{' '}
-            <span className="text-sm font-normal text-muted-foreground">({jogos.length})</span>
+            Biblioteca da família
           </h2>
-          <form className="flex gap-2" role="search">
-            <input
-              name="busca"
-              defaultValue={typeof busca === 'string' ? busca : ''}
-              placeholder="Buscar jogo"
-              aria-label="Buscar jogo"
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-            />
-            {typeof filtro === 'string' && <input type="hidden" name="filtro" value={filtro} />}
-          </form>
+          <p className="text-xs text-muted-foreground">
+            Aproximação: só os jogos próprios de quem tem a biblioteca pública (a Steam não expõe a
+            família nem as DLCs).
+          </p>
         </div>
-        <nav aria-label="Filtro" className="flex gap-3 text-sm">
-          {FILTROS.map(([id, rotulo]) => (
-            <Link
-              key={id}
-              href={id === 'todos' ? '/familia' : `/familia?filtro=${id}`}
-              aria-current={(filtro ?? 'todos') === id ? 'page' : undefined}
-              className="underline-offset-4 hover:underline aria-[current=page]:font-semibold"
-            >
-              {rotulo}
-            </Link>
+        <dl className="grid grid-cols-3 gap-3">
+          {(
+            [
+              ['Jogos diferentes', biblioteca.length],
+              ['Compartilháveis', biblioteca.filter((j) => j.compartilhavel === 'SIM').length],
+              ['Horas jogadas', biblioteca.reduce((s, j) => s + j.horas, 0)],
+            ] as const
+          ).map(([rotulo, valor]) => (
+            <div key={rotulo} className="rounded-lg border bg-card p-3">
+              <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+              <dd className="text-xl font-semibold tabular-nums">
+                {valor.toLocaleString('pt-BR')}
+              </dd>
+            </div>
           ))}
-        </nav>
-        <p className="text-xs text-muted-foreground">
-          Aproximação: só os jogos próprios de quem tem a biblioteca pública (a Steam não expõe a
-          família nem as DLCs).
-        </p>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {jogos.map((j) => (
-            <li key={j.appId} className="flex flex-col overflow-hidden rounded-lg border">
-              <Link href={`/jogos/${String(j.appId)}`} className="flex flex-col">
-                <div className="aspect-[460/215] bg-muted">
-                  {j.imagemUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element -- capa do CDN da Steam, sem otimizador (13 DP-12)
-                    <img
-                      src={j.imagemUrl}
-                      alt=""
-                      width={460}
-                      height={215}
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="flex flex-col gap-1 p-3 text-sm">
-                  <span className="font-medium">{j.nome}</span>
-                  <span className="text-muted-foreground">
-                    {j.copias} cópia{j.copias > 1 ? 's' : ''}:{' '}
-                    {j.donos.map((d) => d.apelido).join(', ')}
-                  </span>
-                  <StatusBadge {...COMPARTILHAVEL[j.compartilhavel]} />
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        </dl>
+        <GradeBiblioteca jogos={biblioteca} />
       </section>
     </div>
   )

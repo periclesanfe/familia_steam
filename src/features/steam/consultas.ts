@@ -40,19 +40,25 @@ export async function bibliotecaDaFamilia() {
     where: {
       pessoa: { OR: [{ integrantes: { some: { status: 'ATIVO' } } }, { membros: { some: {} } }] },
     },
-    select: { appId: true, minutosJogados: true, pessoa: { select: { id: true, apelido: true } } },
+    select: {
+      appId: true,
+      minutosJogados: true,
+      pessoa: { select: { id: true, apelido: true, steamNick: true, steamAvatarUrl: true } },
+    },
   })
   const apps = await db.steamApp.findMany({
     where: { appId: { in: [...new Set(posses.map((p) => p.appId))] } },
     select: selecaoApp,
   })
   const porApp = new Map(apps.map((a) => [a.appId, a]))
-  const agrupado = new Map<number, { donos: { id: string; apelido: string; horas: number }[] }>()
+  type Dono = { id: string; apelido: string; avatarUrl: string | null; horas: number }
+  const agrupado = new Map<number, { donos: Dono[] }>()
   for (const p of posses) {
     const g = agrupado.get(p.appId) ?? { donos: [] }
     g.donos.push({
       id: p.pessoa.id,
-      apelido: p.pessoa.apelido,
+      apelido: p.pessoa.steamNick ?? p.pessoa.apelido,
+      avatarUrl: p.pessoa.steamAvatarUrl,
       horas: Math.round(p.minutosJogados / 60),
     })
     agrupado.set(p.appId, g)
@@ -65,7 +71,11 @@ export async function bibliotecaDaFamilia() {
         nome: app?.nome ?? `App ${String(appId)}`,
         imagemUrl: app?.imagemUrl ?? capaDoApp(appId),
         compartilhavel: compartilhavel(app),
-        donos: g.donos.sort((a, b) => a.apelido.localeCompare(b.apelido)),
+        tipo: app?.tipo ?? null,
+        generos: app?.generos ?? [],
+        avaliacao: app ? avaliacaoDaLoja(app) : null,
+        horas: g.donos.reduce((s, d) => s + d.horas, 0),
+        donos: g.donos.sort((a, b) => b.horas - a.horas),
         copias: g.donos.length,
       }
     })
