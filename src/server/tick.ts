@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { executarRodada } from '@/features/rodadas/servico'
+import { fecharVotacoesVencidas } from '@/features/votacoes/servico'
 
 import { db } from './db'
 import { log } from './log'
@@ -13,6 +14,7 @@ export type ResumoTick =
   | { executou: false; motivo: 'LEASE_OCUPADO' }
   | {
       executou: true
+      votacoesEncerradas: number
       sorteios: { rodadaId: string; status: string }[]
       erros: string[]
       limpeza: number
@@ -32,7 +34,9 @@ export async function executarTick(): Promise<ResumoTick> {
   const erros: string[] = []
   const sorteios: { rodadaId: string; status: string }[] = []
   try {
-    // 1. votações vencidas — entra no M6
+    // 1. votações vencidas (RN-VOT-13): ATA por PRAZO
+    const votacoes = await fecharVotacoesVencidas()
+    erros.push(...votacoes.erros)
     // 2. sorteios devidos, em ordem (ciclo, sequência); cada um na própria transação
     const devidas = await db.rodada.findMany({
       where: { status: 'AGENDADA', agendadaPara: { lte: agora() } },
@@ -60,7 +64,13 @@ export async function executarTick(): Promise<ResumoTick> {
       data: { valor: { em: t.toISOString(), erros: erros.length } },
     })
     if (erros.length) log.erro('tick.erros', { quantidade: erros.length })
-    return { executou: true, sorteios, erros, limpeza: nonces.count + sessoes.count }
+    return {
+      executou: true,
+      votacoesEncerradas: votacoes.encerradas,
+      sorteios,
+      erros,
+      limpeza: nonces.count + sessoes.count,
+    }
   } finally {
     await db.controle.update({ where: { chave: 'tick' }, data: { ate: null } })
   }

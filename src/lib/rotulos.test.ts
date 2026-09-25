@@ -6,6 +6,7 @@ import {
   StatusCiclo,
   StatusPagamento,
   StatusRodada,
+  StatusVotacao,
   TipoContemplacao,
   TipoObrigacao,
 } from '@/generated/prisma/enums'
@@ -16,6 +17,7 @@ import {
   STATUS_CICLO,
   STATUS_PAGAMENTO,
   STATUS_RODADA,
+  STATUS_VOTACAO,
   TIPO_CONTEMPLACAO,
   TIPO_OBRIGACAO,
 } from './rotulos'
@@ -30,6 +32,7 @@ describe('rótulos', () => {
     [StatusPagamento, STATUS_PAGAMENTO],
     [MotivoContestacao, MOTIVO_CONTESTACAO],
     [TipoObrigacao, TIPO_OBRIGACAO],
+    [StatusVotacao, STATUS_VOTACAO],
   ] as const)('cobre todos os valores (%#)', (enumerado, dicionario) => {
     expect(Object.keys(dicionario).sort()).toEqual(Object.values(enumerado).sort())
   })

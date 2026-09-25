@@ -33,6 +33,14 @@ export const ERROS = {
   PAGAMENTO_EM_ESTADO_INVALIDO: {
     mensagem: 'Este pagamento não está num estado que permita a ação.',
   },
+  EFEITO_INDISPONIVEL: { mensagem: 'Este efeito ainda não está disponível no sistema.' },
+  VOTACAO_DUPLICADA: {
+    mensagem: 'Já existe uma votação aberta sobre este mesmo objeto.',
+    artigo: 'art. 41',
+  },
+  CANCELAMENTO_NEGADO: {
+    mensagem: 'Só o convocante cancela, e só antes do voto de outro membro.',
+  },
   JUSTIFICATIVA_FORA_DO_PRAZO: {
     mensagem: 'A justificativa só vale se registrada antes do vencimento.',
     artigo: 'art. 11, p.u.',
