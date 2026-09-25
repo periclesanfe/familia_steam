@@ -16,6 +16,16 @@ export const ERROS = {
     artigo: 'art. 41',
   },
   ELEITOR_INVALIDO: { mensagem: 'Você não é eleitor desta votação.', artigo: 'art. 2º, IX' },
+  SORTEIO_ANTES_DO_HORARIO: {
+    mensagem: 'O sorteio só pode ser realizado a partir do horário agendado.',
+    artigo: 'art. 8º',
+  },
+  SORTEIO_FORA_DE_ORDEM: { mensagem: 'Há uma rodada anterior deste ciclo ainda por sortear.' },
+  RODADA_ENCERRADA: {
+    mensagem: 'O sorteio desta rodada já foi realizado.',
+    artigo: 'art. 12',
+  },
+  NAO_PARTICIPA: { mensagem: 'Você não participa desta rodada.', artigo: 'art. 12' },
 } as const satisfies Record<string, { mensagem: string; artigo?: string }>
 
 export type CodigoErro = keyof typeof ERROS

@@ -93,7 +93,16 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['@/server/*', '@/features/*/servico', '@/generated/*'] }] },
+        {
+          patterns: [
+            { group: ['@/server/*', '@/features/*/servico'] },
+            // enums são objetos `as const`, sem runtime do Prisma: podem ir ao cliente
+            {
+              regex: '^@/generated/(?!prisma/enums$)',
+              message: 'O cliente só importa @/generated/prisma/enums.',
+            },
+          ],
+        },
       ],
     },
   },

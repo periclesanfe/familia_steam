@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { BookOpen, Dices, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -21,6 +21,7 @@ import { sairAcao } from '@/features/autenticacao/acoes'
 // 07 §2 / 12 UI-09: itens entram conforme as rotas existem (typedRoutes).
 const ITENS = [
   { href: '/', rotulo: 'Painel', Icone: LayoutDashboard },
+  { href: '/rodadas', rotulo: 'Rodadas', Icone: Dices },
   { href: '/regulamento', rotulo: 'Regulamento', Icone: BookOpen },
   { href: '/perfil', rotulo: 'Perfil', Icone: UserRound },
 ] as const
