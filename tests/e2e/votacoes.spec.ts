@@ -30,7 +30,10 @@ test('CA-124: votação com justificativa maliciosa → texto na tela e na ATA, 
     await page.getByRole('button', { name: 'Votar a favor' }).click()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Votar a favor' }).click()
     await expect(
-      page.getByText('Seu voto está registrado.').or(page.getByRole('link', { name: /Ver a ATA/ })),
+      page
+        .getByText('Seu voto está registrado.')
+        .or(page.getByRole('link', { name: /Ver a ATA/ }))
+        .first(),
     ).toBeVisible()
     await contexto.close()
   }
