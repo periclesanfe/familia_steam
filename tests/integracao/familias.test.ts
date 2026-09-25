@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { indicacoesDaFamilia } from '@/features/familias/consultas'
 import {
   aceitarConvite,
   criarFamilia,
@@ -234,5 +235,62 @@ describe('famílias (15 RN-FAM, SEG-13)', () => {
     })
     await comFamilia(familiaId, () => removerEvento(ctxDe(a, t), { eventoId }))
     expect(await dono.eventoPromocao.count()).toBe(0)
+  })
+
+  it('CA-188: depois da vigência a indicação abre ADMISSAO_MEMBRO com o quórum da versão vigente', async () => {
+    const [ana = ''] = await prepararCiclo1()
+    await visitante(STEAM.a, 'Alice')
+    const r = await indicar(ctxDe(ana, agora()), { steamId64: STEAM.a, nome: 'Alice' })
+    const vigente = await dono.versaoRegulamento.findFirstOrThrow({
+      where: { familiaId: FAMILIA_PADRAO, vigenteDesde: { not: null } },
+      orderBy: { ordem: 'desc' },
+    })
+    const v = await dono.votacao.findUniqueOrThrow({ where: { id: r.votacaoId ?? '' } })
+    expect(v).toMatchObject({
+      assunto: 'ADMISSAO_MEMBRO',
+      status: 'ABERTA',
+      n: 5,
+      quorum: 3, // maioria absoluta (art. 2º, IX)
+      versaoRegulamentoId: vigente.id,
+    })
+    expect(await dono.indicacao.findUniqueOrThrow({ where: { id: r.indicacaoId } })).toMatchObject({
+      votacaoId: v.id,
+      status: 'ABERTA',
+    })
+    expect(await dono.convite.count()).toBe(0) // o convite só sai com a votação aprovada
+    expect(await dono.aprovacaoIndicacao.count()).toBe(0) // o rito de antes da vigência não vale
+  })
+
+  it('CA-190: a indicação mostra quantos jogos compartilháveis o candidato acrescenta', async () => {
+    const { a, familiaId } = await familiaX()
+    const bruno = await visitante(STEAM.b, 'Bruno')
+    await dono.steamApp.createMany({
+      data: [
+        { appId: 1, sucesso: true, categorias: [62] },
+        { appId: 2, sucesso: true, categorias: [62] },
+        { appId: 3, sucesso: true, categorias: [62] },
+        { appId: 4, sucesso: true, categorias: [] },
+      ],
+    })
+    const posse = (pessoaId: string, appId: number) => ({
+      pessoaId,
+      appId,
+      sincronizadoEm: agora(),
+    })
+    await dono.jogoPossuido.createMany({
+      data: [posse(a, 1), posse(a, 2), posse(bruno.id, 2), posse(bruno.id, 3), posse(bruno.id, 4)],
+    })
+    await dono.pessoa.update({ where: { id: bruno.id }, data: { steamJogosPublicos: true } })
+    await comFamilia(familiaId, () =>
+      indicar(ctxDe(a, agora()), { steamId64: STEAM.b, nome: 'Bruno' }),
+    )
+    const [i] = await comFamilia(familiaId, () => indicacoesDaFamilia(a, agora()))
+    // 3 jogos; o 2 a família já tem; do 3 e do 4, só o 3 tem a categoria 62
+    expect(i?.candidato).toMatchObject({
+      bibliotecaPublica: true,
+      jogos: 3,
+      novos: 2,
+      novosCompartilhaveis: 1,
+    })
   })
 })
