@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { bibliotecaDaFamilia } from '@/features/steam/consultas'
-import { atualizarApps, sincronizarPessoas, steamEmPausa } from '@/features/steam/sync'
+import { bibliotecaDaFamilia, detalheDoJogo } from '@/features/steam/consultas'
+import {
+  atualizarApps,
+  buscarDetalhes,
+  sincronizarPessoas,
+  steamEmPausa,
+} from '@/features/steam/sync'
 import { criarApiSteam } from '@/server/steam/api'
 
 import { criarMembro, dono, limpar } from './banco'
@@ -107,5 +112,55 @@ describe('sincronização Steam (RN-STM-04..12)', () => {
     const cp = await dono.steamApp.findUniqueOrThrow({ where: { appId: 413150 } })
     expect(cp.imagemUrl).toContain('steamstatic.com')
     expect(JSON.stringify(cp)).not.toContain('<') // campos HTML do appdetails não são gravados
+  })
+
+  it('CA-191 e 15 §5: preço muda 3 vezes → 3 PrecoApp; avaliações e capturas em pares do CDN', async () => {
+    const CDN = 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150'
+    const dados = stardew['413150'].data
+    let preco = { final: 2499, discount_percent: 0 }
+    const api = criarApiSteam(undefined, (entrada) => {
+      const url = new URL((entrada as URL).toString())
+      if (url.pathname.startsWith('/appreviews/')) {
+        return json({
+          success: 1,
+          query_summary: {
+            review_score: 9,
+            total_positive: 980,
+            total_negative: 20,
+            total_reviews: 1000,
+          },
+        })
+      }
+      return json({
+        '413150': {
+          success: true,
+          data: {
+            ...dados,
+            price_overview: { ...dados.price_overview, initial: 2499, ...preco },
+            screenshots: [
+              { path_thumbnail: `${CDN}/a.600x338.jpg`, path_full: `${CDN}/a.1920x1080.jpg` },
+              {
+                path_thumbnail: `${CDN}/b.600x338.jpg`,
+                path_full: 'https://evil.example.com/b.jpg',
+              },
+            ],
+          },
+        },
+      })
+    })
+    const semEspera = () => Promise.resolve()
+    await buscarDetalhes([413150], api, semEspera, new Date('2026-10-01T12:00:00Z'))
+    preco = { final: 1249, discount_percent: 50 }
+    await buscarDetalhes([413150], api, semEspera, new Date('2026-10-02T12:00:00Z'))
+    await buscarDetalhes([413150], api, semEspera, new Date('2026-10-03T12:00:00Z')) // sem mudança: não grava
+    preco = { final: 1749, discount_percent: 30 }
+    await buscarDetalhes([413150], api, semEspera, new Date('2026-10-04T12:00:00Z'))
+    expect(await dono.precoApp.count({ where: { appId: 413150 } })).toBe(3)
+
+    const j = await detalheDoJogo(413150)
+    expect(j.menorPrecoCentavos).toBe(1249)
+    expect(j.avaliacao).toMatchObject({ rotulo: 'Extremamente positivas', pct: 98, total: 1000 })
+    expect(j.app?.capturas).toEqual([`${CDN}/a.600x338.jpg`]) // o par com host estranho sai inteiro
+    expect(j.app?.capturasGrandes).toEqual([`${CDN}/a.1920x1080.jpg`])
   })
 })

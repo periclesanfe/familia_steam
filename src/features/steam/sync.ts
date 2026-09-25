@@ -199,6 +199,32 @@ export async function atualizarApps(
   )
 }
 
+function capturasDe(lista: readonly { path_thumbnail: string; path_full: string }[]) {
+  const pares = lista
+    .map((c) => [imagemSteamSegura(c.path_thumbnail), imagemSteamSegura(c.path_full)] as const)
+    .filter((p): p is readonly [string, string] => p[0] !== null && p[1] !== null)
+    .slice(0, 8)
+  return { capturas: pares.map((p) => p[0]), capturasGrandes: pares.map((p) => p[1]) }
+}
+
+/** 15 §5: avaliações da loja; falha comum mantém as anteriores, 429/403 pausa (RN-STM-10). */
+async function avaliacoesDe(api: ApiSteam, appId: number) {
+  try {
+    const r = await api.avaliacoes(appId)
+    const q = r.success === 1 ? r.query_summary : undefined
+    return q
+      ? {
+          avaliacaoNota: q.review_score,
+          avaliacoesPositivas: q.total_positive,
+          avaliacoesTotal: q.total_reviews,
+        }
+      : {}
+  } catch (e) {
+    if (e instanceof LimiteSteam) throw e
+    return {}
+  }
+}
+
 /**
  * RN-STM-08/10: consulta e grava os detalhes de uma lista de apps, em série e com intervalo;
  * 429/403 pausa tudo. Usado pelo tick e pelo aviso de compra (até 10 apps, cache > 1 h).
@@ -232,10 +258,8 @@ export async function buscarDetalhes(
             metacritic: d.metacritic?.score ?? null,
             descricaoCurta: d.short_description ? textoSemHtml(d.short_description) : null,
             lancamento: d.release_date?.date ?? null,
-            capturas: (d.screenshots ?? [])
-              .map((c) => imagemSteamSegura(c.path_thumbnail))
-              .filter((u): u is string => u !== null)
-              .slice(0, 8),
+            // pares miniatura/grande, descartados juntos se um dos dois não for do CDN (SEG-04)
+            ...capturasDe(d.screenshots ?? []),
             categorias: (d.categories ?? []).map((c) => c.id),
             descritoresConteudo: d.content_descriptors?.ids ?? [],
             jogoBaseAppId: d.fullgame?.appid ?? null,
@@ -247,12 +271,18 @@ export async function buscarDetalhes(
           }
         : { sucesso: false, detalhesEm: t }
       // eslint-disable-next-line no-await-in-loop -- idem
+      const notas = d ? await avaliacoesDe(api, appId) : {}
+      // eslint-disable-next-line no-await-in-loop -- idem
       const antes = await db.steamApp.findUnique({
         where: { appId },
         select: { precoFinalCentavos: true, descontoPct: true },
       })
       // eslint-disable-next-line no-await-in-loop -- idem
-      await db.steamApp.upsert({ where: { appId }, create: { appId, ...dados }, update: dados })
+      await db.steamApp.upsert({
+        where: { appId },
+        create: { appId, ...dados, ...notas },
+        update: { ...dados, ...notas },
+      })
       // 15 §5: histórico próprio de preço, gravado quando preço ou desconto mudam (CA-191)
       const final = d?.price_overview?.final
       if (

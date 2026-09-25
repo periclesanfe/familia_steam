@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { appIdDeTexto, imagemSteamSegura, ordenarListaDesejos } from './steam'
+import { appIdDeTexto, avaliacaoDaLoja, imagemSteamSegura, ordenarListaDesejos } from './steam'
 import wishlist from '../../tests/fixtures/steam/wishlist.json'
 
 describe('Steam (regras puras)', () => {
@@ -31,5 +31,20 @@ describe('Steam (regras puras)', () => {
     expect(imagemSteamSegura('http://cdn.akamai.steamstatic.com/x.jpg')).toBeNull()
     expect(imagemSteamSegura('https://steamstatic.com.evil.io/x.jpg')).toBeNull()
     expect(imagemSteamSegura('javascript:alert(1)')).toBeNull()
+  })
+
+  it('avaliações da loja: termo da Steam, % positivas e tom', () => {
+    expect(
+      avaliacaoDaLoja({ avaliacaoNota: 9, avaliacoesPositivas: 1024466, avaliacoesTotal: 1040284 }),
+    ).toEqual({ rotulo: 'Extremamente positivas', pct: 98, total: 1040284, tom: 'sucesso' })
+    expect(
+      avaliacaoDaLoja({ avaliacaoNota: 5, avaliacoesPositivas: 50, avaliacoesTotal: 100 })?.tom,
+    ).toBe('atencao')
+    expect(
+      avaliacaoDaLoja({ avaliacaoNota: 0, avaliacoesPositivas: 0, avaliacoesTotal: 0 }),
+    ).toMatchObject({ rotulo: 'Poucas avaliações', pct: null })
+    expect(
+      avaliacaoDaLoja({ avaliacaoNota: null, avaliacoesPositivas: null, avaliacoesTotal: null }),
+    ).toBeNull()
   })
 })

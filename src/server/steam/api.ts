@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { log } from '../log'
 import {
   appDetailsSchema,
+  avaliacoesSchema,
   friendListSchema,
   ownedGamesSchema,
   playerSummariesSchema,
@@ -106,6 +107,15 @@ export function criarApiSteam(chave: string | undefined, buscar: typeof fetch = 
         '/api/appdetails',
         { appids: String(appId), cc: 'br', l: 'brazilian' },
         appDetailsSchema,
+        false,
+      ),
+    /** 15 §5: nota e totais das avaliações de todos os idiomas */
+    avaliacoes: (appId: number) =>
+      chamar(
+        LOJA,
+        `/appreviews/${String(appId)}`,
+        { json: '1', language: 'all', purchase_type: 'all', num_per_page: '0' },
+        avaliacoesSchema,
         false,
       ),
   }

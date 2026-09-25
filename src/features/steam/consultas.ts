@@ -2,7 +2,7 @@ import 'server-only'
 
 import { parametrosSchema, versaoAplicavelSync } from '@/domain/regulamento'
 import { codigoAmigo } from '@/domain/regulamento'
-import { capaDoApp } from '@/domain/steam'
+import { avaliacaoDaLoja, capaDoApp } from '@/domain/steam'
 import { dataLocal, deDb } from '@/domain/tempo'
 import { db } from '@/server/db'
 
@@ -28,6 +28,9 @@ const selecaoApp = {
   imagemUrl: true,
   sucesso: true,
   emBreve: true,
+  avaliacaoNota: true,
+  avaliacoesPositivas: true,
+  avaliacoesTotal: true,
 } as const
 
 /** RN-STM-12: união das bibliotecas (membros e integrantes), com donos e cópias; 2 consultas. */
@@ -225,6 +228,7 @@ export async function perfilDoMembro(pessoaId: string) {
         gratuito: a?.gratuito ?? null,
         generos: a?.generos ?? [],
         metacritic: a?.metacritic ?? null,
+        avaliacao: a ? avaliacaoDaLoja(a) : null,
         emBreve: a?.emBreve ?? null,
         compartilhavel: compartilhavel(a),
         imagemUrl: a?.imagemUrl ?? (d.appId ? capaDoApp(d.appId) : null),
@@ -236,10 +240,20 @@ export async function perfilDoMembro(pessoaId: string) {
 
 /** 07 §3.11: jogo — dados da loja, quem possui, quem deseja e bloqueio. */
 export async function detalheDoJogo(appId: number) {
-  const [app, donos, desejos, bloqueio] = await Promise.all([
+  const [app, donos, desejos, bloqueio, precos] = await Promise.all([
     db.steamApp.findUnique({
       where: { appId },
-      select: { ...selecaoApp, jogoBaseAppId: true, detalhesEm: true },
+      select: {
+        ...selecaoApp,
+        jogoBaseAppId: true,
+        detalhesEm: true,
+        descricaoCurta: true,
+        lancamento: true,
+        desenvolvedoras: true,
+        publicadoras: true,
+        capturas: true,
+        capturasGrandes: true,
+      },
     }),
     db.jogoPossuido.findMany({
       where: { appId, pessoa: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] } },
@@ -253,6 +267,18 @@ export async function detalheDoJogo(appId: number) {
       where: { appIds: { has: appId }, excluidoEm: null },
       select: { numero: true, motivo: true, ataInclusaoNumero: true },
     }),
+    // 15 §5: menor preço visto e desde quando o sistema observa
+    db.precoApp.aggregate({ where: { appId }, _min: { precoCentavos: true, em: true } }),
   ])
-  return { appId, app, compartilhavel: compartilhavel(app), donos, desejos, bloqueio }
+  return {
+    appId,
+    app,
+    compartilhavel: compartilhavel(app),
+    avaliacao: app ? avaliacaoDaLoja(app) : null,
+    menorPrecoCentavos: precos._min.precoCentavos,
+    precosDesde: precos._min.em,
+    donos,
+    desejos,
+    bloqueio,
+  }
 }

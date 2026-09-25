@@ -5,15 +5,18 @@ import { notFound } from 'next/navigation'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Dinheiro } from '@/components/Dinheiro'
 import { StatusBadge } from '@/components/StatusBadge'
+import { capaDoApp } from '@/domain/steam'
+import { dataLocal } from '@/domain/tempo'
+import { GaleriaCapturas } from '@/features/steam/componentes/GaleriaCapturas'
 import { detalheDoJogo } from '@/features/steam/consultas'
-import { formatarDataHora } from '@/lib/formato'
-import { paginaExige } from '@/server/auth/guardas'
+import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
+import { paginaExige, TODOS_OS_PERFIS } from '@/server/auth/guardas'
 
 export const metadata: Metadata = { title: 'Jogo' }
 
-// 07 §3.11: capa, tipo, preço, categorias relevantes, descritores, quem possui, quem deseja, bloqueio.
+// 07 §3.11 / 15 §5: capturas, avaliações, ficha da loja, preço, categorias relevantes, descritores, quem possui, quem deseja, bloqueio.
 export default async function JogoPage({ params }: PageProps<'/jogos/[appId]'>) {
-  await paginaExige(['MEMBRO'])
+  await paginaExige(TODOS_OS_PERFIS) // 15 §1: a lista pessoal de qualquer perfil aponta para cá
   const { appId } = await params
   const id = Number(appId)
   if (!Number.isSafeInteger(id) || id <= 0) notFound()
@@ -21,7 +24,7 @@ export default async function JogoPage({ params }: PageProps<'/jogos/[appId]'>) 
   const a = j.app
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
       <CabecalhoPagina
         titulo={a?.nome ?? `App ${String(id)}`}
         descricao={
@@ -43,30 +46,112 @@ export default async function JogoPage({ params }: PageProps<'/jogos/[appId]'>) 
           )
         }
       />
-      {a?.imagemUrl && (
-        // eslint-disable-next-line @next/next/no-img-element -- capa do CDN da Steam, sem otimizador (13 DP-12)
-        <img
-          src={a.imagemUrl}
-          alt=""
-          width={460}
-          height={215}
-          className="aspect-[460/215] w-full rounded-lg border object-cover"
-        />
-      )}
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-        <div>
-          <dt className="text-muted-foreground">Tipo</dt>
-          <dd>{a?.tipo ?? '—'}</dd>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {a && a.capturas.length > 0 ? (
+          <GaleriaCapturas
+            miniaturas={a.capturas}
+            grandes={a.capturasGrandes}
+            nome={a.nome ?? `App ${String(id)}`}
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- capa do CDN da Steam, sem otimizador (13 DP-12)
+          <img
+            src={a?.imagemUrl ?? capaDoApp(id)}
+            alt=""
+            className="aspect-[460/215] w-full rounded-lg border bg-muted object-cover"
+          />
+        )}
+        <aside className="flex flex-col gap-4 text-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element -- idem */}
+          <img
+            src={a?.imagemUrl ?? capaDoApp(id)}
+            alt=""
+            className="hidden aspect-[460/215] w-full rounded-lg border bg-muted object-cover lg:block"
+          />
+          {a?.descricaoCurta && <p className="leading-relaxed">{a.descricaoCurta}</p>}
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground">Avaliações da loja</span>
+            {j.avaliacao ? (
+              <span className="flex flex-wrap items-center gap-2">
+                <StatusBadge rotulo={j.avaliacao.rotulo} tom={j.avaliacao.tom} />
+                {j.avaliacao.pct !== null && (
+                  <span className="text-muted-foreground tabular-nums">
+                    {j.avaliacao.pct}% de {j.avaliacao.total.toLocaleString('pt-BR')}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span>—</span>
+            )}
+          </div>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+            {a?.lancamento && (
+              <>
+                <dt className="text-muted-foreground">Lançamento</dt>
+                <dd>{a.lancamento}</dd>
+              </>
+            )}
+            {a && a.desenvolvedoras.length > 0 && (
+              <>
+                <dt className="text-muted-foreground">Desenvolvedora</dt>
+                <dd>{a.desenvolvedoras.join(', ')}</dd>
+              </>
+            )}
+            {a && a.publicadoras.length > 0 && (
+              <>
+                <dt className="text-muted-foreground">Distribuidora</dt>
+                <dd>{a.publicadoras.join(', ')}</dd>
+              </>
+            )}
+            {a?.metacritic != null && (
+              <>
+                <dt className="text-muted-foreground">Metacritic</dt>
+                <dd className="font-semibold tabular-nums">{a.metacritic}</dd>
+              </>
+            )}
+          </dl>
+          {a && a.generos.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {a.generos.map((g) => (
+                <li key={g} className="rounded-md bg-secondary px-2 py-0.5 text-xs">
+                  {g}
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
+      </div>
+      <dl className="grid grid-cols-2 gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-muted-foreground">Preço</dt>
-          <dd>
+          <dd className="flex flex-wrap items-baseline gap-x-2">
             {a?.gratuito ? (
               'Gratuito'
             ) : a?.precoFinalCentavos != null ? (
-              <Dinheiro centavos={a.precoFinalCentavos} />
+              <>
+                <Dinheiro
+                  centavos={a.precoFinalCentavos}
+                  className={(a.descontoPct ?? 0) > 0 ? 'font-semibold text-success' : ''}
+                />
+                {(a.descontoPct ?? 0) > 0 && a.precoInicialCentavos !== null && (
+                  <span className="text-xs text-muted-foreground">
+                    -{a.descontoPct}% de <Dinheiro centavos={a.precoInicialCentavos} />
+                  </span>
+                )}
+              </>
             ) : (
               '—'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Menor preço visto</dt>
+          <dd>
+            {j.menorPrecoCentavos !== null ? <Dinheiro centavos={j.menorPrecoCentavos} /> : '—'}
+            {j.precosDesde && (
+              <span className="block text-xs text-muted-foreground">
+                desde {formatarDataCivil(dataLocal(j.precosDesde))}
+              </span>
             )}
           </dd>
         </div>

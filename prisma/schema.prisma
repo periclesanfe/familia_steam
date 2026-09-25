@@ -815,6 +815,10 @@ model SteamApp {
   descricaoCurta       String? // texto puro (SEG-04: HTML descartado)
   lancamento           String? // release_date.date, como a loja escreve
   capturas             String[]  @default([]) // até 8 URLs dos CDNs da Steam (15 §5)
+  capturasGrandes      String[]  @default([]) // as mesmas, em tamanho cheio (galeria)
+  avaliacaoNota        Int? // appreviews review_score: 0 (poucas) a 9 (extremamente positivas)
+  avaliacoesPositivas  Int?
+  avaliacoesTotal      Int?
   prioridadeSync       Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
 
   @@index([prioridadeSync, detalhesEm])

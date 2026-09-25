@@ -79,3 +79,11 @@ export const friendListSchema = z.object({
 export const vanitySchema = z.object({
   response: z.object({ success: z.number(), steamid: z.string().optional() }),
 })
+
+/** 15 §5: resumo das avaliações da loja (appreviews, sem key; num_per_page=0 traz só o resumo). */
+export const avaliacoesSchema = z.object({
+  success: z.number(),
+  query_summary: z
+    .object({ review_score: z.int(), total_positive: z.int(), total_reviews: z.int() })
+    .optional(),
+})

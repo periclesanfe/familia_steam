@@ -59,11 +59,11 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 ## 5. Informação de jogos e listas (M10b)
 
 - **Por app** (`appdetails` + endpoints públicos), guardados em `SteamApp`:
-  - capa (`header_image`), cápsula, fundo e até 8 capturas (URLs dos CDNs da Steam, SEG-04);
+  - capa (`header_image`), cápsula, fundo e até 8 capturas em pares miniatura/tamanho cheio (URLs dos CDNs da Steam; se uma das duas não for do CDN, o par sai inteiro, SEG-04). A página do jogo mostra a galeria para qualquer perfil, porque a lista de desejos pessoal aponta para ela;
   - gêneros, categorias, desenvolvedoras, publicadoras, data de lançamento, Metacritic, idade mínima;
   - suporte a controle, plataformas, idiomas;
   - descrição curta **em texto** (o HTML é descartado, SEG-04);
-  - resumo de avaliações (`appreviews`: nota textual, % positivas, total);
+  - resumo de avaliações (`appreviews`, todos os idiomas, sem key: `review_score` 0–9 exibido com os termos da Steam em pt-BR, % positivas, total), buscado junto com o `appdetails`; falha comum mantém o anterior, 429/403 pausa (RN-STM-10);
   - jogadores agora (`GetNumberOfCurrentPlayers`, atualizado com o preço).
 - **Histórico de preço próprio:** `PrecoApp(appId, em, precoCentavos, descontoPct)` gravado quando o preço muda. A Steam não expõe histórico; o gráfico mostra o que o sistema observou.
 - **Lista de desejos:**

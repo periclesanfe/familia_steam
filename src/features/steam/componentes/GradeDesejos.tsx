@@ -21,6 +21,7 @@ export type Desejo = {
   gratuito: boolean | null
   generos: string[]
   metacritic: number | null
+  avaliacao: { rotulo: string; pct: number | null } | null
   emBreve: boolean | null
   compartilhavel: 'SIM' | 'NAO' | 'VERIFICANDO'
   bloqueado: boolean
@@ -147,6 +148,12 @@ export function GradeDesejos({ itens }: { itens: Desejo[] }) {
                 {d.generos.length > 0 && (
                   <span className="line-clamp-1 text-xs text-muted-foreground">
                     {d.generos.slice(0, 3).join(' · ')}
+                  </span>
+                )}
+                {d.avaliacao && (
+                  <span className="text-xs text-muted-foreground">
+                    {d.avaliacao.rotulo}
+                    {d.avaliacao.pct !== null && ` · ${String(d.avaliacao.pct)}%`}
                   </span>
                 )}
                 <div className="mt-auto flex items-end justify-between gap-2">
