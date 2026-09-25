@@ -13,7 +13,7 @@
 | Componentes | shadcn/ui (CLI v4, base Radix)                                                     | 4.x                                                                                  | componentes copiados para `src/components/ui`                                                                                                                               |
 | Formulários | `<form action>` + `useActionState` + zod                                           | **4.x**                                                                              | sem biblioteca de formulário; zod valida no servidor (12 UI-13)                                                                                                             |
 | Markdown    | react-markdown + remark-gfm                                                        | atuais                                                                               | sem `rehype-raw` (RN-ACE-15)                                                                                                                                                |
-| Datas       | date-fns + @date-fns/tz                                                            | 4.x / 1.x                                                                            | `{ in: tz('America/Sao_Paulo') }`                                                                                                                                           |
+| Datas       | `Intl` (sem biblioteca)                                                            | —                                                                                    | `src/domain/tempo.ts`: fuso IANA via `Intl.DateTimeFormat`, com lacuna de horário de verão tratada e testada                                                                |
 | Banco       | PostgreSQL                                                                         | 17                                                                                   | `docker compose` em dev                                                                                                                                                     |
 | ORM         | **Prisma ORM**                                                                     | **7.10.0 exato** (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) + `dotenv` (dev) | ⚠ `pnpm add prisma` puxa a **8.0.0-rc**; fixe a versão                                                                                                                      |
 | Testes      | Vitest / Playwright                                                                | 5.x / 1.63.x                                                                         | fixtures JSON para a Steam, sem MSW                                                                                                                                         |
@@ -46,7 +46,7 @@
 │  └─ seed-dev.ts             (05 §5)
 ├─ src/
 │  ├─ app/                    rotas (07 §1): só composição, sem regra de negócio
-│  ├─ domain/                 REGRAS PURAS (sem I/O; só zod, date-fns e @/generated/prisma/enums)
+│  ├─ domain/                 REGRAS PURAS (sem I/O; só zod, Intl, node:crypto e @/generated/prisma/enums)
 │  │  ├─ tempo.ts hash.ts dinheiro.ts quorum.ts financeiro.ts sorteio.ts
 │  │  ├─ cessao.ts compra.ts ciclo.ts regulamento.ts efeitos.ts erros.ts
 │  │  └─ *.test.ts            testes unitários ao lado
@@ -344,7 +344,7 @@ A branch `main` é protegida: todo PR precisa do CI verde.
 | **Propriedade** | Vitest (`fast-check` opcional)                | conservação (RN-FIN-18) em sequências aleatórias de pagamentos, reembolsos e cessões                                                                                                               | 1 teste                                                         |
 
 - **Relógio:** o domínio recebe `agora`. Na integração, `vi.setSystemTime` controla `agora()` (`src/server/relogio.ts`); nenhum SQL de negócio usa `now()`, e nunca se usa `sleep`.
-- **Banco de teste:** um `prisma migrate reset --force` no `globalSetup` do projeto `integracao` e `TRUNCATE <tabelas> RESTART IDENTITY CASCADE` no `beforeEach` (não dispara os triggers de linha). Os arquivos rodam em série. Os dados vêm das fábricas de `tests/fabricas.ts`.
+- **Banco de teste:** banco próprio `consorcio_teste` (criado por `docker/initdb`). O `globalSetup` recria o schema e roda `prisma migrate deploy`, e recusa qualquer banco cujo nome não termine em `_teste`. Não usa `migrate reset`, que o Prisma bloqueia quando detecta um agente de IA. O `beforeEach` faz `TRUNCATE <tabelas> RESTART IDENTITY CASCADE` como `app_owner` (não dispara os triggers de linha). O código testado usa o `db` do app, como `app_rw`, e por isso os testes exercitam os privilégios reais (14 SEG-08). Os arquivos rodam em série. Os dados vêm das fábricas de `tests/fabricas.ts`.
 - **`server-only`:** no projeto `integracao`, `resolve.alias: { 'server-only': './tests/vazio.ts' }`.
 - **Steam:** `fetch` injetado em `server/steam/api.ts` + fixtures JSON reais em `tests/fixtures/steam/` (appdetails de Cyberpunk, Stardew e CS2; wishlist com `priority` 0 repetido; owned games privado; packagedetails).
 - **E2E com tempo:** os instantes são preparados pela fábrica (rodada com `agendadaPara` no passado + chamada a `/api/cron/tick` com `CRON_SECRET`; as 48 h são simuladas recuando `avisadoEm`/`janelaVetoAte` no banco).
@@ -373,14 +373,16 @@ Agendamento a cada 5 min (D-29):
 
 ### 8.1 Variáveis (`src/server/env.ts`, validadas por zod no boot)
 
-| Variável        | Uso                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`  | Postgres                                                                                        |
-| `APP_URL`       | URL pública (`realm` e `return_to` do OpenID, links do GRUPO)                                   |
-| `STEAM_API_KEY` | GetPlayerSummaries, GetOwnedGames, ResolveVanityURL                                             |
-| `CRON_SECRET`   | proteção do tick (**≥ 32 caracteres**)                                                          |
-| `DEV_LOGIN`     | `1` habilita `/api/auth/dev` fora de produção. **Com `NODE_ENV=production`, o boot é recusado** |
-| `TZ`            | `UTC` no container (o fuso de negócio é aplicado no código)                                     |
+| Variável               | Uso                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | Postgres do app, papel `app_rw` (14 SEG-08)                                                     |
+| `MIGRATE_DATABASE_URL` | Postgres das migrações (CLI), papel `app_owner`                                                 |
+| `DEBUG_SQL`            | `1` imprime cada consulta com a duração (13 DP-16)                                              |
+| `APP_URL`              | URL pública (`realm` e `return_to` do OpenID, links do GRUPO)                                   |
+| `STEAM_API_KEY`        | GetPlayerSummaries, GetOwnedGames, ResolveVanityURL                                             |
+| `CRON_SECRET`          | proteção do tick (**≥ 32 caracteres**)                                                          |
+| `DEV_LOGIN`            | `1` habilita `/api/auth/dev` fora de produção. **Com `NODE_ENV=production`, o boot é recusado** |
+| `TZ`                   | `UTC` no container (o fuso de negócio é aplicado no código)                                     |
 
 ### 8.2 Execução
 
