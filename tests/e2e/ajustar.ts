@@ -8,8 +8,61 @@ const dono = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.MIGRATE_DATABASE_URL, max: 1 }),
 })
 const HADES = 1145350
+const STARDEW = 413150
+
+/** 15 §5: um jogo completo na biblioteca e na lista de um fundador (fotos, avaliações, preço). */
+async function biblioteca() {
+  const CDN = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${String(STARDEW)}`
+  const dados = {
+    nome: 'Stardew Valley',
+    tipo: 'game',
+    gratuito: false,
+    categorias: [2, 62],
+    descritoresConteudo: [],
+    sucesso: true,
+    precoFinalCentavos: 1249,
+    precoInicialCentavos: 2499,
+    descontoPct: 50,
+    generos: ['Indie', 'RPG', 'Simulação'],
+    descricaoCurta: 'Você herdou a antiga fazenda do seu avô.',
+    capturas: [`${CDN}/a.600x338.jpg`, `${CDN}/b.600x338.jpg`],
+    capturasGrandes: [`${CDN}/a.1920x1080.jpg`, `${CDN}/b.1920x1080.jpg`],
+    avaliacaoNota: 9,
+    avaliacoesPositivas: 980,
+    avaliacoesTotal: 1000,
+    jogadoresAgora: 36230,
+    jogadoresEm: new Date(),
+    detalhesEm: new Date(),
+    precoEm: new Date(),
+  }
+  await dono.steamApp.upsert({
+    where: { appId: STARDEW },
+    create: { appId: STARDEW, ...dados },
+    update: dados,
+  })
+  const ana = await dono.pessoa.findUniqueOrThrow({ where: { steamId64: '76561197960287930' } })
+  await dono.jogoPossuido.upsert({
+    where: { pessoaId_appId: { pessoaId: ana.id, appId: STARDEW } },
+    create: { pessoaId: ana.id, appId: STARDEW, minutosJogados: 600, sincronizadoEm: new Date() },
+    update: {},
+  })
+  const bruno = await dono.pessoa.findUniqueOrThrow({ where: { steamId64: '76561197960287931' } })
+  await dono.itemListaDesejos.upsert({
+    where: { pessoaId_origem_appId: { pessoaId: bruno.id, origem: 'STEAM', appId: STARDEW } },
+    create: {
+      pessoaId: bruno.id,
+      origem: 'STEAM',
+      appId: STARDEW,
+      posicao: 99,
+      adicionadoEm: new Date(),
+    },
+    update: {},
+  })
+  return { appId: STARDEW }
+}
 
 async function main(acao: string) {
+  if (acao === 'biblioteca') return biblioteca()
   const r1 = await dono.rodada.findFirstOrThrow({
     where: { sequencia: 1, ciclo: { numero: 1 } },
     include: { contemplado: { select: { steamId64: true } } },
