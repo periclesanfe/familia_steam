@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 
 import { PrismaClient } from '@/generated/prisma/client'
+import type { StatusMembro } from '@/generated/prisma/enums'
 import { db } from '@/server/db'
 
 /** Conexão como dono (app_owner): só para limpar e preparar cenários. O código testado usa `db` (app_rw). */
@@ -39,3 +40,23 @@ db.$on('query', (e) => {
 
 export const criarPessoa = (apelido = 'Ana', steamId64 = '76561197960287930') =>
   dono.pessoa.create({ data: { apelido, nome: apelido, steamId64 } })
+
+/** Pessoa com vínculo de membro no status pedido (fundador). */
+export async function criarMembro(
+  status: StatusMembro = 'ATIVO',
+  apelido = 'Ana',
+  steamId64 = '76561197960287930',
+) {
+  const pessoa = await criarPessoa(apelido, steamId64)
+  const membro = await dono.membro.create({
+    data: {
+      pessoaId: pessoa.id,
+      origem: 'FUNDADOR',
+      status,
+      ...(status === 'ENCERRADO'
+        ? { encerradoEm: new Date(), motivoEncerramento: 'SAIDA_VOLUNTARIA' as const }
+        : {}),
+    },
+  })
+  return { pessoa, membro }
+}

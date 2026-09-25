@@ -37,3 +37,10 @@ export const env = (): Env => (validado ??= lerEnv(process.env))
 
 /** SEG-02: prefixo `__Host-` e `Secure` só quando a URL pública é https. */
 export const cookieSeguro = (): boolean => usaHttps(env().APP_URL)
+
+/**
+ * RN-ACE-14: login de desenvolvimento. Lido a cada chamada (sem cache) e desligado em produção
+ * antes de qualquer outra checagem.
+ */
+export const loginDevHabilitado = (): boolean =>
+  process.env.NODE_ENV !== 'production' && process.env.DEV_LOGIN === '1'
