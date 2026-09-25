@@ -4,7 +4,15 @@ import Link from 'next/link'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Markdown } from '@/components/Markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { declaracaoDeAdesao, dividirRegulamento } from '@/domain/regulamento'
 import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
 import { familiaDe } from '@/features/familias/consultas'
@@ -13,6 +21,8 @@ import { FormAssinatura } from '@/features/onboarding/componentes/FormAssinatura
 import { FormDados } from '@/features/onboarding/componentes/FormDados'
 import { estadoDoOnboarding } from '@/features/onboarding/consultas'
 import { AnexosDoRegulamento } from '@/features/regulamento/componentes/AnexosDoRegulamento'
+import { RevisoesDoRascunho } from '@/features/regulamento/componentes/RevisoesDoRascunho'
+import { revisoesDoRascunho } from '@/features/regulamento/consultas'
 import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
 import { env } from '@/server/env'
@@ -25,10 +35,11 @@ export default async function BoasVindasPage() {
   // MEMBRO também: a última assinatura ativa o fundador e esta tela mostra a conclusão
   const { pessoaId, perfil } = await paginaExige(['PENDENTE', 'MEMBRO'])
   const t = agora()
-  const [e, indicacoes, familia] = await Promise.all([
+  const [e, indicacoes, familia, revisoes] = await Promise.all([
     estadoDoOnboarding(pessoaId, t),
     indicacoesDaFamilia(pessoaId, t),
     familiaDe(pessoaId),
+    revisoesDoRascunho(),
   ])
   const antesDaVigencia = !e.inicioDoCiclo1
 
@@ -118,6 +129,14 @@ export default async function BoasVindasPage() {
             <CardDescription>
               sha256 <span className="font-mono break-all">{e.versao.sha256}</span>
             </CardDescription>
+            {/* RN-REG-08: antes da vigência, qualquer membro da família ajusta o texto */}
+            {antesDaVigencia && familia && (
+              <CardAction>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/regulamento/editar">Editar o texto</Link>
+                </Button>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div
@@ -132,6 +151,12 @@ export default async function BoasVindasPage() {
               anexos={dividirRegulamento(e.versao.textoMarkdown).anexos}
               bloqueados={e.bloqueados}
             />
+            {antesDaVigencia && (
+              <>
+                <h3 className="text-base font-medium">Mudanças no rascunho</h3>
+                <RevisoesDoRascunho revisoes={revisoes} />
+              </>
+            )}
           </CardContent>
         </Card>
       )}

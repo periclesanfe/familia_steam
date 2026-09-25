@@ -32,6 +32,7 @@ src/app/
 │  ├─ jogos/[appId]/page.tsx             detalhe do jogo: quem tem, quem deseja, bloqueio
 │  ├─ lista-de-desejos/page.tsx          a minha lista
 │  ├─ regulamento/page.tsx               versão vigente + histórico
+│  ├─ regulamento/editar/page.tsx        edita o rascunho (antes da vigência) ou propõe alteração (RN-REG-08)
 │  ├─ regulamento/[numero]/page.tsx      versão específica + assinaturas
 │  ├─ auditoria/page.tsx                 trilha filtrável
 │  └─ perfil/page.tsx                    meus dados, Pix, Steam, sessões, declarações pessoais
@@ -152,7 +153,7 @@ Itens da Steam (só leitura, na ordem da Steam) + itens manuais (adicionar por l
 
 ### 3.13 `/regulamento`
 
-Texto da versão vigente com âncoras por artigo (`#art-23`), versões (número, vigência, ATA), assinaturas da versão (nome, data, hash) e alterações aprovadas aguardando vigência.
+Texto da versão vigente com âncoras por artigo (`#art-23`), versões (número, vigência, ATA), assinaturas da versão (nome, data, hash) e alterações aprovadas aguardando vigência. Alteração em votação aparece em destaque com link. Botão "Editar o rascunho" (antes da vigência) ou "Propor alteração" (depois, se não houver outra em votação), que leva a `/regulamento/editar` (RN-REG-08): o texto integral em Markdown, o diff ao vivo contra a versão base, os parâmetros, o resumo e, na proposta, a justificativa; confirma com `ConfirmarAcao` explicando que as assinaturas recomeçam (rascunho) ou que abre votação com vigência no dia 1º do mês seguinte (proposta).
 
 ### 3.14 `/perfil`
 

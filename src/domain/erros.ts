@@ -10,6 +10,11 @@ export const ERROS = {
     mensagem: 'O Regulamento ainda não está em vigor.',
     artigo: 'art. 46',
   },
+  REGULAMENTO_EM_VIGOR: {
+    mensagem: 'O Regulamento já está em vigor: proponha uma alteração, que vai a votação.',
+    artigo: 'art. 42',
+  },
+  SEM_ALTERACAO: { mensagem: 'Nada mudou em relação ao texto atual.' },
   VOTACAO_ENCERRADA: { mensagem: 'Esta votação já foi encerrada.', artigo: 'art. 41' },
   VOTO_JA_REGISTRADO: {
     mensagem: 'Seu voto já foi registrado e é irretratável.',
