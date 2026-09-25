@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState } from 'react'
 
 import { BotaoEnviar } from '@/components/BotaoEnviar'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -24,14 +24,14 @@ export function FormPagar({
   saldoCentavos: number
   recebedores?: { id: string; nome: string }[]
 }) {
-  const [estado, enviar] = useActionState(pagarAcao, null)
+  const [estado, enviar] = useAcao(pagarAcao, 'Pagamento registrado')
   const [grande, setGrande] = useState(false)
   const v = (c: string) => (estado && !estado.ok ? estado.valores[c] : undefined)
   const id = (c: string) => `${c}-${obrigacaoId}`
 
   return (
     <form action={enviar} className="flex flex-col gap-3">
-      <ResultadoAcao estado={estado} sucesso="Pagamento registrado" />
+      <ResultadoAcao estado={estado} />
       {estado?.ok &&
         estado.dados.alertas.map((a) => (
           <p key={a} className="text-sm text-warning">

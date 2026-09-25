@@ -1,9 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
-
 import { ConfirmarAcao } from '@/components/ConfirmarAcao'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { assinarAcao } from '@/features/onboarding/acoes'
@@ -18,10 +16,10 @@ export function FormAssinatura({
   numero: string
   habilitado: boolean
 }) {
-  const [estado, enviar] = useActionState(assinarAcao, null)
+  const [estado, enviar] = useAcao(assinarAcao, 'Regulamento assinado')
   return (
     <form id="form-assinatura" action={enviar} className="flex flex-col gap-4">
-      <ResultadoAcao estado={estado} sucesso="Regulamento assinado" />
+      <ResultadoAcao estado={estado} />
       <FieldGroup>
         <Field orientation="horizontal" data-invalid={!!errosDo(estado, 'declaracao')}>
           <Checkbox

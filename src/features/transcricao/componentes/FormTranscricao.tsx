@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState } from 'react'
 
 import { BotaoEnviar } from '@/components/BotaoEnviar'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -24,14 +24,14 @@ export function FormTranscricao({
   ciclo: Opcao | null
   obrigacoes: Opcao[]
 }) {
-  const [estado, enviar] = useActionState(transcreverAcao, null)
+  const [estado, enviar] = useAcao(transcreverAcao, 'Ato transcrito; o membro foi avisado')
   const [tipo, setTipo] = useState('NAO_CONCORRER')
   const ehCiclo = tipo === 'CONFIRMA_PROXIMO_CICLO' || tipo === 'RECUSA_PROXIMO_CICLO'
   const itens = tipo === 'NAO_CONCORRER' ? rodadas : ehCiclo ? (ciclo ? [ciclo] : []) : obrigacoes
   const campo = tipo === 'NAO_CONCORRER' ? 'rodadaId' : ehCiclo ? 'cicloId' : 'obrigacaoId'
   return (
     <form action={enviar} className="flex flex-col gap-3">
-      <ResultadoAcao estado={estado} sucesso="Ato transcrito; o membro foi avisado" />
+      <ResultadoAcao estado={estado} />
       <input type="hidden" name="pessoaId" value={pessoaId} />
       <FieldGroup className="grid gap-3 sm:grid-cols-2">
         <Field data-invalid={!!errosDo(estado, 'tipo')}>

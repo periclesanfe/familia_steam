@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState } from 'react'
 
 import { ConfirmarAcao } from '@/components/ConfirmarAcao'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -109,7 +109,7 @@ export function FormNovaVotacao({
   opcoes: Opcoes
   assuntoInicial?: string
 }) {
-  const [estado, enviar] = useActionState(convocarAcao, null)
+  const [estado, enviar] = useAcao(convocarAcao)
   const [assunto, setAssunto] = useState(assuntoInicial ?? 'CASO_OMISSO')
   const [efeito, setEfeito] = useState('NENHUM')
   const pessoas = opcoes.pessoas.map((p): [string, string] => [p.id, p.apelido])
