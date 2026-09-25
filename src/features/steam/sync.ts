@@ -191,34 +191,51 @@ export async function atualizarApps(
     take: limite,
     select: { appId: true },
   })
+  return buscarDetalhes(
+    fila.map((f) => f.appId),
+    api,
+    esperar,
+    t,
+  )
+}
+
+/**
+ * RN-STM-08/10: consulta e grava os detalhes de uma lista de apps, em série e com intervalo;
+ * 429/403 pausa tudo. Usado pelo tick e pelo aviso de compra (até 10 apps, cache > 1 h).
+ */
+export async function buscarDetalhes(
+  appIds: readonly number[],
+  api: ApiSteam = apiPadrao(),
+  esperar: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+  t: Date = agora(),
+): Promise<{ atualizados: number; pausou: boolean }> {
+  if (await steamEmPausa(t)) return { atualizados: 0, pausou: true }
   let atualizados = 0
-  for (const [i, { appId }] of fila.entries()) {
+  for (const [i, appId] of appIds.entries()) {
     // eslint-disable-next-line no-await-in-loop -- limite de taxa da loja (RN-STM-10): em série, com intervalo
     if (i > 0) await esperar(1_500)
     try {
       // eslint-disable-next-line no-await-in-loop -- idem
       const r = await api.detalhes(appId)
       const d = r?.success ? r.data : undefined
+      const dados = d
+        ? {
+            nome: d.name,
+            tipo: d.type,
+            gratuito: d.is_free,
+            precoFinalCentavos: d.price_overview?.final ?? null,
+            categorias: (d.categories ?? []).map((c) => c.id),
+            descritoresConteudo: d.content_descriptors?.ids ?? [],
+            jogoBaseAppId: d.fullgame?.appid ?? null,
+            emBreve: d.release_date?.coming_soon ?? null,
+            imagemUrl: imagemSteamSegura(d.header_image),
+            sucesso: true,
+            detalhesEm: t,
+            precoEm: t,
+          }
+        : { sucesso: false, detalhesEm: t }
       // eslint-disable-next-line no-await-in-loop -- idem
-      await db.steamApp.update({
-        where: { appId },
-        data: d
-          ? {
-              nome: d.name,
-              tipo: d.type,
-              gratuito: d.is_free,
-              precoFinalCentavos: d.price_overview?.final ?? null,
-              categorias: (d.categories ?? []).map((c) => c.id),
-              descritoresConteudo: d.content_descriptors?.ids ?? [],
-              jogoBaseAppId: d.fullgame?.appid ?? null,
-              emBreve: d.release_date?.coming_soon ?? null,
-              imagemUrl: imagemSteamSegura(d.header_image),
-              sucesso: true,
-              detalhesEm: t,
-              precoEm: t,
-            }
-          : { sucesso: false, detalhesEm: t },
-      })
+      await db.steamApp.upsert({ where: { appId }, create: { appId, ...dados }, update: dados })
       atualizados++
     } catch (e) {
       if (e instanceof LimiteSteam) {

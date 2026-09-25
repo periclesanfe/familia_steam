@@ -33,6 +33,13 @@ export const ERROS = {
   PAGAMENTO_EM_ESTADO_INVALIDO: {
     mensagem: 'Este pagamento não está num estado que permita a ação.',
   },
+  PRODUTO_BLOQUEADO: { mensagem: 'Este produto não pode ser escolhido.', artigo: 'arts. 16 a 19' },
+  DECLARACAO_OBRIGATORIA: { mensagem: 'Faltam declarações exigidas pelas validações do produto.' },
+  AVISO_INDISPONIVEL: {
+    mensagem: 'Não é possível avisar jogo nesta rodada agora.',
+    artigo: 'art. 22',
+  },
+  COMPRA_RECUSADA: { mensagem: 'Esta compra não pode ser registrada.', artigo: 'art. 19' },
   EFEITO_INDISPONIVEL: { mensagem: 'Este efeito ainda não está disponível no sistema.' },
   VOTACAO_DUPLICADA: {
     mensagem: 'Já existe uma votação aberta sobre este mesmo objeto.',
