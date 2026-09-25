@@ -10,6 +10,12 @@ import { hashToken, revogarSessoes } from '@/server/auth/sessao'
 
 import { criarMembro, criarPessoa, dono, limpar } from './banco'
 
+// after() só existe dentro de um request do Next; aqui a sincronização pós-login é irrelevante
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof import('next/server')>()),
+  after: vi.fn(),
+}))
+
 const STEAM = '76561197960287930'
 const agora = new Date()
 

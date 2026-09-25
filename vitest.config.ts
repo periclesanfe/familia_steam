@@ -7,7 +7,8 @@ const vazio = fileURLToPath(new URL('./tests/vazio.ts', import.meta.url))
 
 // docs/spec/08 §6: unit (domínio e parsers puros) × integracao (Postgres real, em série).
 export default defineConfig({
-  resolve: { alias: { '@': src } },
+  // server-only vira módulo vazio fora do Next (o import real lança erro em ambiente de cliente)
+  resolve: { alias: { '@': src, 'server-only': vazio } },
   test: {
     projects: [
       {
@@ -16,7 +17,6 @@ export default defineConfig({
       },
       {
         extends: true,
-        resolve: { alias: { 'server-only': vazio } },
         test: {
           name: 'integracao',
           include: ['tests/integracao/**/*.test.ts'],

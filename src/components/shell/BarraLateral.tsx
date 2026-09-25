@@ -1,6 +1,15 @@
 'use client'
 
-import { BookOpen, Dices, LayoutDashboard, LogOut, UserRound, Vote, Wallet } from 'lucide-react'
+import {
+  BookOpen,
+  Dices,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+  UsersRound,
+  Vote,
+  Wallet,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -24,6 +33,7 @@ const ITENS = [
   { href: '/rodadas', rotulo: 'Rodadas', Icone: Dices },
   { href: '/financeiro', rotulo: 'Financeiro', Icone: Wallet },
   { href: '/votacoes', rotulo: 'Votações', Icone: Vote },
+  { href: '/familia', rotulo: 'Família & jogos', Icone: UsersRound },
   { href: '/regulamento', rotulo: 'Regulamento', Icone: BookOpen },
   { href: '/perfil', rotulo: 'Perfil', Icone: UserRound },
 ] as const

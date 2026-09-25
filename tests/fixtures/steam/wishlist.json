@@ -1,0 +1,11 @@
+{
+  "response": {
+    "items": [
+      { "appid": 1145360, "priority": 0, "date_added": 1700000300 },
+      { "appid": 367520, "priority": 0, "date_added": 1700000100 },
+      { "appid": 413150, "priority": 1, "date_added": 1700000500 },
+      { "appid": 1091500, "priority": 2, "date_added": 1700000400 },
+      { "appid": 250900, "priority": 2, "date_added": 1700000200 }
+    ]
+  }
+}

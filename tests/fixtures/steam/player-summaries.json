@@ -1,0 +1,20 @@
+{
+  "response": {
+    "players": [
+      {
+        "steamid": "76561197960287930",
+        "communityvisibilitystate": 3,
+        "personaname": "ana_joga",
+        "profileurl": "https://steamcommunity.com/id/ana_joga/",
+        "avatarfull": "https://avatars.steamstatic.com/abc123_full.jpg"
+      },
+      {
+        "steamid": "76561197960287931",
+        "communityvisibilitystate": 1,
+        "personaname": "bruno <script>",
+        "profileurl": "https://steamcommunity.com/profiles/76561197960287931/",
+        "avatarfull": "https://evil.example.com/x.jpg"
+      }
+    ]
+  }
+}

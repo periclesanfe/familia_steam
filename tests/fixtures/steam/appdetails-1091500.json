@@ -1,0 +1,113 @@
+{
+  "1091500": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Cyberpunk 2077",
+      "steam_appid": 1091500,
+      "required_age": "18",
+      "is_free": false,
+      "detailed_description": "<h1>Cyberpunk 2077: Ultimate Edition</h1><p><p class=\"bb_paragraph\" ><span class=\"bb_img_ctn\"><img class=\"bb_img\" src=\"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/extras",
+      "short_description": "Cyberpunk 2077 é um RPG de ação e aventura em mundo aberto que se passa em Night City, uma megalópole perigosa onde todos são obcecados por poder, glamour e alterações corporais.",
+      "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/e9047d8ec47ae3d94bb8b464fb0fc9e9972b4ac7/header.jpg?t=1784714077",
+      "price_overview": {
+        "currency": "BRL",
+        "initial": 19990,
+        "final": 19990,
+        "discount_percent": 0,
+        "initial_formatted": "",
+        "final_formatted": "R$ 199,90"
+      },
+      "categories": [
+        {
+          "id": 2,
+          "description": "Um jogador"
+        },
+        {
+          "id": 22,
+          "description": "Conquistas Steam"
+        },
+        {
+          "id": 28,
+          "description": "Compat. total com controle"
+        },
+        {
+          "id": 29,
+          "description": "Cartas Colecionáveis Steam"
+        },
+        {
+          "id": 64,
+          "description": "Texto de tamanho ajustável"
+        },
+        {
+          "id": 67,
+          "description": "Conforto de câmera"
+        },
+        {
+          "id": 66,
+          "description": "Alternativas de cores"
+        },
+        {
+          "id": 68,
+          "description": "Controles de volume independentes"
+        },
+        {
+          "id": 78,
+          "description": "Dificuldade ajustável"
+        },
+        {
+          "id": 74,
+          "description": "Jogável sem precisar de reação rápida"
+        },
+        {
+          "id": 55,
+          "description": "Compat. c/ DUALSHOCK 4"
+        },
+        {
+          "id": 57,
+          "description": "Compat. c/ DualSense"
+        },
+        {
+          "id": 58,
+          "description": "Compat. c/ DualSense"
+        },
+        {
+          "id": 79,
+          "description": "Salvamento a qualquer momento"
+        },
+        {
+          "id": 69,
+          "description": "Som estéreo"
+        },
+        {
+          "id": 65,
+          "description": "Opções de legendas"
+        },
+        {
+          "id": 70,
+          "description": "Som surround"
+        },
+        {
+          "id": 23,
+          "description": "Nuvem Steam"
+        },
+        {
+          "id": 61,
+          "description": "HDR disponível"
+        },
+        {
+          "id": 62,
+          "description": "Compartilhamento em família"
+        }
+      ],
+      "content_descriptors": {
+        "ids": [1, 2, 5],
+        "notes": "Cyberpunk 2077 contains strong language, intense violence, blood and gore, as well as nudity and sexual material.\r\n"
+      },
+      "release_date": {
+        "coming_soon": false,
+        "date": "9/dez./2020"
+      }
+    }
+  }
+}
