@@ -1,3 +1,4 @@
+import type { Route } from 'next'
 import Link from 'next/link'
 
 import { BotaoEnviar } from '@/components/BotaoEnviar'
@@ -7,6 +8,7 @@ import { FormAcao } from '@/components/FormAcao'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { pendenciasFinanceiras } from '@/features/financeiro/consultas'
 import { nomeDoMes } from '@/features/grupo/textos'
+import { type Pendencia, pendenciasDe } from '@/features/painel/pendencias'
 import { proximoSorteio } from '@/features/rodadas/consultas'
 import { revogarTranscricaoAcao } from '@/features/transcricao/acoes'
 import { transcritosParaMim } from '@/features/transcricao/servico'
@@ -20,14 +22,15 @@ const TIPO_TRANSCRITO: Partial<Record<string, string>> = {
   RECUSA_PROXIMO_CICLO: 'Não vai participar do próximo ciclo',
 }
 
-// 07 §3.3: Painel. "Agora" no M4; as pendências completas entram no M9.
+// 07 §3.3 e §4: Painel com as pendências minhas e do grupo.
 export default async function PainelPage() {
   const { perfil, pessoaId } = await paginaExige(['MEMBRO', 'EX_COM_PENDENCIA', 'EX_QUITADO'])
   const t = agora()
-  const [proximo, pend, transcritos] = await Promise.all([
+  const [proximo, pend, transcritos, pendencias] = await Promise.all([
     perfil === 'MEMBRO' ? proximoSorteio() : null,
     pendenciasFinanceiras(pessoaId, t),
     transcritosParaMim(pessoaId),
+    pendenciasDe(pessoaId, t),
   ])
   const venceAte = (d: Date) => formatarDataHora(new Date(d.getTime() - 60_000))
 
@@ -76,6 +79,9 @@ export default async function PainelPage() {
             </ul>
           </CardContent>
         </Card>
+      )}
+      {pendencias.minhas.length > 0 && (
+        <ListaPendencias titulo="Para você" itens={pendencias.minhas} />
       )}
       {transcritos.length > 0 && (
         <Card>
@@ -133,6 +139,46 @@ export default async function PainelPage() {
           </CardContent>
         )}
       </Card>
+      {pendencias.grupo.length > 0 && (
+        <ListaPendencias
+          titulo="Do grupo"
+          descricao="Qualquer membro pode encaminhar."
+          itens={pendencias.grupo}
+        />
+      )}
     </div>
+  )
+}
+
+function ListaPendencias({
+  titulo,
+  descricao,
+  itens,
+}: {
+  titulo: string
+  descricao?: string
+  itens: Pendencia[]
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{titulo}</CardTitle>
+        {descricao && <CardDescription>{descricao}</CardDescription>}
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col divide-y text-sm">
+          {itens.map((p) => (
+            <li key={p.chave} className="py-2">
+              <Link
+                href={p.href as Route}
+                className={`underline-offset-4 hover:underline ${p.urgente ? 'font-medium' : ''}`}
+              >
+                {p.texto}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }

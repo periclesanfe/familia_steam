@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { instanteLocal } from '@/domain/tempo'
+import { recalcularAgendamentos } from '@/features/rodadas/ciclo'
 import { responderProximoCiclo } from '@/features/rodadas/janela'
 import { declararNaoConcorrer, executarRodada } from '@/features/rodadas/servico'
 import { convocar, votar } from '@/features/votacoes/servico'
@@ -186,5 +187,32 @@ describe('janela de revisão (RN-CIC-03/05/06)', () => {
     expect(cotas.filter((o) => o.autoquitada).map((o) => o.credorId)).toEqual([
       ultima?.contempladoId,
     ])
+  })
+
+  it('CA-179: versão com outro horário em vigor → o tick reagenda as agendadas, menos a substituta', async () => {
+    await prepararCiclo1()
+    hora('2026-10-03')
+    const r1 = await dono.rodada.findFirstOrThrow({ where: { sequencia: 1 } })
+    await executarRodada(r1.id, null, () => 0)
+    const v10 = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 0 } })
+    await dono.versaoRegulamento.create({
+      data: {
+        ordem: 1,
+        numero: '1.1',
+        textoMarkdown: v10.textoMarkdown,
+        parametros: { ...(v10.parametros as object), horaSorteio: '20:00' },
+        sha256: 'a'.repeat(64),
+        vigenteDesde: instanteLocal('2026-11-01'),
+      },
+    })
+    const r2 = await dono.rodada.findFirstOrThrow({ where: { sequencia: 2 } })
+    const ctx = { ator: { tipo: 'SISTEMA' as const }, agora: agora() }
+    await dono.rodada.update({ where: { id: r2.id }, data: { rodadaAnuladaId: r1.id } })
+    expect(await recalcularAgendamentos(ctx)).toBe(0) // substituta: fixa
+    await dono.rodada.update({ where: { id: r2.id }, data: { rodadaAnuladaId: null } })
+    expect(await recalcularAgendamentos(ctx)).toBe(1)
+    expect((await dono.rodada.findUniqueOrThrow({ where: { id: r2.id } })).agendadaPara).toEqual(
+      instanteLocal('2026-11-03', '20:00'),
+    )
   })
 })

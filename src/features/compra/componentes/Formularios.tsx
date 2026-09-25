@@ -35,8 +35,8 @@ export function FormAviso({ rodadaId }: { rodadaId: string }) {
       <FieldGroup className="grid gap-3 sm:grid-cols-2">
         <Field data-invalid={!!errosDo(estado, 'app')}>
           <FieldLabel htmlFor="app">Link da loja Steam ou appId</FieldLabel>
-          <Input id="app" name="app" required defaultValue={v('app')} />
-          <FieldError errors={errosDo(estado, 'app')} />
+          <Input id="app" aria-describedby="app-erro" name="app" required defaultValue={v('app')} />
+          <FieldError id="app-erro" errors={errosDo(estado, 'app')} />
         </Field>
         <Field>
           <FieldLabel htmlFor="nome">Nome</FieldLabel>
@@ -156,8 +156,14 @@ export function FormCompra({
       <FieldGroup className="grid gap-3 sm:grid-cols-2">
         <Field data-invalid={!!errosDo(estado, 'app')}>
           <FieldLabel htmlFor="c-app">Link da loja ou appId</FieldLabel>
-          <Input id="c-app" name="app" required defaultValue={v('app')} />
-          <FieldError errors={errosDo(estado, 'app')} />
+          <Input
+            id="c-app"
+            aria-describedby="c-app-erro"
+            name="app"
+            required
+            defaultValue={v('app')}
+          />
+          <FieldError id="c-app-erro" errors={errosDo(estado, 'app')} />
         </Field>
         <Field>
           <FieldLabel htmlFor="c-nome">Nome</FieldLabel>
@@ -167,19 +173,21 @@ export function FormCompra({
           <FieldLabel htmlFor="c-compradaEm">Data e hora da compra</FieldLabel>
           <Input
             id="c-compradaEm"
+            aria-describedby="c-compradaEm-erro"
             name="compradaEm"
             type="datetime-local"
             required
             defaultValue={v('compradaEm')}
           />
           <FieldDescription>Horário de Brasília.</FieldDescription>
-          <FieldError errors={errosDo(estado, 'compradaEm')} />
+          <FieldError id="c-compradaEm-erro" errors={errosDo(estado, 'compradaEm')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'valor')}>
           <FieldLabel htmlFor="c-valor">Total debitado</FieldLabel>
           <InputGroup>
             <InputGroupInput
               id="c-valor"
+              aria-describedby="c-valor-erro"
               name="valor"
               inputMode="decimal"
               required
@@ -188,29 +196,31 @@ export function FormCompra({
             <InputGroupAddon>R$</InputGroupAddon>
           </InputGroup>
           <FieldDescription>Com IOF e taxas; saldo da Carteira Steam conta.</FieldDescription>
-          <FieldError errors={errosDo(estado, 'valor')} />
+          <FieldError id="c-valor-erro" errors={errosDo(estado, 'valor')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'contaSteamId64')}>
           <FieldLabel htmlFor="c-conta">Conta Steam que recebeu (SteamID64)</FieldLabel>
           <Input
             id="c-conta"
+            aria-describedby="c-conta-erro"
             name="contaSteamId64"
             required
             defaultValue={v('contaSteamId64') ?? steamContemplado ?? ''}
             className="font-mono"
           />
-          <FieldError errors={errosDo(estado, 'contaSteamId64')} />
+          <FieldError id="c-conta-erro" errors={errosDo(estado, 'contaSteamId64')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'arquivo')}>
           <FieldLabel htmlFor="c-arquivo">Comprovante</FieldLabel>
           <Input
             id="c-arquivo"
+            aria-describedby="c-arquivo-erro"
             name="arquivo"
             type="file"
             required
             accept="image/jpeg,image/png,image/webp,application/pdf"
           />
-          <FieldError errors={errosDo(estado, 'arquivo')} />
+          <FieldError id="c-arquivo-erro" errors={errosDo(estado, 'arquivo')} />
         </Field>
       </FieldGroup>
       <Field orientation="horizontal">

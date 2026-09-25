@@ -25,3 +25,5 @@ docker-compose*.yml
 **/*.test.ts
 playwright.config.ts
 vitest.config.ts
+backups
+.env.prod

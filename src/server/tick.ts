@@ -2,6 +2,7 @@ import 'server-only'
 
 import { processarFechamentos } from '@/features/compra/fechamento'
 import { verificarCompras } from '@/features/compra/verificacao'
+import { recalcularAgendamentos } from '@/features/rodadas/ciclo'
 import { executarRodada } from '@/features/rodadas/servico'
 import { atualizarApps, pessoasVencidas, sincronizarPessoas } from '@/features/steam/sync'
 import { fecharVotacoesVencidas } from '@/features/votacoes/servico'
@@ -41,7 +42,12 @@ export async function executarTick(): Promise<ResumoTick> {
     // 1. votações vencidas (RN-VOT-13): ATA por PRAZO
     const votacoes = await fecharVotacoesVencidas()
     erros.push(...votacoes.erros)
-    // 2. sorteios devidos, em ordem (ciclo, sequência); cada um na própria transação
+    // 2. horário das agendadas pela versão vigente (RN-SOR-01) e sorteios devidos, em ordem
+    await recalcularAgendamentos({ ator: { tipo: 'SISTEMA' }, agora: agora() }).catch(
+      (e: unknown) => {
+        erros.push(`reagendamento: ${e instanceof Error ? e.message : 'erro'}`)
+      },
+    )
     const devidas = await db.rodada.findMany({
       where: { status: 'AGENDADA', agendadaPara: { lte: agora() } },
       orderBy: [{ ciclo: { numero: 'asc' } }, { sequencia: 'asc' }],

@@ -5,6 +5,7 @@ import {
   Dices,
   LayoutDashboard,
   LogOut,
+  ScrollText,
   UserRound,
   UsersRound,
   Vote,
@@ -35,6 +36,7 @@ const ITENS = [
   { href: '/votacoes', rotulo: 'Votações', Icone: Vote },
   { href: '/familia', rotulo: 'Família & jogos', Icone: UsersRound },
   { href: '/regulamento', rotulo: 'Regulamento', Icone: BookOpen },
+  { href: '/auditoria', rotulo: 'Auditoria', Icone: ScrollText },
   { href: '/perfil', rotulo: 'Perfil', Icone: UserRound },
 ] as const
 

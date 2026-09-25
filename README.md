@@ -45,3 +45,13 @@ A imagem do app é Alpine com só o binário do Node, o `tini` e o build standal
 O app roda como `app_rw`, que não é dono das tabelas, e as migrações como `app_owner` ([14 SEG-08](docs/spec/14-seguranca.md)). Os papéis são criados por `docker/initdb` no primeiro boot do volume. Um volume antigo, anterior ao M1, precisa ser recriado com `docker compose down -v && docker compose up -d db && pnpm db:deploy`. Os testes de integração usam um banco próprio, `consorcio_teste`.
 
 As portas locais (3100 para o app, 5433 para o banco) evitam colisão com outros projetos e podem ser trocadas por `APP_PORTA` e `DB_PORTA`.
+
+## Produção (só depois da validação local)
+
+`docker-compose.prod.yml` sobe `db`, `migrate`, `app`, `cron` (tick a cada 5 min), `backup` (`pg_dump` diário, 30 dias em `./backups`) e `caddy` (HTTPS). Segredos em `.env.prod`, a partir de `deploy/.env.prod.example`:
+
+```sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+A cópia dos backups para fora do servidor fica por conta de quem opera (08 §8.2). O bootstrap com o texto final da 1.0 segue o 08 §8.2.

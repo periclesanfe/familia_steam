@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { Parametros } from '@/domain/regulamento'
+import { type Parametros, parametrosSchema, versaoVigente } from '@/domain/regulamento'
 import {
   dataLocal,
   instanteLocal,
@@ -11,7 +11,7 @@ import {
 } from '@/domain/tempo'
 import { ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
-import type { Tx } from '@/server/db'
+import { db, type Tx } from '@/server/db'
 
 const doisDigitos = (n: number) => String(n).padStart(2, '0')
 
@@ -283,4 +283,39 @@ async function ativarAdmitidos(tx: Tx, T: Date, confirmados: number, p: Parametr
     })
   }
   return ativados.map((a) => ({ id: a.id, pessoaId: a.pessoaId }))
+}
+
+/**
+ * RN-SOR-01 (tick, passo 2): as AGENDADA seguem o horário da versão vigente no mês do sorteio
+ * (a vigência começa sempre no dia 1º, RN-REG-03). A substituta de anulação é fixa (RN-SOR-13).
+ */
+export async function recalcularAgendamentos(ctx: Contexto): Promise<number> {
+  const [rodadas, versoes] = await Promise.all([
+    db.rodada.findMany({
+      where: { status: 'AGENDADA', rodadaAnuladaId: null, agendadaPara: { gt: ctx.agora } },
+      select: { id: true, mesReferencia: true, agendadaPara: true },
+    }),
+    db.versaoRegulamento.findMany({
+      select: { ordem: true, vigenteDesde: true, parametros: true },
+    }),
+  ])
+  const mudar = rodadas.flatMap((r) => {
+    const v = versaoVigente(versoes, instanteLocal(`${r.mesReferencia}-01`))
+    if (!v) return []
+    const nova = agendamento(r.mesReferencia, parametrosSchema.parse(v.parametros))
+    return nova.getTime() === r.agendadaPara.getTime() ? [] : [{ id: r.id, nova }]
+  })
+  if (mudar.length === 0) return 0
+  await db.$transaction(async (tx) => {
+    await Promise.all(
+      mudar.map((m) => tx.rodada.update({ where: { id: m.id }, data: { agendadaPara: m.nova } })),
+    )
+    await registrarEvento(tx, ctx, {
+      acao: 'rodada.reagendar',
+      entidade: 'rodada',
+      entidadeId: mudar.map((m) => m.id).join(','),
+      dados: { depois: mudar },
+    })
+  })
+  return mudar.length
 }

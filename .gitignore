@@ -152,3 +152,7 @@ test-results/
 blob-report/
 !.env.example
 bootstrap.json
+
+# produção
+.env.prod
+backups/

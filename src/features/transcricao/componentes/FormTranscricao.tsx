@@ -38,6 +38,7 @@ export function FormTranscricao({
           <FieldLabel htmlFor="t-tipo">Ato</FieldLabel>
           <NativeSelect
             id="t-tipo"
+            aria-describedby="t-tipo-erro"
             name="tipo"
             value={tipo}
             onChange={(e) => {
@@ -55,7 +56,7 @@ export function FormTranscricao({
               Justificativa de atraso
             </NativeSelectOption>
           </NativeSelect>
-          <FieldError errors={errosDo(estado, 'tipo')} />
+          <FieldError id="t-tipo-erro" errors={errosDo(estado, 'tipo')} />
         </Field>
         <Field>
           <FieldLabel htmlFor="t-alvo">
@@ -74,19 +75,26 @@ export function FormTranscricao({
         </Field>
         <Field data-invalid={!!errosDo(estado, 'efetivaEm')}>
           <FieldLabel htmlFor="t-efetivaEm">Horário da mensagem no GRUPO</FieldLabel>
-          <Input id="t-efetivaEm" name="efetivaEm" type="datetime-local" required />
-          <FieldError errors={errosDo(estado, 'efetivaEm')} />
+          <Input
+            id="t-efetivaEm"
+            aria-describedby="t-efetivaEm-erro"
+            name="efetivaEm"
+            type="datetime-local"
+            required
+          />
+          <FieldError id="t-efetivaEm-erro" errors={errosDo(estado, 'efetivaEm')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'arquivo')}>
           <FieldLabel htmlFor="t-arquivo">Print da mensagem</FieldLabel>
           <Input
             id="t-arquivo"
+            aria-describedby="t-arquivo-erro"
             name="arquivo"
             type="file"
             required
             accept="image/jpeg,image/png,image/webp,application/pdf"
           />
-          <FieldError errors={errosDo(estado, 'arquivo')} />
+          <FieldError id="t-arquivo-erro" errors={errosDo(estado, 'arquivo')} />
         </Field>
       </FieldGroup>
       {tipo === 'JUSTIFICATIVA_PRORROGACAO' && (
