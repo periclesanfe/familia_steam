@@ -61,7 +61,9 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
   for (const steam of pagantes) {
     const page = await entrar(browser, steam)
     await page.goto(`/rodadas/${rodadaId}?aba=pagamentos`)
-    const form = page.locator('details', { has: page.getByText('Paguei') })
+    const form = page
+      .locator('details')
+      .filter({ has: page.locator('summary', { hasText: /^Paguei/ }) })
     await form.locator('summary').click()
     await form.getByLabel('Data e hora do Pix').fill(campoLocal(new Date(Date.now() - 60_000)))
     await form.getByLabel('Comprovante').setInputFiles(JPEG)
