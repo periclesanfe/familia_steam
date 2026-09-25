@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
 import './globals.css'
@@ -10,6 +10,14 @@ const mono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 export const metadata: Metadata = {
   title: { default: 'Família Steam', template: '%s · Família Steam' },
   description: 'Controle do Consórcio da Família Steam',
+}
+
+// 12 UI-04: cor da barra do navegador acompanha o tema do sistema
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
