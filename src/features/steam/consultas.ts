@@ -27,7 +27,9 @@ const selecaoApp = {
 
 /** RN-STM-12: união das bibliotecas (membros e integrantes), com donos e cópias; 2 consultas. */
 export async function bibliotecaDaFamilia() {
+  // 15 §3: JogoPossuido é global; a família vê só os seus integrantes (o RLS filtra a relação)
   const posses = await db.jogoPossuido.findMany({
+    where: { pessoa: { integrantes: { some: { status: 'ATIVO' } } } },
     select: { appId: true, minutosJogados: true, pessoa: { select: { id: true, apelido: true } } },
   })
   const apps = await db.steamApp.findMany({
@@ -220,11 +222,11 @@ export async function detalheDoJogo(appId: number) {
       select: { ...selecaoApp, jogoBaseAppId: true, detalhesEm: true },
     }),
     db.jogoPossuido.findMany({
-      where: { appId },
+      where: { appId, pessoa: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] } },
       select: { minutosJogados: true, pessoa: { select: { id: true, apelido: true } } },
     }),
     db.itemListaDesejos.findMany({
-      where: { appId },
+      where: { appId, pessoa: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] } },
       select: { posicao: true, origem: true, pessoa: { select: { id: true, apelido: true } } },
     }),
     db.jogoBloqueado.findFirst({

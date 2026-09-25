@@ -151,6 +151,17 @@ export default defineConfig([
     },
   },
   {
+    // Gráficos do shadcn (M10): o <style> das cores vem só do ChartConfig do código (nada do
+    // usuário) e os tipos de payload do recharts são `any`.
+    files: ['src/components/ui/chart.tsx'],
+    rules: {
+      'react/no-danger': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
     // Arquivos de config em JS/MJS não passam pelo type-checker.
     files: ['**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],

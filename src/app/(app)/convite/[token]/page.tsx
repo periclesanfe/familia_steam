@@ -41,7 +41,7 @@ export default async function ConvitePage({ params }: PageProps<'/convite/[token
     : null
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-12">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-12">
       <CabecalhoPagina titulo="Convite" />
       {!convite || !familia ? (
         <p className="text-sm text-muted-foreground">
@@ -87,6 +87,6 @@ export default async function ConvitePage({ params }: PageProps<'/convite/[token
           </CardContent>
         </Card>
       )}
-    </main>
+    </div>
   )
 }

@@ -2,13 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
-import { FormAcao } from '@/components/FormAcao'
 import { Markdown } from '@/components/Markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { declaracaoDeAdesao } from '@/domain/regulamento'
-import { sairAcao } from '@/features/autenticacao/acoes'
 import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
 import { familiaDe } from '@/features/familias/consultas'
 import { indicacoesDaFamilia } from '@/features/familias/consultas'
@@ -36,17 +33,10 @@ export default async function BoasVindasPage() {
   const antesDaVigencia = !e.inicioDoCiclo1
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
       <CabecalhoPagina
         titulo={`Boas-vindas, ${e.pessoa.apelido}`}
         descricao="Complete seu cadastro e assine o Regulamento para participar do consórcio."
-        acoes={
-          <FormAcao acao={sairAcao}>
-            <Button type="submit" variant="ghost">
-              Sair
-            </Button>
-          </FormAcao>
-        }
       />
 
       {e.assinadaEm && (
@@ -160,6 +150,6 @@ export default async function BoasVindasPage() {
           </CardContent>
         </Card>
       )}
-    </main>
+    </div>
   )
 }

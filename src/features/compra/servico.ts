@@ -143,7 +143,7 @@ async function origemNaLista(
   executadaEm: Date | null,
 ): Promise<OrigemNaLista> {
   const itens = await tx.itemListaDesejos.findMany({
-    where: { appId },
+    where: { appId, pessoa: { membros: { some: {} } } }, // só listas da família (15 §3)
     select: { pessoaId: true, adicionadoEm: true },
   })
   const meu = itens.find((i) => i.pessoaId === contempladoId)

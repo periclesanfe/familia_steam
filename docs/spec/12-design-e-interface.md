@@ -16,6 +16,8 @@ Pesquisa feita em 25/09/2026, com as versões instaladas: shadcn CLI 4.21 (base 
 
 ## 2. Tema e tokens
 
+> **Revisão M10 (25/09/2026, pedido do usuário):** o app ganhou identidade própria. `primary` passa a ser um índigo de destaque (`oklch(0.49 0.2 272)`; no escuro, `oklch(0.72 0.14 275)`), com paleta de gráficos (`--chart-1..5`), ícone próprio (`src/app/icon.svg`) e tela de login com cartão. Há alternador de tema (claro/escuro/sistema) guardado em cookie e lido no layout raiz, sem flash. O shell tem cabeçalho (menu lateral, família, tema e conta) e o painel tem indicadores e gráficos (recharts pelo `chart` do shadcn). Os estados continuam neutro/sucesso/atenção/perigo, e o contraste AA segue verificado por `pnpm contraste` nos dois temas. Os itens abaixo marcados "(rev. M10)" no código substituem o texto original de UI-01, UI-04 e UI-09.
+
 ### UI-01 — Base shadcn `radix-nova` + `neutral`, sem cor de marca
 
 - `primary` é o quase-preto neutro do padrão (`oklch(0.205 0 0)`; no escuro, `oklch(0.922 0 0)`). Não há "cor da Família Steam", nem o azul da Steam.

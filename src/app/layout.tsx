@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { cookies } from 'next/headers'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -23,9 +24,16 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  // 12 UI-04 (rev. M10): a escolha do alternador vem em cookie; sem escolha, vale o sistema
+  const tema = (await cookies()).get('tema')?.value
+  const classeTema = tema === 'escuro' ? 'dark' : tema === 'claro' ? 'light' : ''
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
+    <html
+      lang="pt-BR"
+      className={`${sans.variable} ${mono.variable} ${classeTema} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-full flex-col">
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />

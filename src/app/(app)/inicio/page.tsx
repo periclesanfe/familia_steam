@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { dataLocal } from '@/domain/tempo'
-import { sairAcao } from '@/features/autenticacao/acoes'
 import { criarFamiliaAcao, indicarAcao } from '@/features/familias/acoes'
 import { minhaArea } from '@/features/familias/consultas'
 import { sincronizarAgoraAcao } from '@/features/steam/acoes'
@@ -29,7 +28,7 @@ export default async function InicioPage() {
   const naFamilia = perfil === 'MEMBRO' || perfil === 'PENDENTE'
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <PessoaAvatar apelido={a.pessoa.nome} url={a.pessoa.steamAvatarUrl} />
@@ -50,11 +49,6 @@ export default async function InicioPage() {
           )}
           <FormAcao acao={sincronizarAgoraAcao} sucesso="Sincronizado com a Steam">
             <BotaoEnviar variant="outline">Sincronizar Steam</BotaoEnviar>
-          </FormAcao>
-          <FormAcao acao={sairAcao}>
-            <Button type="submit" variant="ghost">
-              Sair
-            </Button>
           </FormAcao>
         </div>
       </div>
@@ -221,6 +215,6 @@ export default async function InicioPage() {
           &quot;Sincronizar Steam&quot;.
         </p>
       )}
-    </main>
+    </div>
   )
 }
