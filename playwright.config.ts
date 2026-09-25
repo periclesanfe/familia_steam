@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-import { PORTA_E2E, URLS_TESTE } from './tests/e2e/urls'
+import { CRON_SECRET_E2E, PORTA_E2E, URLS_TESTE } from './tests/e2e/urls'
 
 // E2E contra `next dev` com DEV_LOGIN=1 (o build de produção desliga /api/auth/dev, RN-ACE-14),
 // numa porta e num banco próprios (*_teste): não usa o banco nem o servidor de desenvolvimento.
@@ -20,6 +20,11 @@ export default defineConfig({
     command: `pnpm exec next dev -p ${String(PORTA_E2E)}`,
     url: base,
     reuseExistingServer: false,
-    env: { DEV_LOGIN: '1', APP_URL: base, DATABASE_URL: URLS_TESTE.app },
+    env: {
+      DEV_LOGIN: '1',
+      APP_URL: base,
+      DATABASE_URL: URLS_TESTE.app,
+      CRON_SECRET: CRON_SECRET_E2E,
+    },
   },
 })
