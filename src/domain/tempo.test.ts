@@ -6,6 +6,7 @@ import {
   fimDoDia,
   formatarDuracao,
   inicioDoMesSeguinte,
+  instanteDeCampoLocal,
   mesDe,
   primeiroDiaApos,
   instanteLocal,
@@ -91,5 +92,11 @@ describe('tempo', () => {
     expect(primeiroDiaApos('2026-10-03', 3)).toBe('2026-11-03')
     expect(primeiroDiaApos('2026-12-15', 3)).toBe('2027-01-03')
     expect(mesDe('2026-10-03')).toBe('2026-10')
+  })
+
+  it('instanteDeCampoLocal lê datetime-local no fuso de SP, não no do navegador', () => {
+    expect(instanteDeCampoLocal('2026-10-03T22:30')?.toISOString()).toBe('2026-10-04T01:30:00.000Z')
+    expect(instanteDeCampoLocal('2026-02-30T10:00')).toBeNull()
+    expect(instanteDeCampoLocal('ontem')).toBeNull()
   })
 })

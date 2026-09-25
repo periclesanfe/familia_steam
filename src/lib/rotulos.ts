@@ -1,6 +1,9 @@
 // 12 UI-03/UI-17: um único dicionário enum → rótulo pt-BR + tom. Um teste garante cobertura.
+import type { Situacao } from '@/domain/financeiro'
 import type {
+  MotivoContestacao,
   MotivoSemContemplado,
+  StatusPagamento,
   StatusCiclo,
   StatusRodada,
   TipoContemplacao,
@@ -44,4 +47,35 @@ export const MOTIVO_SORTEIO: Record<string, string> = {
   POSTERGADO_AGUARDANDO_DEMAIS: 'Postergado (art. 29)',
   NAO_EM_DIA: 'Não está em dia (art. 10, II)',
   OPTOU_NAO_CONCORRER: 'Optou por não concorrer (art. 12)',
+}
+
+export const SITUACAO: Record<Situacao, Rotulo> = {
+  NO_PRAZO: { rotulo: 'No prazo', tom: 'neutro' },
+  PRORROGADA: { rotulo: 'Prorrogada', tom: 'atencao' },
+  EM_ATRASO: { rotulo: 'Em atraso', tom: 'perigo' },
+  QUITADA: { rotulo: 'Quitada', tom: 'sucesso' },
+  QUITADA_EM_ATRASO: { rotulo: 'Quitada em atraso', tom: 'atencao' },
+  AUTOQUITADA: { rotulo: 'Contemplado', tom: 'sucesso' },
+  CANCELADA: { rotulo: 'Cancelada', tom: 'inativo' },
+}
+
+export const STATUS_PAGAMENTO: Record<StatusPagamento, Rotulo> = {
+  DECLARADO: { rotulo: 'Declarado', tom: 'neutro' },
+  CONFIRMADO: { rotulo: 'Confirmado', tom: 'sucesso' },
+  CONTESTADO: { rotulo: 'Contestado', tom: 'atencao' },
+  INVALIDADO: { rotulo: 'Invalidado', tom: 'inativo' },
+}
+
+export const MOTIVO_CONTESTACAO: Record<MotivoContestacao, string> = {
+  NAO_RECEBIDO: 'Não recebi',
+  VALOR_DIVERGENTE: 'Valor diferente',
+  DATA_DIVERGENTE: 'Data diferente',
+}
+
+export const TIPO_OBRIGACAO: Record<string, string> = {
+  CONTRIBUICAO: 'Contribuição',
+  SOBRA: 'SOBRA',
+  REPASSE_CESSAO: 'Repasse (cessão)',
+  RATEIO_SOBRA: 'Rateio da SOBRA',
+  DEVOLUCAO: 'Devolução',
 }

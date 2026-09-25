@@ -26,6 +26,17 @@ export const ERROS = {
     artigo: 'art. 12',
   },
   NAO_PARTICIPA: { mensagem: 'Você não participa desta rodada.', artigo: 'art. 12' },
+  VALOR_ACIMA_DO_SALDO: {
+    mensagem: 'O valor passa do saldo em aberto desta obrigação.',
+    artigo: 'art. 11',
+  },
+  PAGAMENTO_EM_ESTADO_INVALIDO: {
+    mensagem: 'Este pagamento não está num estado que permita a ação.',
+  },
+  JUSTIFICATIVA_FORA_DO_PRAZO: {
+    mensagem: 'A justificativa só vale se registrada antes do vencimento.',
+    artigo: 'art. 11, p.u.',
+  },
 } as const satisfies Record<string, { mensagem: string; artigo?: string }>
 
 export type CodigoErro = keyof typeof ERROS
