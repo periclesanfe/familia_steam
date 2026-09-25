@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { sairDeTodosAcao } from '@/features/autenticacao/acoes'
 import { FormDados } from '@/features/onboarding/componentes/FormDados'
 import { meuPerfil } from '@/features/perfil/consultas'
+import { ZonaDeDeclaracoes } from '@/features/saidas/ZonaDeDeclaracoes'
 import { formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
 import { obterSessao } from '@/server/auth/sessao'
@@ -49,6 +50,7 @@ export default async function PerfilPage() {
           </CardContent>
         </Card>
       )}
+      <ZonaDeDeclaracoes perfil={perfil} />
       <Card>
         <CardHeader>
           <CardTitle>Sessões ativas</CardTitle>

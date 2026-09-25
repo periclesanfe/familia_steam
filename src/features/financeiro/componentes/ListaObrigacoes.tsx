@@ -188,7 +188,11 @@ export function ListaObrigacoes({
                     </p>
                   )}
                 <div className="mt-3 flex flex-col gap-4">
-                  <FormPagar obrigacaoId={o.id} saldoCentavos={o.saldoCentavos} />
+                  <FormPagar
+                    obrigacaoId={o.id}
+                    saldoCentavos={o.saldoCentavos}
+                    recebedores={o.recebedores}
+                  />
                   {souDevedor && !o.justificativa && agora < o.vencimentoEfetivo && (
                     <FormJustificarObrigacao obrigacaoId={o.id} />
                   )}

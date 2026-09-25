@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MotivoContestacao,
   MotivoSemContemplado,
+  StatusCessao,
   StatusCiclo,
   StatusPagamento,
   StatusRodada,
@@ -14,6 +15,7 @@ import {
 import {
   MOTIVO_CONTESTACAO,
   MOTIVO_SEM_CONTEMPLADO,
+  STATUS_CESSAO,
   STATUS_CICLO,
   STATUS_PAGAMENTO,
   STATUS_RODADA,
@@ -33,6 +35,7 @@ describe('rótulos', () => {
     [MotivoContestacao, MOTIVO_CONTESTACAO],
     [TipoObrigacao, TIPO_OBRIGACAO],
     [StatusVotacao, STATUS_VOTACAO],
+    [StatusCessao, STATUS_CESSAO],
   ] as const)('cobre todos os valores (%#)', (enumerado, dicionario) => {
     expect(Object.keys(dicionario).sort()).toEqual(Object.values(enumerado).sort())
   })

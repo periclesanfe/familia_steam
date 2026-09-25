@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { formatarBRL } from '@/domain/dinheiro'
 import { pagarAcao } from '@/features/financeiro/acoes'
 
@@ -17,9 +18,11 @@ const LIMITE = 5 * 1024 * 1024
 export function FormPagar({
   obrigacaoId,
   saldoCentavos,
+  recebedores = [],
 }: {
   obrigacaoId: string
   saldoCentavos: number
+  recebedores?: { id: string; nome: string }[]
 }) {
   const [estado, enviar] = useActionState(pagarAcao, null)
   const [grande, setGrande] = useState(false)
@@ -66,6 +69,22 @@ export function FormPagar({
           <FieldError errors={errosDo(estado, 'pixEm')} />
         </Field>
       </FieldGroup>
+      {recebedores.length > 1 && (
+        <Field>
+          <FieldLabel htmlFor={id('recebedorId')}>Para quem foi o Pix</FieldLabel>
+          <NativeSelect id={id('recebedorId')} name="recebedorId" defaultValue="">
+            <NativeSelectOption value="">Quem era o credor na data do Pix</NativeSelectOption>
+            {recebedores.map((r) => (
+              <NativeSelectOption key={r.id} value={r.id}>
+                {r.nome}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          <FieldDescription>
+            Houve cessão nesta rodada: o Pix feito a quem cedeu vira repasse (art. 13).
+          </FieldDescription>
+        </Field>
+      )}
       <Field data-invalid={grande || !!errosDo(estado, 'arquivo')}>
         <FieldLabel htmlFor={id('arquivo')}>Comprovante</FieldLabel>
         <Input

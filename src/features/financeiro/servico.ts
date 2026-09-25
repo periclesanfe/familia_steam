@@ -1,21 +1,30 @@
 import 'server-only'
 
 import { ErroDeNegocio, exigir } from '@/domain/erros'
-import { saldo } from '@/domain/financeiro'
+import { pagamentoConta, pagosAte, recebedores } from '@/domain/financeiro'
 import { mascararPix } from '@/domain/mascara'
 import type { MotivoContestacao } from '@/generated/prisma/enums'
 import type { ContextoAcao } from '@/server/acao'
 import { registrarEvento } from '@/server/auditoria'
 import { emTransacao, travar } from '@/server/tx'
 
+import { aoInvalidar, aoPassarAContar } from './derivadas'
+
 /**
  * RN-FIN-04: registra um Pix numa obrigação. Pagador = devedor (derivado); recebedor = credor
- * vigente (o redirecionamento por cessão entra no M8a). Registrado pelo recebedor nasce
+ * vigente em `pixEm` (cessões) ou um dos cedentes escolhido. Registrado pelo recebedor nasce
  * CONFIRMADO; pelos demais, DECLARADO. Devolve alertas que não bloqueiam.
  */
 export async function registrarPagamento(
   ctx: ContextoAcao,
-  e: { obrigacaoId: string; valor: number; pixEm: Date; anexoId?: string; formaDiversa?: 'on' },
+  e: {
+    obrigacaoId: string
+    valor: number
+    pixEm: Date
+    anexoId?: string
+    formaDiversa?: 'on'
+    recebedorId?: string | undefined
+  },
 ): Promise<{ pagamentoId: string; alertas: string[] }> {
   return emTransacao(async (tx) => {
     const previa = await tx.obrigacao.findUniqueOrThrow({
@@ -27,7 +36,14 @@ export async function registrarPagamento(
       where: { id: e.obrigacaoId },
       include: {
         pagamentos: { select: { status: true, formaDiversa: true, valorCentavos: true } },
-        credor: { select: { chavePix: true } },
+        rodada: {
+          select: {
+            cessoes: {
+              where: { status: 'APROVADA' },
+              select: { cedenteId: true, encerradaEm: true },
+            },
+          },
+        },
       },
     })
     const eu = ctx.ator.pessoaId
@@ -37,11 +53,22 @@ export async function registrarPagamento(
       'SEM_PERMISSAO',
     )
     exigir(!o.autoquitada, 'ENTRADA_INVALIDA', 'A parte do contemplado entra no prêmio sem Pix.')
-    // ponytail: registro em obrigação cancelada (cessão/anulação) entra no M8a
-    exigir(!o.canceladaEm, 'ENTRADA_INVALIDA', 'Esta obrigação foi cancelada.')
-    exigir(e.valor <= saldo(o, o.pagamentos), 'VALOR_ACIMA_DO_SALDO') // CA-38
+    if (o.canceladaEm) {
+      // RN-FIN-04: Pix feito antes do cancelamento por cessão/anulação ainda se registra (CA-155)
+      exigir(
+        ['cessao', 'anulacao'].includes(o.motivoCancelamento ?? '') && e.pixEm < o.canceladaEm,
+        'ENTRADA_INVALIDA',
+        'Esta obrigação foi cancelada.',
+      )
+    }
+    exigir(e.valor <= o.valorCentavos - pagosAte(o.pagamentos), 'VALOR_ACIMA_DO_SALDO') // CA-38
     exigir(e.pixEm <= ctx.agora, 'ENTRADA_INVALIDA', 'A data do Pix não pode estar no futuro.')
-    const recebedorId = o.credorId
+    const cessoes = o.rodada.cessoes.flatMap((c) =>
+      c.encerradaEm ? [{ cedenteId: c.cedenteId, encerradaEm: c.encerradaEm }] : [],
+    )
+    const { opcoes, padrao } = recebedores(o, cessoes, e.pixEm)
+    const recebedorId = e.recebedorId ?? padrao
+    exigir(opcoes.includes(recebedorId), 'ENTRADA_INVALIDA', 'Recebedor fora das opções.')
     exigir(recebedorId !== o.devedorId, 'ENTRADA_INVALIDA', 'Recebedor igual ao devedor.')
 
     const alertas: string[] = []
@@ -78,6 +105,10 @@ export async function registrarPagamento(
     }
     if (e.pixEm < o.criadaEm) alertas.push('A data do Pix é anterior à criação da obrigação.')
 
+    const recebedor = await tx.pessoa.findUniqueOrThrow({
+      where: { id: recebedorId },
+      select: { chavePix: true },
+    })
     const confirmado = eu === recebedorId
     const p = await tx.pagamento.create({
       data: {
@@ -85,7 +116,7 @@ export async function registrarPagamento(
         recebedorId,
         valorCentavos: e.valor,
         pixEm: e.pixEm,
-        chavePixDestinoMascarada: o.credor.chavePix ? mascararPix(o.credor.chavePix) : null,
+        chavePixDestinoMascarada: recebedor.chavePix ? mascararPix(recebedor.chavePix) : null,
         formaDiversa: e.formaDiversa === 'on',
         status: confirmado ? 'CONFIRMADO' : 'DECLARADO',
         confirmadoEm: confirmado ? ctx.agora : null,
@@ -93,8 +124,9 @@ export async function registrarPagamento(
         registradoPorId: eu,
         registradoEm: ctx.agora,
       },
-      select: { id: true, status: true },
+      select: { id: true, status: true, formaDiversa: true, valorCentavos: true },
     })
+    if (pagamentoConta(p)) await aoPassarAContar(tx, ctx, p.id)
     if (e.anexoId && anexoNovo) {
       await tx.anexo.update({
         where: { id: e.anexoId },
@@ -108,6 +140,7 @@ export async function registrarPagamento(
       dados: {
         depois: {
           obrigacaoId: o.id,
+          recebedorId,
           valorCentavos: e.valor,
           pixEm: e.pixEm,
           status: p.status,
@@ -162,8 +195,11 @@ export async function mudarPagamento(
       CANCELAR: { status: 'INVALIDADO' as const, invalidadoEm: ctx.agora },
     }[transicao]
     await tx.pagamento.update({ where: { id: p.id }, data: dados })
-    // ponytail: efeito recursivo da invalidação sobre REPASSE/DEVOLUCAO (RN-FIN-05) entra no M8a,
-    // quando essas obrigações passam a existir
+    if (transicao === 'CANCELAR') await aoInvalidar(tx, ctx, p.id) // RN-FIN-05 (CA-159)
+    // forma diversa só passa a contar quando o recebedor confirma (RN-FIN-06)
+    if (!pagamentoConta(p) && pagamentoConta({ ...p, status: dados.status })) {
+      await aoPassarAContar(tx, ctx, p.id)
+    }
     await registrarEvento(tx, ctx, {
       acao: `pagamento.${transicao.toLowerCase()}`,
       entidade: 'pagamento',

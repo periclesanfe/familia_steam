@@ -77,6 +77,7 @@ export const pagarAcao = acao(
       pixEm: e.pixEm,
       ...(anexo ? { anexoId: anexo.id } : {}),
       ...(e.formaDiversa ? { formaDiversa: e.formaDiversa } : {}),
+      recebedorId: e.recebedorId,
     })
   },
   { perfis: PAGANTES },
