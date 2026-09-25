@@ -11,7 +11,13 @@ import { dbBase } from '@/server/db'
 import { env } from '@/server/env'
 import { criarApiSteam } from '@/server/steam/api'
 
-import { aceitarConvite, criarFamilia, indicar, responderIndicacao } from './servico'
+import {
+  aceitarConvite,
+  criarFamilia,
+  excluirAntesDaVigencia,
+  indicar,
+  responderIndicacao,
+} from './servico'
 
 const NA_FAMILIA = ['MEMBRO', 'PENDENTE'] as const
 const dataCivil = z.iso.date('Informe a data')
@@ -101,4 +107,11 @@ export const aceitarConviteAcao = acao(
     redirect('/boas-vindas')
   },
   { perfis: ['VISITANTE', 'EX_COM_PENDENCIA'] },
+)
+
+// RN-FAM-10 (D-37): o organizador exclui antes da vigência.
+export const excluirDaFamiliaAcao = acao(
+  z.object({ pessoaId: z.uuid() }),
+  (e, ctx) => excluirAntesDaVigencia(ctx, e),
+  { perfis: NA_FAMILIA },
 )

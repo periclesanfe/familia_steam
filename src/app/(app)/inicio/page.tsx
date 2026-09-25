@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { BotaoEnviar } from '@/components/BotaoEnviar'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
+import { ConfirmarAcao } from '@/components/ConfirmarAcao'
 import { FormAcao } from '@/components/FormAcao'
 import { PessoaAvatar } from '@/components/PessoaAvatar'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { dataLocal } from '@/domain/tempo'
-import { criarFamiliaAcao, indicarAcao } from '@/features/familias/acoes'
+import { criarFamiliaAcao, excluirDaFamiliaAcao, indicarAcao } from '@/features/familias/acoes'
 import { ListaAmigos } from '@/features/familias/componentes/ListaAmigos'
 import { membrosDaMinhaFamilia, minhaArea } from '@/features/familias/consultas'
 import { sincronizarAgoraAcao } from '@/features/steam/acoes'
@@ -28,7 +29,7 @@ export default async function InicioPage() {
   const naFamilia = perfil === 'MEMBRO' || perfil === 'PENDENTE'
   const [a, familia] = await Promise.all([
     minhaArea(pessoaId, t),
-    naFamilia ? membrosDaMinhaFamilia() : null,
+    naFamilia ? membrosDaMinhaFamilia(pessoaId) : null,
   ])
 
   return (
@@ -90,25 +91,50 @@ export default async function InicioPage() {
                     <span className="flex min-w-0 items-center gap-2">
                       <PessoaAvatar apelido={m.nome} url={m.avatarUrl} />
                       <span className="truncate">{m.nome}</span>
+                      {m.id === familia.organizadorId && (
+                        <StatusBadge rotulo="Organizador" tom="neutro" />
+                      )}
                     </span>
-                    {familia.emVigor ? (
-                      <StatusBadge
-                        rotulo={m.status === 'ATIVO' ? 'Membro' : 'Aguardando'}
-                        tom={m.status === 'ATIVO' ? 'sucesso' : 'atencao'}
-                      />
-                    ) : (
-                      <StatusBadge
-                        rotulo={m.assinou ? 'Assinou' : 'Falta assinar'}
-                        tom={m.assinou ? 'sucesso' : 'atencao'}
-                      />
-                    )}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {familia.emVigor ? (
+                        <StatusBadge
+                          rotulo={m.status === 'ATIVO' ? 'Membro' : 'Aguardando'}
+                          tom={m.status === 'ATIVO' ? 'sucesso' : 'atencao'}
+                        />
+                      ) : (
+                        <StatusBadge
+                          rotulo={m.assinou ? 'Assinou' : 'Falta assinar'}
+                          tom={m.assinou ? 'sucesso' : 'atencao'}
+                        />
+                      )}
+                      {familia.souOrganizador && m.id !== pessoaId && (
+                        <FormAcao
+                          id={`excluir-${m.id}`}
+                          acao={excluirDaFamiliaAcao}
+                          sucesso="Membro excluído"
+                        >
+                          <input type="hidden" name="pessoaId" value={m.id} />
+                          <ConfirmarAcao
+                            formId={`excluir-${m.id}`}
+                            rotulo="Excluir"
+                            titulo={`Excluir ${m.nome} da família?`}
+                            consequencias={[
+                              'O acordo ainda não está em vigor: a exclusão não tem efeitos de consórcio.',
+                              'A pessoa pode voltar por um novo convite.',
+                            ]}
+                            artigo="RN-FAM-10 (antes da vigência)"
+                          />
+                        </FormAcao>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
             )}
             {familia && !familia.emVigor && (
               <p className="text-xs text-muted-foreground">
-                O acordo entra em vigor quando todos assinarem (pelo menos 2).
+                O acordo entra em vigor quando todos assinarem (pelo menos 2). Até lá, quem criou a
+                família organiza: aprova as entradas e pode excluir membros.
               </p>
             )}
             {perfil === 'VISITANTE' && (

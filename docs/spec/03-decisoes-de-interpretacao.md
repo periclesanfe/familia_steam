@@ -257,6 +257,10 @@ A v1.0 **ainda não foi assinada** (art. 46). Por isso, as decisões que **contr
 
 - A Steam não publica o calendário de promoções por API: os eventos são cadastrados por membros com o link da fonte, e as promoções atuais saem dos preços observados (15 §6).
 
+### D-37 — Organizador só antes da vigência (decidido em 25/09/2026)
+
+- Antes de o acordo entrar em vigor, quem criou a família inclui e exclui membros sozinho (RN-FAM-10). Quando todos assinam, esse papel deixa de existir e vale a regra sem administrador (art. 3º, RN-ACE-02). Substitui a aprovação unânime antes da vigência da D-34.
+
 ## 2. As decisões que os membros precisam tomar (resumo)
 
 | #   | Pergunta                                                                  | Recomendação                                         |

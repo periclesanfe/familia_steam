@@ -6,15 +6,15 @@ import { join } from 'node:path'
 
 import { ErroDeNegocio, exigir } from '@/domain/erros'
 import { PARAMETROS_1_0, parametrosSchema, versaoVigente } from '@/domain/regulamento'
-import { type DataCivil, paraDb, somarHoras } from '@/domain/tempo'
+import { type DataCivil, dataLocal, paraDb, somarHoras } from '@/domain/tempo'
 import { criarGenese } from '@/features/bootstrap/servico'
 import { talvezIniciarVigencia } from '@/features/onboarding/servico'
 import { abrirVotacao } from '@/features/votacoes/servico'
 import type { ContextoAcao } from '@/server/acao'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import { dbBase, type Tx } from '@/server/db'
-import { comFamilia } from '@/server/familia'
-import { emTransacao } from '@/server/tx'
+import { comFamilia, familiaAtual } from '@/server/familia'
+import { emTransacao, travar } from '@/server/tx'
 
 import { criarConvite } from './convite'
 
@@ -84,6 +84,14 @@ export async function criarFamilia(
   return { familiaId }
 }
 
+/** RN-FAM-10 (D-37): o organizador é quem criou a família; só tem esse papel antes da vigência. */
+async function organizadorDe(tx: Tx): Promise<string | null> {
+  const familiaId = familiaAtual()
+  if (!familiaId) return null
+  const f = await tx.familia.findUnique({ where: { id: familiaId }, select: { criadaPorId: true } })
+  return f?.criadaPorId ?? null
+}
+
 async function vigente(tx: Tx, agora: Date) {
   const versoes = await tx.versaoRegulamento.findMany({
     select: { id: true, ordem: true, vigenteDesde: true, parametros: true },
@@ -91,33 +99,30 @@ async function vigente(tx: Tx, agora: Date) {
   return versaoVigente(versoes, agora)
 }
 
-/** Antes da vigência: todos os membros abertos aprovaram → convite (RN-FAM-05). */
-async function concluirSeUnanime(tx: Tx, ctx: Contexto, indicacaoId: string) {
+/**
+ * RN-FAM-10 (D-37), antes da vigência: quem decide a entrada é o organizador (quem criou a
+ * família). A resposta dele aprova ou recusa; as dos demais ficam registradas como opinião.
+ */
+async function decidirSeOrganizador(tx: Tx, ctx: Contexto, indicacaoId: string) {
   const i = await tx.indicacao.findUniqueOrThrow({
     where: { id: indicacaoId },
     include: { aprovacoes: true },
   })
   if (i.status !== 'ABERTA') return
-  if (i.aprovacoes.some((a) => !a.aprova)) {
-    await tx.indicacao.update({
-      where: { id: i.id },
-      data: { status: 'RECUSADA', encerradaEm: ctx.agora },
-    })
-    return
-  }
-  const membros = await tx.membro.findMany({ where: ABERTOS, select: { pessoaId: true } })
-  const aprovaram = new Set(i.aprovacoes.map((a) => a.pessoaId))
-  if (!membros.every((m) => aprovaram.has(m.pessoaId))) return
+  const organizador = await organizadorDe(tx)
+  const decisao = i.aprovacoes.find((a) => a.pessoaId === organizador)
+  if (!decisao) return
   await tx.indicacao.update({
     where: { id: i.id },
-    data: { status: 'APROVADA', encerradaEm: ctx.agora },
+    data: { status: decisao.aprova ? 'APROVADA' : 'RECUSADA', encerradaEm: ctx.agora },
   })
-  await criarConvite(tx, ctx, i.id, i.candidatoSteamId64)
+  if (decisao.aprova) await criarConvite(tx, ctx, i.id, i.candidatoSteamId64)
 }
 
 /**
- * RN-FAM-04/05: um membro indica um candidato (SteamID já resolvido). Antes da vigência, abre a
- * aprovação unânime com o voto do indicador; depois, abre a votação ADMISSAO_MEMBRO.
+ * RN-FAM-04/05/10: um membro indica um candidato (SteamID já resolvido). Antes da vigência, a
+ * indicação espera a decisão do organizador (a dele já vale como aprovação); depois, abre a
+ * votação ADMISSAO_MEMBRO.
  */
 export async function indicar(
   ctx: ContextoAcao,
@@ -164,7 +169,7 @@ export async function indicar(
       await tx.aprovacaoIndicacao.create({
         data: { indicacaoId: i.id, pessoaId: eu, aprova: true, em: ctx.agora },
       })
-      await concluirSeUnanime(tx, ctx, i.id)
+      await decidirSeOrganizador(tx, ctx, i.id)
       return { indicacaoId: i.id }
     }
     // RN-FAM-05: depois da vigência vale o Regulamento (art. 6º)
@@ -185,7 +190,7 @@ export async function indicar(
   })
 }
 
-/** RN-FAM-05, antes da vigência: cada membro aprova ou recusa; uma recusa encerra. */
+/** RN-FAM-10, antes da vigência: cada membro opina; a resposta do organizador decide. */
 export async function responderIndicacao(
   ctx: ContextoAcao,
   e: { indicacaoId: string; aprova: boolean },
@@ -210,7 +215,7 @@ export async function responderIndicacao(
       entidade: 'indicacao',
       entidadeId: i.id,
     })
-    await concluirSeUnanime(tx, ctx, i.id)
+    await decidirSeOrganizador(tx, ctx, i.id)
   })
 }
 
@@ -300,16 +305,24 @@ export async function caducarIndicacoes(ctx: Contexto): Promise<number> {
  * se todos os que ficam já assinaram, a 1.0 entra em vigor (RN-FAM-07). Chamar dentro da família.
  */
 export async function sairAntesDaVigencia(tx: Tx, ctx: ContextoAcao): Promise<void> {
-  const eu = ctx.ator.pessoaId
+  await desvincularAntesDaVigencia(tx, ctx, ctx.ator.pessoaId)
+}
+
+/** Desfaz o vínculo antes da vigência e, se os que ficam já assinaram, a 1.0 entra em vigor. */
+async function desvincularAntesDaVigencia(tx: Tx, ctx: ContextoAcao, pessoaId: string) {
   await tx.membro.updateMany({
-    where: { pessoaId: eu, ...ABERTOS },
+    where: { pessoaId, ...ABERTOS },
     data: { status: 'ENCERRADO', encerradoEm: ctx.agora, motivoEncerramento: 'SAIDA_DA_FAMILIA' },
   })
+  await tx.integranteFamilia.updateMany({
+    where: { pessoaId, status: { in: ['ATIVO', 'CONVITE_AUTORIZADO'] } },
+    data: { status: 'SAIU', saiuEm: paraDb(dataLocal(ctx.agora)) },
+  })
   await tx.indicacao.updateMany({
-    where: { indicadaPorId: eu, status: 'ABERTA' },
+    where: { indicadaPorId: pessoaId, status: 'ABERTA' },
     data: { status: 'CANCELADA', encerradaEm: ctx.agora },
   })
-  await tx.pessoa.update({ where: { id: eu }, data: { familiaId: null } })
+  await tx.pessoa.update({ where: { id: pessoaId }, data: { familiaId: null } })
   const v10 = await tx.versaoRegulamento.findFirst({
     where: { ordem: 0 },
     select: { id: true, sha256: true, parametros: true },
@@ -320,4 +333,39 @@ export async function sairAntesDaVigencia(tx: Tx, ctx: ContextoAcao): Promise<vo
       parametros: parametrosSchema.parse(v10.parametros),
     })
   }
+}
+
+/**
+ * RN-FAM-10 (D-37): antes da vigência o organizador exclui qualquer membro da família no sistema.
+ * Depois dela o papel acaba e a exclusão segue o Regulamento (arts. 30 e 35, por votação).
+ */
+export async function excluirAntesDaVigencia(
+  ctx: ContextoAcao,
+  e: { pessoaId: string },
+): Promise<void> {
+  return emTransacao(async (tx) => {
+    await travar(tx, 'fechamento')
+    exigir(
+      !(await vigente(tx, ctx.agora)),
+      'SEM_PERMISSAO',
+      'O acordo já está em vigor: vale o Regulamento.',
+    )
+    exigir(
+      (await organizadorDe(tx)) === ctx.ator.pessoaId,
+      'SEM_PERMISSAO',
+      'Só o organizador exclui antes da vigência.',
+    )
+    exigir(
+      e.pessoaId !== ctx.ator.pessoaId,
+      'ENTRADA_INVALIDA',
+      'Para sair, use "Sair da família".',
+    )
+    exigir(await tx.membro.count({ where: { pessoaId: e.pessoaId, ...ABERTOS } }), 'NAO_ENCONTRADO')
+    await desvincularAntesDaVigencia(tx, ctx, e.pessoaId)
+    await registrarEvento(tx, ctx, {
+      acao: 'familia.excluir',
+      entidade: 'pessoa',
+      entidadeId: e.pessoaId,
+    })
+  })
 }

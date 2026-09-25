@@ -100,7 +100,7 @@ export function ListaIndicacoes({
                   </>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  decide até {formatarDataHora(i.expiraEm)}
+                  quem decide é o organizador · até {formatarDataHora(i.expiraEm)}
                 </span>
               </div>
             )}

@@ -186,8 +186,12 @@ export async function familiaDe(pessoaId: string): Promise<string | null> {
 }
 
 /** Membros da família da pessoa (RLS) com a situação de cada um, para o card do Início. */
-export async function membrosDaMinhaFamilia() {
-  const [membros, versao] = await Promise.all([
+export async function membrosDaMinhaFamilia(pessoaId: string) {
+  const eu = await dbBase.pessoa.findUnique({
+    where: { id: pessoaId },
+    select: { familiaId: true },
+  })
+  const [membros, versao, familia] = await Promise.all([
     db.membro.findMany({
       where: { status: { not: 'ENCERRADO' } },
       select: {
@@ -208,9 +212,16 @@ export async function membrosDaMinhaFamilia() {
       where: { vigenteDesde: { not: null } },
       select: { id: true },
     }),
+    eu?.familiaId
+      ? dbBase.familia.findUnique({ where: { id: eu.familiaId }, select: { criadaPorId: true } })
+      : null,
   ])
+  const emVigor = versao !== null
   return {
-    emVigor: versao !== null,
+    emVigor,
+    // RN-FAM-10 (D-37): o organizador só existe antes da vigência
+    organizadorId: emVigor ? null : (familia?.criadaPorId ?? null),
+    souOrganizador: !emVigor && familia?.criadaPorId === pessoaId,
     membros: membros.map((m) => ({
       id: m.pessoa.id,
       nome: m.pessoa.steamNick ?? m.pessoa.apelido,

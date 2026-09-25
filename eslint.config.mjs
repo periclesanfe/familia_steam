@@ -34,6 +34,7 @@ const regrasDeUi = [
 
 export default defineConfig([
   globalIgnores([
+    '.claude/**', // worktrees de outras sessões do Claude Code
     '.next/**',
     'out/**',
     'build/**',

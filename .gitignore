@@ -156,3 +156,6 @@ bootstrap.json
 # produção
 .env.prod
 backups/
+
+# worktrees de sessões do Claude Code
+.claude/worktrees

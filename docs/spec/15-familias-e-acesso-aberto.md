@@ -23,8 +23,8 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
   - A tela da indicação mostra o perfil do candidato, a biblioteca dele (se pública) e **quantos jogos compartilháveis ele acrescentaria** à biblioteca da família (jogos dele que nenhum integrante possui).
   - Candidato já em outra família pode ser indicado; ele só aceita depois de sair da atual (RN-FAM-03).
 - **RN-FAM-05 — Aprovação da indicação.**
-  - **Antes da vigência** do Regulamento da família: aprovação **unânime** dos membros não encerrados, cada um aprova ou recusa na própria tela. Uma recusa encerra a indicação. Sem resposta em 7 dias, a indicação caduca.
-  - **Depois da vigência:** vale o Regulamento. A indicação abre a votação `ADMISSAO_MEMBRO` (art. 6º, com `incluirNaFamilia`) ou `CONVITE_INTEGRANTE` (art. 7º), com o quórum da versão vigente. Unanimidade depois da vigência só por alteração do Regulamento.
+  - **Antes da vigência** do Regulamento da família: decide o **organizador** (RN-FAM-10). A indicação feita por ele já vira convite; as dos demais esperam a resposta dele. Os outros membros podem registrar a opinião, que aparece para todos mas não decide. Sem decisão em 7 dias, a indicação caduca.
+  - **Depois da vigência:** vale o Regulamento. A indicação abre a votação `ADMISSAO_MEMBRO` (art. 6º, com `incluirNaFamilia`) ou `CONVITE_INTEGRANTE` (art. 7º), com o quórum da versão vigente. Não há mais organizador.
 - **RN-FAM-06 — Link de convite.** Aprovada a indicação, nasce um `Convite` com token aleatório, **amarrado ao `steamId64` do candidato** (o token fica gravado para qualquer membro reabrir o link; ele não serve a outra conta Steam), de uso único e válido por 14 dias.
   - O sistema não envia e-mail: a tela oferece o link para copiar e um `mailto:` pronto (assunto e corpo) para o e-mail informado. _ponytail:_ envio automático entra se houver provedor de e-mail.
   - Ao abrir o link, o candidato entra com a Steam. Se o `steamId64` for outro, o convite é recusado sem revelar a família.
@@ -32,6 +32,8 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 - **RN-FAM-07 — Vigência do acordo.** Substitui a RN-REG-01 quanto ao gatilho: a 1.0 da família entra em vigor quando **todos** os membros não encerrados da família assinaram e são **pelo menos 2**. `vigenteDesde` = instante da última assinatura. Na mesma transação nasce o ciclo 1 (RN-CIC-01). Quem não quiser participar sai da família (RN-FAM-08); não há "membro que não assina".
 - **RN-FAM-08 — Sair da família.** Antes da vigência: o vínculo encerra sem efeitos de consórcio e as indicações abertas dele caducam. Depois: RN-CAD-10 (saída da família, com saída do consórcio e bloqueio de vaga). Em ambos os casos a pessoa volta a `VISITANTE` (ou `EX_*`, se tiver pendência no consórcio daquela família) e pode aceitar convite de outra.
 - **RN-FAM-09 — Ex-membro com pendência.** Quem saiu de uma família com pendências continua vendo, daquela família, só o que a RN-ACE-07/08 permite ao `EX_COM_PENDENCIA`. Se entrar em outra família, o perfil é o da família atual, e o `/financeiro/extrato` mostra as pendências da anterior.
+
+- **RN-FAM-10 — Organizador antes da vigência** (D-37). Quem criou a família é o **organizador** enquanto o acordo não está em vigor: aprova ou recusa as entradas (RN-FAM-05) e exclui qualquer membro, sem efeitos de consórcio (o vínculo encerra, a indicação dele é cancelada e, se os que ficam já assinaram, a 1.0 entra em vigor). **No instante em que todos assinam e o acordo entra em vigor, o papel acaba**: dali em diante ninguém tem poder acima dos outros (RN-ACE-02) e entradas e exclusões seguem o Regulamento, por votação.
 
 ## 3. Modelo de dados
 
@@ -79,18 +81,19 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 
 ## 7. Cenários (CA-180 em diante)
 
-| CA  | Dado / Quando                                                        | Então                                                                      | Regras    | Nível |
-| --- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------- | ----- |
-| 180 | Conta Steam desconhecida faz login                                   | vira `VISITANTE` com área pessoal; não vê nenhuma família                  | FAM-01    | I/E   |
-| 181 | Membro da família A pede página, anexo ou action com id da família B | 404 / `NAO_ENCONTRADO`                                                     | SEG-13    | I     |
-| 182 | Membro da família A tenta criar outra família / aceitar convite de B | recusado (`ENTRADA_INVALIDA`)                                              | FAM-03    | I     |
-| 183 | Indicação antes da vigência com 3 membros: 2 aprovam, 1 recusa       | indicação `RECUSADA`; nenhum convite                                       | FAM-05    | I     |
-| 184 | Indicação aprovada por todos; o link é aberto por outra conta Steam  | recusado sem revelar a família; o convite continua válido para o candidato | FAM-06    | I     |
-| 185 | Convite usado duas vezes / depois de 14 dias                         | recusado                                                                   | FAM-06    | I     |
-| 186 | 3 membros; 2 assinaram; o 3º sai da família                          | a 1.0 entra em vigor com os 2 (todos os restantes assinaram)               | FAM-07/08 | I     |
-| 187 | Família de 1 membro que assinou                                      | a 1.0 **não** entra em vigor (mínimo 2)                                    | FAM-07    | I     |
-| 188 | Depois da vigência, indicação                                        | abre `ADMISSAO_MEMBRO` com o quórum da versão vigente                      | FAM-05    | I     |
-| 189 | Duas famílias com ATA nº 1 e ciclo 1 cada                            | numeração independente; locks não se bloqueiam entre famílias              | SEG-13    | I     |
-| 190 | Indicação de amigo Steam com biblioteca pública                      | a tela mostra quantos jogos compartilháveis ele acrescenta                 | FAM-04    | I     |
-| 191 | Preço de um app muda 3 vezes                                         | 3 linhas de `PrecoApp`; o menor aparece na lista de desejos                | §5        | I     |
-| 192 | Evento de promoção global cadastrado por membro de A                 | aparece para a família B; a edição fica na auditoria                       | §6        | I     |
+| CA  | Dado / Quando                                                                                                           | Então                                                                      | Regras    | Nível |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------- | ----- |
+| 180 | Conta Steam desconhecida faz login                                                                                      | vira `VISITANTE` com área pessoal; não vê nenhuma família                  | FAM-01    | I/E   |
+| 181 | Membro da família A pede página, anexo ou action com id da família B                                                    | 404 / `NAO_ENCONTRADO`                                                     | SEG-13    | I     |
+| 182 | Membro da família A tenta criar outra família / aceitar convite de B                                                    | recusado (`ENTRADA_INVALIDA`)                                              | FAM-03    | I     |
+| 183 | Indicação antes da vigência com 3 membros: 2 aprovam, 1 recusa                                                          | indicação `RECUSADA`; nenhum convite                                       | FAM-05    | I     |
+| 184 | Indicação aprovada por todos; o link é aberto por outra conta Steam                                                     | recusado sem revelar a família; o convite continua válido para o candidato | FAM-06    | I     |
+| 185 | Convite usado duas vezes / depois de 14 dias                                                                            | recusado                                                                   | FAM-06    | I     |
+| 186 | 3 membros; 2 assinaram; o 3º sai da família                                                                             | a 1.0 entra em vigor com os 2 (todos os restantes assinaram)               | FAM-07/08 | I     |
+| 187 | Família de 1 membro que assinou                                                                                         | a 1.0 **não** entra em vigor (mínimo 2)                                    | FAM-07    | I     |
+| 188 | Depois da vigência, indicação                                                                                           | abre `ADMISSAO_MEMBRO` com o quórum da versão vigente                      | FAM-05    | I     |
+| 189 | Duas famílias com ATA nº 1 e ciclo 1 cada                                                                               | numeração independente; locks não se bloqueiam entre famílias              | SEG-13    | I     |
+| 190 | Indicação de amigo Steam com biblioteca pública                                                                         | a tela mostra quantos jogos compartilháveis ele acrescenta                 | FAM-04    | I     |
+| 191 | Preço de um app muda 3 vezes                                                                                            | 3 linhas de `PrecoApp`; o menor aparece na lista de desejos                | §5        | I     |
+| 193 | Organizador exclui um membro antes da vigência; outro membro tenta excluir; após a vigência o organizador tenta excluir | exclui / `SEM_PERMISSAO` / `SEM_PERMISSAO`                                 | FAM-10    | I     |
+| 192 | Evento de promoção global cadastrado por membro de A                                                                    | aparece para a família B; a edição fica na auditoria                       | §6        | I     |

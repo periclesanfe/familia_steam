@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   aceitarConvite,
   criarFamilia,
+  excluirAntesDaVigencia,
   indicar,
   responderIndicacao,
 } from '@/features/familias/servico'
@@ -116,13 +117,16 @@ describe('famílias (15 RN-FAM, SEG-13)', () => {
     // CA-185: segundo uso
     await expect(aceitarConvite(ctxDe(b.id, agora()), { token: convite.token })).rejects.toThrow()
 
-    // CA-183: com 2 membros, uma recusa encerra a indicação
+    // CA-183 (rev. D-37): antes da vigência decide o organizador; a opinião dos outros não decide
     const c = await visitante(STEAM.c, 'Caio')
     const { indicacaoId } = await comFamilia(familiaId, () =>
-      indicar(ctxDe(a, agora()), { steamId64: STEAM.c, nome: 'Caio' }),
+      indicar(ctxDe(b.id, agora()), { steamId64: STEAM.c, nome: 'Caio' }),
     )
+    expect(await dono.indicacao.findUniqueOrThrow({ where: { id: indicacaoId } })).toMatchObject({
+      status: 'ABERTA',
+    })
     await comFamilia(familiaId, () =>
-      responderIndicacao(ctxDe(b.id, agora()), { indicacaoId, aprova: false }),
+      responderIndicacao(ctxDe(a, agora()), { indicacaoId, aprova: false }),
     )
     expect(await dono.indicacao.findUniqueOrThrow({ where: { id: indicacaoId } })).toMatchObject({
       status: 'RECUSADA',
@@ -141,7 +145,7 @@ describe('famílias (15 RN-FAM, SEG-13)', () => {
       )
     expect(await semVigencia()).toBe(1) // CA-187: família de 1 não entra em vigor
     const b = await entrarNaX(familiaId, a, STEAM.b, 'Bruno')
-    const c = await entrarNaX(familiaId, a, STEAM.c, 'Caio', [b])
+    const c = await entrarNaX(familiaId, a, STEAM.c, 'Caio')
     await assinar(familiaId, b, 2)
     expect(await semVigencia()).toBe(1) // falta o Caio
     await comFamilia(familiaId, () => sairDaFamilia(ctxDe(c, agora())))
@@ -186,5 +190,23 @@ describe('famílias (15 RN-FAM, SEG-13)', () => {
       ),
     ).rejects.toThrow()
     expect(await dono.voto.count()).toBe(0)
+  })
+
+  it('CA-193: o organizador exclui antes da vigência; outro membro não; depois da vigência ninguém', async () => {
+    const { a, familiaId } = await familiaX()
+    const b = await entrarNaX(familiaId, a, STEAM.b, 'Bruno')
+    const c = await entrarNaX(familiaId, a, STEAM.c, 'Caio')
+    await expect(
+      comFamilia(familiaId, () => excluirAntesDaVigencia(ctxDe(b, agora()), { pessoaId: c })),
+    ).rejects.toMatchObject({ codigo: 'SEM_PERMISSAO' })
+    await comFamilia(familiaId, () => excluirAntesDaVigencia(ctxDe(a, agora()), { pessoaId: c }))
+    expect(await dono.pessoa.findUniqueOrThrow({ where: { id: c } })).toMatchObject({
+      familiaId: null,
+    })
+    await assinar(familiaId, a, 1)
+    await assinar(familiaId, b, 2) // todos assinaram: a 1.0 entra em vigor e o papel acaba
+    await expect(
+      comFamilia(familiaId, () => excluirAntesDaVigencia(ctxDe(a, agora()), { pessoaId: b })),
+    ).rejects.toMatchObject({ codigo: 'SEM_PERMISSAO' })
   })
 })
