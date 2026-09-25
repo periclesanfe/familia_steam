@@ -88,3 +88,4 @@ Todo dispositivo do Regulamento aparece aqui. "Informativo" indica que não há 
 | Bloco de assinaturas | Nome, Steam, Pix, declaração                          | REG-07, CAD-02, ACE-06                         | D-21             | 88, 90               |
 | Anexo I              | Lista de Jogos Bloqueados                             | BLO-01..06                                     | D-15             | 55, 81               |
 | Anexo II             | Modelo de ATA                                         | VOT-06                                         | D-14             | 87                   |
+| Não funcional        | Segurança e performance (docs 13 e 14)                | ACE-03/12/15, SEG-01..08, DP-02/16             | —                | 169–178              |

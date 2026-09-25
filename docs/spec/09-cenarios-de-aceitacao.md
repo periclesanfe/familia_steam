@@ -141,17 +141,27 @@ Cada cenário vira pelo menos um teste. Nível: **[U]** unitário de domínio ·
 
 ## 9. Acesso e segurança
 
-| CA  | Dado / Quando                                             | Então                                          | Regras    | Nível |
-| --- | --------------------------------------------------------- | ---------------------------------------------- | --------- | ----- |
-| 98  | Login com SteamID fora da lista                           | "não autorizado" (neutro); evento de auditoria | ACE-04    | I     |
-| 99  | Reuso do mesmo `response_nonce`                           | recusado                                       | STM-01    | I     |
-| 100 | `claimed_id` com `http://` / com outro host               | aceito / recusado                              | STM-01    | U     |
-| 101 | `EX_COM_PENDENCIA` acessa `/votacoes` / o próprio extrato | 403 / ok, com a chave Pix só dos seus credores | ACE-07/08 | E/I   |
-| 102 | `PENDENTE` consulta o financeiro                          | 403                                            | ACE-07    | I     |
-| 103 | Membro tenta alterar a chave Pix de outro                 | 403 + auditoria                                | CAD-05    | I     |
-| 104 | `/api/auth/dev` com `NODE_ENV=production`                 | 404                                            | ACE-14    | I     |
-| 105 | Tick executado 2 vezes seguidas                           | nenhuma duplicidade (sorteio, ATA, SOBRA)      | GER-07    | I     |
-| 106 | Upload HEIC / SVG / PDF de 6 MB                           | recusados                                      | ACE-09    | I     |
+| CA  | Dado / Quando                                                                        | Então                                                             | Regras            | Nível |
+| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ----------------- | ----- |
+| 98  | Login com SteamID fora da lista                                                      | "não autorizado" (neutro); evento de auditoria                    | ACE-04            | I     |
+| 99  | Reuso do mesmo `response_nonce`                                                      | recusado                                                          | STM-01            | I     |
+| 100 | `claimed_id` com `http://` / com outro host                                          | aceito / recusado                                                 | STM-01            | U     |
+| 101 | `EX_COM_PENDENCIA` acessa `/votacoes` / o próprio extrato                            | 403 / ok, com a chave Pix só dos seus credores                    | ACE-07/08         | E/I   |
+| 102 | `PENDENTE` consulta o financeiro                                                     | 403                                                               | ACE-07            | I     |
+| 103 | Membro tenta alterar a chave Pix de outro                                            | 403 + auditoria                                                   | CAD-05            | I     |
+| 104 | `/api/auth/dev` com `NODE_ENV=production`                                            | 404                                                               | ACE-14            | I     |
+| 105 | Tick executado 2 vezes seguidas                                                      | nenhuma duplicidade (sorteio, ATA, SOBRA)                         | GER-07            | I     |
+| 106 | Upload HEIC / SVG / PDF de 6 MB                                                      | recusados                                                         | ACE-09            | I     |
+| 169 | Qualquer exportação de `src/features/*/acoes.ts`                                     | foi criada por `acao()` (marca presente)                          | SEG-01            | I     |
+| 170 | Action chamada sem cookie / membro A registra pagamento em obrigação de B            | `NAO_AUTENTICADO` / `SEM_PERMISSAO` + log `acesso.negado`         | ACE-03, SEG-01    | I     |
+| 171 | Conexão como `app_rw`: `UPDATE evento_auditoria`, `DELETE FROM voto`, `TRUNCATE ata` | as três falham                                                    | SEG-08            | I     |
+| 172 | Exportação CSV com nome `=HYPERLINK(...)`                                            | célula sai `'=HYPERLINK(...)`                                     | ACE-12, SEG-04    | U     |
+| 173 | Chamada à Steam Web API (fetch injetado)                                             | key no header `x-webapi-key`; URL sem `key=`; `redirect: 'error'` | SEG-06            | U     |
+| 174 | Link de loja colado na lista de desejos                                              | `appId` extraído; nenhum `fetch` para o link                      | SEG-04            | U     |
+| 175 | GET de página / download de anexo                                                    | CSP com nonce / `Content-Security-Policy: sandbox`                | ACE-15, SEG-05/07 | E/I   |
+| 176 | Login com `APP_URL` https / `http://localhost`                                       | cookie `__Host-sessao` / `sessao`                                 | SEG-02            | U     |
+| 177 | `appdetails` com `detailed_description` HTML e `header_image` de outro host          | HTML não gravado; capa `null`                                     | SEG-04            | U     |
+| 178 | Consulta de página com N e 3N itens (extrato, grade, painel, votação)                | mesmo número de consultas                                         | DP-02/16          | I     |
 
 ## 10. Steam
 

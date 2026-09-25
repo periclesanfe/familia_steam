@@ -11,7 +11,7 @@
 | Linguagem   | TypeScript                                                                         | **~5.9**                                                                             | **não usar TS 7.x**: o typescript-eslint 8.x declara peer `<6.1`                                                                                                            |
 | Estilo      | Tailwind CSS                                                                       | 4.x                                                                                  | via `@tailwindcss/postcss`                                                                                                                                                  |
 | Componentes | shadcn/ui (CLI v4, base Radix)                                                     | 4.x                                                                                  | componentes copiados para `src/components/ui`                                                                                                                               |
-| Formulários | react-hook-form + @hookform/resolvers + zod                                        | 7.x / 5.x / **4.x**                                                                  | o mesmo schema no cliente e na action                                                                                                                                       |
+| Formulários | `<form action>` + `useActionState` + zod                                           | **4.x**                                                                              | sem biblioteca de formulário; zod valida no servidor (12 UI-13)                                                                                                             |
 | Markdown    | react-markdown + remark-gfm                                                        | atuais                                                                               | sem `rehype-raw` (RN-ACE-15)                                                                                                                                                |
 | Datas       | date-fns + @date-fns/tz                                                            | 4.x / 1.x                                                                            | `{ in: tz('America/Sao_Paulo') }`                                                                                                                                           |
 | Banco       | PostgreSQL                                                                         | 17                                                                                   | `docker compose` em dev                                                                                                                                                     |
@@ -134,9 +134,10 @@ export const registrarPagamentoAcao = acao(registrarPagamentoSchema, (entrada, c
 2. valida com zod, com erros por campo;
 3. chama o handler;
 4. converte `ErroDeNegocio` em `{ ok: false, codigo, mensagem, artigo? }`;
-5. faz `revalidatePath` dos caminhos declarados.
+5. faz `revalidatePath('/', 'layout')` depois de sucesso (13 DP-11);
+6. marca a função com um `Symbol` verificado pelo teste de guarda (14 SEG-01).
 
-O retorno é sempre `{ ok: true, dados } | { ok: false, … }`.
+A assinatura é a do `useActionState`, `(estadoAnterior, formData) => Promise<Estado>`, e `lerFormulario` converte o `FormData` antes do zod. O retorno é sempre `{ ok: true, dados } | { ok: false, erros?, codigo?, mensagem?, artigo?, valores }`: `valores` volta para o formulário não perder o que foi digitado (12 UI-13).
 
 ### 4.2 Serviço: transação, lock, domínio e auditoria
 
@@ -316,6 +317,8 @@ export default defineConfig([
 }
 ```
 
+Regras adicionais de ESLint entram no M1: UI (12 UI-17), `no-await-in-loop` (13 DP-01), `react/no-danger`, `$queryRawUnsafe` e `process.env` (14 SEG-04/06).
+
 `--conditions=react-server` evita que o pacote `server-only` lance erro fora do Next. `lint-staged`: `*.{ts,tsx}` → `eslint --fix` + `prettier --write`; `*.{json,md,css,yml}` → `prettier --write` (fora `docs/regulamento`). Husky: `pre-commit` → `lint-staged`.
 
 ### 5.5 CI (GitHub Actions, `.github/workflows/ci.yml`)
@@ -399,11 +402,13 @@ Agendamento a cada 5 min (D-29):
 
 ## 9. Segurança (checklist)
 
+Modelo de ameaças, decisões e mapa OWASP: [14](14-seguranca.md). Performance e N+1: [13](13-performance-e-dados.md).
+
 - [ ] OpenID validado por inteiro (RN-STM-01): mapa único, `signed`, POST para a constante, `state`, anti-replay.
 - [ ] Cookie de sessão `HttpOnly; Secure; SameSite=Lax`, validade fixa de 30 dias, token com hash no banco; sessões revogadas em `REVINCULAR_STEAM` e em `corrigir-bootstrap`.
 - [ ] Guard em **toda** action e consulta (RN-ACE-03), com teste de autorização por perfil em cada action.
 - [ ] Upload: `mime` pelos magic bytes, 5 MB, sem SVG ou HTML; vínculo só de anexo próprio e não vinculado; download com `nosniff`, `no-store` e `filename` gerado (RN-ACE-09).
-- [ ] CSP com nonce em `proxy.ts` e headers estáticos em `next.config.ts` (RN-ACE-15); `images.remotePatterns` só `*.steamstatic.com`.
+- [ ] CSP com nonce em `proxy.ts` e headers estáticos em `next.config.ts` (RN-ACE-15); sem `images.remotePatterns` (14 SEG-05).
 - [ ] Markdown sem HTML cru; links só `https`.
 - [ ] Segredos só no servidor; `server-only` nos módulos sensíveis; Bearer do tick com `timingSafeEqual`.
 - [ ] Sem PII em logs; `chavePix*` mascarada na auditoria e nos snapshots.

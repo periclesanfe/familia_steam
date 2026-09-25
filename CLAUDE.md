@@ -20,7 +20,10 @@ Controle do Consórcio da Família Steam. A spec em `docs/spec/` é a fonte da v
 - Toda mutação: uma transação, o lock da regra e `EventoAuditoria` na mesma transação.
 - Prisma fixado em **7.10.0** exato (a tag `latest` da CLI é a 8.0 RC). Proibido `db push`: só migrações.
 - Não editar `docs/regulamento/` com formatador (o hash do texto entra no sistema).
+- UI: cor só por token, durações 150/200/300 ms, formulários com `useActionState` sem biblioteca (doc 12).
+- Dados: nada de `await` de banco em laço; componente filho não consulta; nada de `fetch` dentro de transação (doc 13).
+- Segurança: toda action por `acao()` com guard sobre o estado do banco; valores calculados nunca vêm do formulário (doc 14).
 
 ## Comandos
 
-Serão definidos no M0 (ver doc 08 §5.4): `pnpm check`, `pnpm test`, `pnpm test:integracao`, `pnpm test:e2e`, `pnpm db:migrate`.
+`pnpm check` (lint + formatação + tipos + unitários), `pnpm test:integracao`, `pnpm test:e2e`, `pnpm db:migrate`. Banco local: `docker compose up -d db` (porta 5433); app em `pnpm dev` (porta 3100).

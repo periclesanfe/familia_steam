@@ -24,7 +24,10 @@ Cada marco termina com o sistema **implantável** e o CI verde. A ordem segue as
 - `schema.prisma` (05 §2) + `0002_regras.sql` (05 §3).
 - `src/domain`: `tempo`, `hash`, `dinheiro`, `regulamento` (parâmetros, vigência, `adesaoValida`), `quorum`, `erros`.
 - `src/server`: `relogio.ts`, `tx.ts` (`travar`), `auditoria.ts` (mascaramento), `acao.ts`, `anexos.ts`.
-- **Pronto quando:** CA 01–04, 82, 83, 87 (trigger), 106 e 146–149 passam.
+- Tokens e `globals.css` (12 UI-02..05), regras de ESLint de UI, dados e segurança (12 UI-17, 13 DP-01, 14 SEG-04/06) e o script de contraste.
+- `db.ts` com timeouts e `omit` de bytes (13 DP-04/09), `contarConsultas` e `DEBUG_SQL` (DP-16).
+- Papéis `app_owner`/`app_rw`, migração de privilégios e `MIGRATE_DATABASE_URL` (14 SEG-08); `remotePatterns` fora, COOP, `pnpm audit` e Dependabot (SEG-05/10).
+- **Pronto quando:** CA 01–04, 82, 83, 87 (trigger), 106, 146–149, 169 e 171 passam.
 
 ### M2 — Identidade, bootstrap e Regulamento
 
@@ -32,13 +35,14 @@ Cada marco termina com o sistema **implantável** e o CI verde. A ordem segue as
 - CLI `bootstrap` / `corrigir-bootstrap` (RN-ACE-10) + seed dev.
 - `/entrar`, `/boas-vindas` (onboarding, adesão, Anexo I), `/regulamento`, `/perfil` (dados, Pix, sessões).
 - Vigência da 1.0 → ciclo 1 `PLANEJADO` + rodada 1 `AGENDADA` (RN-REG-01, RN-CIC-01).
-- **Pronto quando:** CA 88, 90, 95, 98–100, 102–104, 112, 118 e 125 passam.
+- Shell (`Sidebar`, `CabecalhoPagina`, `AbasNaUrl`), `Dinheiro`, `DataHora`, `Prazo` e padrão de formulário (12 UI-09..15); cookies com prefixo e CSP no `proxy.ts` (14 SEG-02/05).
+- **Pronto quando:** CA 88, 90, 95, 98–100, 102–104, 112, 118, 125, 170, 175 (página) e 176 passam.
 
 ### M3 — Integração Steam
 
 - `server/steam` (api com fetch injetável, schemas, sync, loja), passos Steam do tick, cache `SteamApp`, pausa em `Controle`.
 - `/membros`, `/membros/[id]`, `/jogos/[appId]`, `/familia` (biblioteca, vagas), `/lista-de-desejos`.
-- **Pronto quando:** CA 107–111 passam com fixtures reais e o guia de privacidade é exibido.
+- **Pronto quando:** CA 107–111, 173, 174 e 177 passam com fixtures reais e o guia de privacidade é exibido.
 
 ### M4 — Ciclo e sorteio
 
@@ -51,7 +55,7 @@ Cada marco termina com o sistema **implantável** e o CI verde. A ordem segue as
 
 - Contribuições (RN-FIN-02, `pagantesNoCorte`), pagamentos (registro com `recebedorId`, confirmação, contestação, cancelamento pelo devedor), justificativa como `Declaracao`, upload e download de anexos (RN-ACE-09).
 - Aba Pagamentos, `/financeiro`, extratos, grade do ciclo, exportação e pendências financeiras do painel.
-- **Pronto quando:** CA 19 (o contestado conta), 25, 33–36, 38, 96, 121, 123 e 133 passam.
+- **Pronto quando:** CA 19 (o contestado conta), 25, 33–36, 38, 96, 121, 123, 133, 172, 175 (download) e 178 passam.
 
 ### M6 — Votações, ATAs e Anexo I
 
@@ -96,5 +100,6 @@ O **M8b** precisa estar pronto antes do fim do ciclo 1 (janela de revisão e adm
 - [ ] A action ou consulta tem guard de autorização e teste de acesso negado.
 - [ ] O evento de auditoria é gravado na mesma transação.
 - [ ] `pnpm check` verde; nenhum `eslint-disable` sem justificativa.
-- [ ] Textos em pt-BR, com estados de carregamento, vazio e erro.
+- [ ] Textos em pt-BR, com estados de carregamento, vazio e erro (12 §6, UI-18).
+- [ ] Consulta nova de página com teste de constância (13 DP-16); nenhum `await` de banco em laço.
 - [ ] Se a tarefa mudou uma regra ou decisão, a spec (02/03/09/11) foi atualizada no mesmo PR.
