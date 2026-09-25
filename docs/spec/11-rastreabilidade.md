@@ -22,7 +22,7 @@ Todo dispositivo do Regulamento aparece aqui. "Informativo" indica que não há 
 | art. 5º, §2º         | R$ 100 + R$ 25                                        | FIN-02, FIN-11                                 | D-16             | 25, 39               |
 | art. 6º              | Admissão no início do ciclo                           | CAD-12, CAD-13, CIC-03, VOT-02                 | D-14, D-16, D-32 | 93, 94, 145          |
 | art. 7º              | Convidar/remover integrante com ATA                   | CAD-08, CAD-09, CAD-12, VOT-08, ACE-16         | —                | 46                   |
-| art. 8º              | Sorteio no dia 3                                      | SOR-01, SOR-02, SOR-04                         | D-03, D-04       | 21, 22               |
+| art. 8º              | Sorteio no dia 3                                      | SOR-01, SOR-02, SOR-04                         | D-03, D-04       | 21, 22, 179          |
 | art. 8º, p.u.        | Motivação (salários)                                  | informativo                                    | —                | —                    |
 | art. 9º              | Sorteio público e registrado                          | SOR-08, SOR-09, SOR-13                         | D-03, D-28       | 23, 24, 97, 141      |
 | art. 10, I           | Não contemplado no ciclo                              | SOR-05                                         | —                | 05                   |
