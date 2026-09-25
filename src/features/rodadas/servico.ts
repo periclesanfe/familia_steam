@@ -299,13 +299,26 @@ async function exigirRodadaDeclaravel(tx: Tx, rodadaId: string, pessoaId: string
     },
   })
   exigir(rodada.status === 'AGENDADA', 'RODADA_ENCERRADA') // CA-06: depois do corte, recusada
+  // CA-144: no ciclo PLANEJADO seguinte, só quem confirmou participar (RN-CIC-03)
   const participa =
     rodada.ciclo.status === 'PLANEJADO'
       ? await tx.membro.count({
           where: {
             pessoaId,
             status: { in: ['ATIVO', 'IMPOSSIBILITADO'] },
-            ...(rodada.ciclo.numero === 1 ? { origem: 'FUNDADOR' as const } : {}),
+            ...(rodada.ciclo.numero === 1
+              ? { origem: 'FUNDADOR' as const }
+              : {
+                  pessoa: {
+                    declaracoes: {
+                      some: {
+                        tipo: 'CONFIRMA_PROXIMO_CICLO',
+                        cicloId: rodada.cicloId,
+                        revogadaEm: null,
+                      },
+                    },
+                  },
+                }),
           },
         })
       : await tx.participacaoCiclo.count({
