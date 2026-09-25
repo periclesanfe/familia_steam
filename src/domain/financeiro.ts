@@ -83,3 +83,61 @@ export function situacao(o: ContribuicaoFato, t: Date): Situacao {
   if (atrasou) return 'EM_ATRASO'
   return vencimentoEfetivo(o, o.diasProrrogacao) > o.vencimentoEm ? 'PRORROGADA' : 'NO_PRAZO'
 }
+
+type AquisicaoFato = { valorCentavos: number; reembolsoValorCentavos: number | null }
+
+/** RN-FIN-11: PRÊMIO nominal = contribuição × pagantes no corte + SOBRAs destinadas à rodada. */
+export const premio = (
+  r: { contribuicaoCentavos: number | null; pagantesNoCorte: number | null },
+  sobrasDestinadas: readonly { valorCentavos: number; canceladaEm: Date | null }[],
+): number =>
+  (r.contribuicaoCentavos ?? 0) * (r.pagantesNoCorte ?? 0) +
+  sobrasDestinadas.filter((s) => !s.canceladaEm).reduce((t, s) => t + s.valorCentavos, 0)
+
+/** RN-FIN-12: gasto descontando reembolsos; compra irregular entra no gasto (D-10). */
+export const gasto = (aquisicoes: readonly AquisicaoFato[]): number =>
+  aquisicoes.reduce((t, a) => t + a.valorCentavos - (a.reembolsoValorCentavos ?? 0), 0)
+
+export const sobra = (premioCentavos: number, gastoCentavos: number): number =>
+  Math.max(0, premioCentavos - gastoCentavos)
+
+export const complementacao = (premioCentavos: number, gastoCentavos: number): number =>
+  Math.max(0, gastoCentavos - premioCentavos)
+
+/**
+ * RN-FIN-17 (D-18): S dividido entre k pessoas; os `resto` primeiros da ordem recebem +1 centavo.
+ * Ordem: contemplados do ciclo na ordem de contemplação, depois os demais por pessoaId.
+ */
+export function ratear(
+  total: number,
+  ordem: readonly string[],
+): { pessoaId: string; centavos: number }[] {
+  if (!Number.isSafeInteger(total) || total < 0) throw new RangeError('total inválido')
+  const k = ordem.length
+  if (k === 0) return []
+  const q = Math.floor(total / k)
+  const resto = total % k
+  return ordem.map((pessoaId, i) => ({ pessoaId, centavos: q + (i < resto ? 1 : 0) }))
+}
+
+/** RN-FIN-16: SOBRA complementar gerada por um reembolso numa rodada já fechada. */
+export const complementar = (e: {
+  premioCentavos: number
+  gastoNovoCentavos: number
+  sobraCentavos: number
+  outrasComplementares: number
+}): number =>
+  Math.max(
+    0,
+    Math.max(0, e.premioCentavos - e.gastoNovoCentavos) - e.sobraCentavos - e.outrasComplementares,
+  )
+
+/** RN-FIN-18: conservação por rodada fechada (alerta se divergir). */
+export const conservaRodada = (e: {
+  premioCentavos: number
+  gastoCentavos: number
+  sobraCentavos: number
+  complementares: number
+}): boolean =>
+  Math.min(e.gastoCentavos, e.premioCentavos) + e.sobraCentavos + e.complementares ===
+  e.premioCentavos
