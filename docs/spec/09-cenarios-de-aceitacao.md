@@ -1,0 +1,231 @@
+# 09 — Cenários de aceitação
+
+Cada cenário vira pelo menos um teste. Nível: **[U]** unitário de domínio · **[I]** integração com Postgres · **[E]** end-to-end (Playwright). Valores em centavos; horários em SP. Salvo indicação, o ciclo tem 5 participantes (A, B, C, D, E), com contribuição de 2500.
+
+## 1. Tempo e prazos
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 01 | Sorteio em 03/10/2026 12:00 | pagamento vence em 04/10 00:00 (exclusivo); prorrogado vence em 11/10 00:00; compra até 03/11 00:00 (fim de 02/11) | C-DIAS, FIN-02/03, SOR-10 | U |
+| 02 | Sorteios em 03/11/2026, 03/02/2027 e 03/02/2028 | compra até o fim de 03/12/2026, 05/03/2027 e 04/03/2028 | C-DIAS | U |
+| 03 | Pix às 22:30 SP do dia 3 (01:30 UTC do dia 4) | no prazo | C-TEMPO, FIN-07 | U |
+| 04 | Relógio do cliente adiantado | o servidor ignora o relógio do cliente; vale `agora()` do servidor | C-TEMPO | I |
+
+## 2. Elegibilidade e sorteio
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 05 | 5 participantes, ninguém contemplado, todos em dia | sorteio entre os 5; snapshot com 5 elegíveis | SOR-05 | U |
+| 06 | A declarou não concorrer antes do corte; B declara 1 ms depois do corte | A fora (`OPTOU_NAO_CONCORRER`); declaração de B recusada | SOR-03/12 | I |
+| 07 | Restam A e B; A optou por não concorrer | B `UNICO_ELEGIVEL`, sem aleatoriedade; B pode ceder a A | SOR-05, CES-01 | U |
+| 08 | Resta só A, com contribuição vencida e aberta | A `OBRIGATORIA_ART14`; a dívida continua | SOR-05, D-05 | U |
+| 09 | Resta só A, `IMPOSSIBILITADO` | `SEM_CONTEMPLADO(ULTIMO_IMPOSSIBILITADO)`; pendência "deliberar art. 30" | SOR-05/11 | U |
+| 10 | A optou por não concorrer; antes do corte, C sai e A fica único não contemplado | no corte, a declaração é ignorada e A é contemplado pelo art. 14 | SOR-12 | U |
+| 11 | Todos os não contemplados optaram por não concorrer | `SEM_CONTEMPLADO(NENHUM_ELEGIVEL)`; 0 obrigações; próxima rodada agendada; a SOBRA pendente espera | SOR-11, D-06 | I |
+| 12 | P1 e P2 postergados; os normais C e D optaram por não concorrer | `SEM_CONTEMPLADO` (os normais bloqueiam os postergados) | SOR-05, D-08 | U |
+| 13 | Os 4 não contemplados atrasaram no mês 1; no mês 2, 2 deles estão em dia | camada = postergados; concorrem os 2 em dia | SOR-05/06 | U |
+| 14 | A não pagou até 03/10 23:59:59 e pagou em 05/10 | postergado a partir de 04/10 00:00; em novembro, com normais não contemplados, A fica fora mesmo em dia | SOR-07 | U |
+| 15 | A pagou às 23:58 do dia 3 e registrou no dia 5 (`pixEm` = dia 3) | sem atraso e sem postergação | FIN-07, SOR-07 | U |
+| 16 | Justificativa às 23:50 do dia 3 e Pix no dia 9; outra justificativa às 00:10 do dia 4 | a 1ª fica prorrogada e no prazo; a 2ª é recusada | FIN-03 | U |
+| 17 | Contribuição do ciclo 1 aberta no 1º corte do ciclo 2 | não em dia e postergado no ciclo 2 | SOR-06/07 | U |
+| 18 | Atrasou só no último mês do ciclo 1 e quitou antes do ciclo 2 | não postergado no ciclo 2 | SOR-07 | U |
+| 19 | Pagamento de C contestado pelo credor | C continua em dia; se ATA `INVALIDAR_PAGAMENTO` → C em atraso desde o vencimento original; sorteio já feito não se desfaz | FIN-06, SOR-06 | U/I |
+| 20 | Dois "Realizar sorteio" simultâneos | 1 `Sorteio`; o 2º recebe o resultado existente | SOR-02, GER-06 | I |
+| 21 | Tick fora do ar em 03/11; execução em 04/11 09:00 | `atrasada`; `dataSorteio` = 04/11; pagamento até o fim de 04/11; compra até o fim de 04/12; próxima rodada em 03/12 | SOR-04 | I |
+| 22 | "Realizar sorteio" às 11:59 do dia 3 | recusado | SOR-02 | I |
+| 23 | Snapshot gravado | `sha256(JSON canônico) = snapshotSha256`; motivo por pessoa presente | SOR-08 | U |
+| 24 | RNG injetado devolve 2 com 4 elegíveis ordenados | contemplado = `elegiveis[2]` | SOR-08 | U |
+
+## 3. Financeiro
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 25 | C contemplado | 4 `CONTRIBUICAO` (2500, credor C) + 1 autoquitada; prêmio nominal 12500 | FIN-02/11 | U/I |
+| 26 | Todos pagam; C compra jogo de 8990 e conclui | sobra 3510; `SOBRA` C → contemplado do mês seguinte, vence no fim do dia do sorteio seguinte; prêmio seguinte 16010 | FIN-12/14 | I |
+| 27 | D não paga; C compra 10000 | sobra nominal 2500: C deve 2500 de SOBRA; D continua devendo 2500 a C | FIN-11, D-07 | U |
+| 28 | Jogo de 14000 com prêmio de 12500 | complementação 1500; sobra 0; ninguém deve a C | FIN-12 | U |
+| 29 | Sorteio em 03/02/2027 e compra concluída em 04/03 | SOBRA vence no fim de 04/03 (depois do sorteio de 03/03); +7 com justificativa | FIN-14, D-25 | U |
+| 30 | Rodada r+1 marcada "concluída" antes de r fechar | r+1 aguarda; fecha quando r fecha, com prêmio que inclui a sobra de r | FIN-13 | I |
+| 31 | O último contemplado do ciclo 1 é o 1º do ciclo 2 | SOBRA autoquitada | FIN-14 | U |
+| 32 | Sem ciclo seguinte; SOBRA de 703; ordem de contemplação A, B, C, D, E; detentor E | A 141, B 141, C 141, D 140; E 140 autoquitada | FIN-17, D-18 | U |
+| 33 | C paga 1000 no dia 3 e 1500 no dia 6, sem justificativa | em atraso; quitada em atraso no dia 6 | FIN-08 | U |
+| 34 | Pix único de 6010 = contribuição 2500 + sobra 3510, ao mesmo credor | dois `Pagamento`s com o mesmo anexo | FIN-04 | I |
+| 35 | Anexo com hash já usado em outro par devedor/credor | alerta de duplicidade | FIN-04 | I |
+| 36 | Pagamento registrado pelo credor / por terceiro | `CONFIRMADO` / `DECLARADO` | FIN-04 | I |
+| 37 | Sequência aleatória de pagamentos, reembolsos e cessões (propriedade) | invariantes de conservação sempre válidos | FIN-18 | U |
+| 38 | Tentativa de pagar 3000 numa obrigação com saldo 2500 | recusado (`VALOR_ACIMA_DO_SALDO`) | FIN-04 | U |
+
+## 4. Saídas, exclusões e família
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 39 | C (não contemplado) sai no mês 2 | sem restituição; nenhuma obrigação nova; prêmio seguinte 10000; quórum de novas votações = 3 (N=4) | SAI-02, VOT-02 | I |
+| 40 | D (contemplado no mês 1) sai no mês 3 | contribuições das rodadas 4 e 5 geradas para D; D sem voto; perfil `EX_COM_PENDENCIA` | SAI-03, FIN-02 | I |
+| 41 | C sai em 03/11 às 15:00, depois do sorteio, sem ter pago | continua devendo a contribuição de 03/11 | SAI-02 | U |
+| 42 | O último não contemplado sai em 30/11, com rodada de 03/12 agendada | ciclo `EM_REVISAO`; rodada 03/12 `CANCELADA`; próximo ciclo em 03/01 (janela mínima de 7 dias) | CIC-04, D-17 | I |
+| 43 | Integrante com `entrouEm` = 29/02/2028 declara saída em 10/03/2028 | vínculo de membro `ENCERRADO(SAIDA_DA_FAMILIA)` com `saiuEm`; integrante `SAIU`; vaga bloqueada até 28/02/2029 (contada da entrada) | CAD-04/10/11, D-30 | U/I |
+| 44 | Membro declara impossibilidade no dia 1 | `IMPOSSIBILITADO` na hora; fora do sorteio do dia 3; a contribuição do dia 3 é gerada; pendência art. 30 | SAI-06 | I |
+| 45 | `PERMANENCIA_ART30` escopo família aprovada | membro `ENCERRADO(EXCLUSAO_ART30)` + integrante `REMOCAO_AUTORIZADA` | SAI-06, VOT-08 | I |
+| 46 | Registrar execução na Steam de remoção autorizada | integrante `REMOVIDO`, `saiuEm`, vaga bloqueada | CAD-09/11 | I |
+
+## 5. Cessão
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 47 | Sorteio: A às 12:00; C e D pagam A às 12:30; A propõe a B, B aceita; aprovada às 18:00; E paga às 20:00 | E paga B (credor redirecionado); A deve a B dois `REPASSE_CESSAO` de 2500 (origens: os pagamentos de C e D) + `CONTRIBUICAO` 2500; prêmio de B = 12500; prazo de compra do sorteio original; na rodada seguinte A está em NC e concorre; a transação passa pelos CHECKs e gera a ATA | CES-05 | I |
+| 48 | B já tinha pago 2500 a A antes da aprovação | a contribuição de B é cancelada e renasce autoquitada; nasce `DEVOLUCAO` A→B de 2500; o repasse **não** inclui o pagamento de B | CES-05 | U |
+| 49 | Ninguém vota na cessão | REJEITADA em +48 h; nada muda | CES-06, VOT-04 | I |
+| 50 | Cessão proposta em rodada do art. 14 / depois da compra / com outra aberta | recusada nos três casos | CES-02 | U |
+| 51 | Beneficiário `IMPOSSIBILITADO` / postergado | recusado / alerta | CES-01 | U |
+| 52 | Depois da aprovação, C registra um Pix feito ao cedente (escolhe `recebedorId` = cedente) | novo `REPASSE_CESSAO` do valor, com `pagamentoOrigemId` | CES-05, FIN-04 | I |
+| 53 | O cessionário propõe nova cessão | permitido, com nova votação e nova ATA | CES-06 | I |
+
+## 6. Aviso, veto e compra
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 54 | Aviso sexta 20:00; veto convocado domingo 19:59:59 / 20:00:00 | aceito / recusado (aviso já `AUTORIZADO`) | COM-05/06 | U |
+| 55 | Veto aprovado com 3 votos em 5 h | ATA; `JogoBloqueado` nº seguinte; aviso `VETADO`; prazo do art. 20 inalterado | COM-06, BLO-02 | I |
+| 56 | 3 votos CONTRA logo no início do veto | REJEITADA (impossibilidade); aviso `AUTORIZADO` | VOT-04 | U |
+| 57 | Compra registrada 10 h depois do aviso, sem veto | `ANTES_DA_AUTORIZACAO`; entra no gasto; pendência de caso omisso | COM-09, D-10 | I |
+| 58 | Compra com veto aberto | `irregularidades = [ANTES_DA_AUTORIZACAO, DURANTE_VOTACAO_VETO]`; entra no gasto; pendência de caso omisso | COM-09 | I |
+| 59 | Aviso de jogo no Anexo I / pacote que o contém / DLC do jogo bloqueado | bloqueio / bloqueio / alerta | COM-04 V1/V2 | U |
+| 60 | appdetails sem categoria 62 / falha de rede | ALERTA com declaração e evidência / `DESCONHECIDO` (não bloqueia) | COM-04 V6, STM-11 | U |
+| 61 | `content_descriptors.ids = [3]` / `[1]` | BLOQUEIO / ALERTA + declaração | COM-04 V3/V4 | U |
+| 62 | O contemplado já possui o appId | BLOQUEIO | COM-04 V9 | U |
+| 63 | Outro membro possui (API) | depois da janela: `AGUARDANDO_16IV`; 16 IV aprovada → `AUTORIZADO`; rejeitada → `NAO_AUTORIZADO_16IV`, novo aviso, jogo fora do Anexo I | COM-07 | U/I |
+| 64 | Novo aviso durante o veto do anterior | anterior `SUBSTITUIDO`; o veto segue e, se aprovado, bloqueia o jogo antigo | COM-03/06 | I |
+| 65 | Veto aprovado no 28º dia; nada comprado até o prazo | novo aviso com alerta V11; depois do prazo: `PRAZO_COMPRA_VENCIDO` + pendência | COM-13, D-09 | I |
+| 66 | Reembolso no prazo com SOBRA não paga | rodada reabre; recomprar o mesmo appId reaproveita o aviso autorizado | FIN-13, COM-12 | I |
+| 67 | Reembolso depois do fechamento com SOBRA já paga | SOBRA complementar para a rodada contemplada mais recente não fechada | FIN-16, D-27 | I |
+| 68 | Segunda aquisição sem ATA | `SEGUNDA_AQUISICAO`, somada ao gasto | COM-10 | U |
+| 69 | Compra com data anterior ao sorteio | recusada | COM-09 | U |
+| 70 | Produto F2P / `type = music` / DLC "1000 Coins" | BLOQUEIO / ALERTA + declaração / ALERTA + declaração | COM-04 V7/V8, D-24 | U |
+| 71 | ATA `CONVERTER_PREMIO_EM_SOBRA` numa rodada vencida | fecha com gasto 0; SOBRA = prêmio | VOT-09, FIN-13 | I |
+
+## 7. Votações e ATAs
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 72 | N=5; 3 FAVOR nas primeiras 2 h | APROVADA no 3º voto; o 4º é recusado; a ATA lista 2 "não votou" | VOT-04/06 | I |
+| 73 | 2 FAVOR, 2 CONTRA, depois 1 ABSTENÇÃO | REJEITADA por impossibilidade no último voto | VOT-04 | U |
+| 74 | 2 FAVOR e mais nada | REJEITADA em `abertaEm + 48 h` exatos; voto em +48 h recusado | VOT-03/04 | U/I |
+| 75 | Saída de membro → N=4 | quórum 3 | VOT-02 | U |
+| 76 | Eleitor pendente sai com a votação aberta | sai das pendentes; a impossibilidade é reavaliada na hora | VOT-04 | U |
+| 77 | Duas votações atingem o quórum no mesmo instante | ATAs com números consecutivos, sem lacuna nem duplicata | VOT-06, GER-06 | I |
+| 78 | Convocante tenta cancelar depois do voto de outro | recusado | VOT-05 | I |
+| 79 | Segunda votação aberta com o mesmo (assunto, objeto) | recusada | VOT-01 | I |
+| 80 | Art. 30: o alvo tenta votar | recusado; n=5, quórum 3, 4 eleitores aptos | VOT-02/10 | U |
+| 81 | `EXCLUSAO_BLOQUEIO` da entrada 01 | recusada, com orientação de alterar o art. 17 | BLO-04 | U |
+| 82 | Alteração aprovada 30/09 23:00 / 01/10 10:00 | vigente em 01/10 / 01/11; o sorteio de 03/10 usa, respectivamente, a nova / a anterior | REG-03/05 | U |
+| 83 | Duas alterações aprovadas em outubro | em 01/11 vale a de maior número | REG-04 | U |
+| 84 | Convocar uma 2ª alteração com outra aberta | recusado | REG-04 | I |
+| 85 | Votação convocada sob a versão A, e a B entra em vigor durante a votação | regida pela A (quórum e duração) | REG-05 | U |
+| 86 | `CONVERTER_PREMIO_EM_SOBRA` aprovada depois que o contemplado registrou, durante a votação, uma aquisição ativa (`APOS_PRAZO`) | ATA com "efeito não aplicável: …"; votação continua APROVADA | VOT-07 | I |
+| 87 | ATA gerada | campos do Anexo II + extras; `sha256` confere; UPDATE bloqueado pelo trigger | VOT-06, GER-03 | I |
+
+## 8. Ciclo, regulamento e cadastro
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 88 | 4/5 assinaram; a 5ª assina em 02/10/2026 23:50 / em 03/10 10:00 | vigente; ciclo 1 em 03/10/2026 / em 03/11/2026 | REG-01, CIC-01 | U |
+| 89 | Convocar votação antes da vigência | bloqueado | REG-02 | I |
+| 90 | CLI altera o texto da 1.0 antes da vigência | adesões anteriores ficam inválidas (sha diferente); os fundadores assinam de novo | ACE-10 | I |
+| 91 | Janela: 4 confirmam, 1 silencia | ciclo 2 com 4, quórum 3, alerta N≠5; o silencioso fica `ENCERRADO(NAO_CONFIRMOU_ART44)` no 1º corte e continua integrante | CIC-03/06 | I |
+| 92 | Só A confirma; SOBRA de 703 com E; ordem de contemplação A..E | ciclo seguinte `CANCELADO` (e a rodada 1 dele `CANCELADA`); k = 5: A 141, B 141, C 141, D 140, E 140 autoquitada; os não confirmantes ficam `ENCERRADO(NAO_CONFIRMOU_ART44)` e recebem a cota | CIC-06/07, FIN-17, D-18 | I |
+| 93 | Admissão aprovada no mês 2 | `AGUARDANDO_ADESAO` → assina → `AGUARDANDO_CICLO` → `ATIVO` no 1º corte seguinte; sem assinatura até o prazo → `ADMISSAO_CADUCOU` | CAD-12 | I |
+| 94 | Admissão que leva a 6 sem versão com `membrosPrevistos ≥ 6` | ativação bloqueada; fica para o ciclo seguinte | CAD-13 | I |
+| 95 | Segundo cadastro com o mesmo SteamID / segundo vínculo aberto | recusado (constraints) | CAD-01/03 | I |
+| 96 | Credor com obrigação aberta troca a chave Pix | aviso aos pagadores; os pagamentos já feitos guardam a chave anterior mascarada | CAD-05 | I |
+| 97 | ATA `ANULAR_RODADA` sem aquisição; D pagou 1000 de 2500, C pagou 2500 com atraso, SOBRA A→B de 3510 não paga | rodada `ANULADA`; substituta com a mesma sequência e mês; **todas** as obrigações canceladas; `DEVOLUCAO` B→D 1000 e B→C 2500; ninguém fica fora de dia nem postergado por essa rodada; a SOBRA de r1 é recriada para o novo contemplado; declarações copiadas | SOR-13, D-28 | I |
+
+## 9. Acesso e segurança
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 98 | Login com SteamID fora da lista | "não autorizado" (neutro); evento de auditoria | ACE-04 | I |
+| 99 | Reuso do mesmo `response_nonce` | recusado | STM-01 | I |
+| 100 | `claimed_id` com `http://` / com outro host | aceito / recusado | STM-01 | U |
+| 101 | `EX_COM_PENDENCIA` acessa `/votacoes` / o próprio extrato | 403 / ok, com a chave Pix só dos seus credores | ACE-07/08 | E/I |
+| 102 | `PENDENTE` consulta o financeiro | 403 | ACE-07 | I |
+| 103 | Membro tenta alterar a chave Pix de outro | 403 + auditoria | CAD-05 | I |
+| 104 | `/api/auth/dev` com `NODE_ENV=production` | 404 | ACE-14 | I |
+| 105 | Tick executado 2 vezes seguidas | nenhuma duplicidade (sorteio, ATA, SOBRA) | GER-07 | I |
+| 106 | Upload HEIC / SVG / PDF de 6 MB | recusados | ACE-09 | I |
+
+## 10. Steam
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 107 | Wishlist com `priority` [0, 0, 1, 2, 2] | ordem: 1, 2, 2 (por `date_added`), depois os 0 (por `date_added`) | STM-07 | U |
+| 108 | appdetails com chave de objeto ≠ appId pedido | usa `data.steam_appid` | STM-08 | U |
+| 109 | GetOwnedGames devolve `{}` | `steamJogosPublicos = false`; a biblioteca anterior é mantida | STM-06 | U/I |
+| 110 | appdetails devolve 429 | pausa de 10 min; o tick seguinte não chama | STM-10 | I |
+| 111 | Biblioteca da família | lista só jogos com categoria 62; desconhecidos como "verificando" | STM-12 | I |
+
+## 11. Ponta a ponta
+
+| CA | Fluxo | Nível |
+|---|---|---|
+| 112 | 5 fundadores fazem onboarding e assinam → vigência → ciclo 1 planejado em 03/MM | E |
+| 113 | Mês completo: sorteio (instantes preparados pela fábrica + chamada ao tick) → 4 pagamentos → confirmações → aviso → +48 h (simulado recuando `avisadoEm`/`janelaVetoAte`) → compra → concluída → SOBRA para o mês seguinte | E |
+| 114 | Veto: aviso → convocação → 3 votos → ATA → Anexo I → novo aviso → compra | E |
+| 115 | Membro transcreve o "não concorrer" de outro com print → o sujeito vê a pendência e revoga antes do corte | E |
+
+## 12. Cenários acrescentados na revisão
+
+| CA | Dado / Quando | Então | Regras | Nível |
+|---|---|---|---|---|
+| 116 | NC = {P postergado e em dia, I `IMPOSSIBILITADO`} | P `UNICO_ELEGIVEL` (o impossibilitado não bloqueia postergados) | SOR-05, D-08 | U |
+| 117 | Conclusão do ciclo em 24/11 / em 03/02 | próximo ciclo em 03/12 / em 03/03 | CIC-04 | U |
+| 118 | `openid.claimed_id` duplicado na query / `openid.signed` sem `claimed_id` / `is_valid:truex` | recusado nos três casos | STM-01 | U |
+| 119 | Membro tenta transcrever a saída ou a impossibilidade de outro | recusado (`SEM_PERMISSAO`) | GER-05 | I |
+| 120 | Membro que não é o contemplado tenta registrar compra | `SEM_PERMISSAO` | COM-09 | I |
+| 121 | Terceiro que registrou o pagamento tenta cancelar / o devedor cancela | `SEM_PERMISSAO` / `INVALIDADO` | FIN-05 | I |
+| 122 | Pagamento `DECLARADO` ao cedente antes da aprovação da cessão | depois da aprovação, só o cedente (recebedor) confirma ou contesta | FIN-05, CES-05 | I |
+| 123 | EX/PENDENTE baixa comprovante alheio / action recebe `anexoId` enviado por outra pessoa | 404 / recusado | ACE-09 | I |
+| 124 | Justificativa com `<img src=x onerror=…>` e link `javascript:` | exibidos como texto, sem executar | ACE-15 | E |
+| 125 | CLI troca o `steamId64` de um fundador que já assinou | a adesão dele fica inválida; a vigência só vem com a nova assinatura; as sessões dele são revogadas | ACE-10 | I |
+| 126 | Sessão aberta antes da ATA `REVINCULAR_STEAM` | a requisição seguinte vai para `/entrar` | ACE-16 | I |
+| 127 | DLC que outro membro possui | V10 = ALERTA "não verificável", nunca OK | COM-04 | U |
+| 128 | "Aquisição concluída" e tick de prazo simultâneos na mesma rodada | um único fechamento e uma única SOBRA | FIN-13, GER-06 | I |
+| 129 | 2º veto do mesmo aviso depois de rejeição, ainda na janela | recusado (`veto_unico_por_aviso`) | COM-06 | I |
+| 130 | Cessão A→B aprovada | na rodada seguinte A está em NC e elegível (art. 13, p.u.) | CES-05 | I |
+| 131 | DLC com categoria 62 / chave externa com appId válido | nenhum BLOQUEIO; V5 exige declaração; V6 e V7 OK; na DLC, V9 = DESCONHECIDO e V10 = ALERTA "não verificável"; a chave externa é aceita (origem `CHAVE_EXTERNA`) | COM-04, art. 18 | U |
+| 132 | `EXCLUSAO_BLOQUEIO` da entrada nº 02 aprovada | `excluidoEm` gravado; V1 deixa de bloquear o appId | BLO-04 | I |
+| 133 | Contemplado que continua membro não paga as rodadas seguintes | as obrigações persistem, sem postergação no ciclo | SOR-07, art. 31 | U |
+| 134 | Cessões sucessivas A→B→C; B tinha pago 1500 a A | saldo final de B = −2500 (sem dupla cobrança); o prêmio de C = nominal | CES-05/06 | U/I |
+| 135 | Cessão com a contribuição do beneficiário parcialmente paga / com SOBRA B→A (B foi o último do ciclo anterior) | nenhuma obrigação devedor = credor; a SOBRA vira autoquitada de B e entra no prêmio dele | CES-05 | I |
+| 136 | Pagamento ao cedente invalidado depois da aprovação | o `REPASSE_CESSAO` ligado a ele é cancelado; o que já tinha sido pago nele vira `DEVOLUCAO` beneficiário → cedente | CES-05 | I |
+| 137 | r1 em `PRAZO_COMPRA_VENCIDO`; r2 "concluída" | r2 fica `AGUARDANDO_FECHAMENTO_ANTERIOR`; ATA `CONVERTER_PREMIO_EM_SOBRA` em r1 → r1 e r2 fecham em cadeia | FIN-13, D-09 | I |
+| 138 | Compra registrada depois do prazo | `APOS_PRAZO`; entra no gasto; a rodada fecha no tick seguinte | FIN-13, COM-13 | I |
+| 139 | Reembolso tardio num ciclo encerrado sem ciclo seguinte | a diferença é rateada entre os k | FIN-16/17 | I |
+| 140 | Rateio com S = 3 e k = 5 | só 3 obrigações de 1 centavo (cota 0 não gera) | FIN-17 | U |
+| 141 | Anulação da rodada de novembro (ATA em 10/11) com a de dezembro já agendada | a substituta (mesma sequência) é sorteada em 11/11 às 12:00, sem marca de atrasada; a de dezembro não é duplicada | SOR-13, SOR-10 | I |
+| 142 | `PERMANENCIA_ART30` aprovada do último não contemplado impossibilitado | `saiuEm` gravado; o ciclo conclui; o excluído não é contemplado | CAD-04, SAI-06 | I |
+| 143 | `ENCERRAR_AO_FIM_DO_CICLO` aprovado no mês 2 | na conclusão, o ciclo vai a `ENCERRADO` sem ciclo seguinte; rateio | CIC-04/10 | I |
+| 144 | "Não concorrer" na rodada 1 do ciclo 2 por quem confirmou / por quem não confirmou | aceito / recusado no registro; se a confirmação for revogada depois, a declaração é ignorada no corte | SOR-12, CIC-03 | I |
+| 145 | Candidato admitido assina às 10:00 do dia 3 (prazo 00:00) | assinatura recusada; a admissão caduca no corte | CAD-12 | I |
+| 146 | `vencimentoEm` 04/10 00:00 com justificativa | `vencimentoEfetivo` = 11/10 00:00 (não 12/10) | FIN-03 | U |
+| 147 | Saída em 28/02 às 22:00 SP | `saiuEm` (date) = 28/02 (não 01/03) | C-DATA | U |
+| 148 | Mesmo texto e parâmetros com chaves em ordem diferente | mesmo `sha256` | C-HASH | U |
+| 149 | Versões 1.9 e 1.10 aprovadas | vigente = 1.10 (`ordem` numérica) | REG-04 | U |
+| 150 | Dois ticks disparados ao mesmo tempo | só um pega o lease; o outro sai sem fazer nada | 08 §7 | I |
+| 151 | Substituta de anulação sai `SEM_CONTEMPLADO` com a rodada seguinte já `AGENDADA` | nenhuma rodada é criada; o tick não falha | SOR-10/11/13 | I |
+| 152 | `ANULAR_RODADA` da rodada que concluiu o ciclo / com rodada posterior já executada | "efeito não aplicável" nos dois casos | SOR-13 | I |
+| 153 | C pagou A; cessão A→B aprovada (nasce REPASSE A→B); A paga o repasse; cessão B→A aprovada | REPASSE A→B cancelado; `DEVOLUCAO` B→A do valor pago; nenhuma obrigação devedor = credor; ATA gerada (variante A→B→C→A) | CES-05 | I |
+| 154 | Devedor da `CONTRIBUICAO` A→B (item 3) ou da `DEVOLUCAO` A→B tenta `recebedorId` = A | recusado | FIN-04 | U |
+| 155 | B pagou A antes da aprovação e só registra depois | nasce `DEVOLUCAO` A→B (registro em obrigação cancelada) | FIN-04, CES-05 | I |
+| 156 | Pix ao contemplado da rodada anulada registrado depois da ATA | nasce `DEVOLUCAO` recebedor → devedor | FIN-04, SOR-13 | I |
+| 157 | A→B→C; Pix a A com `pixEm` antes da 1ª aprovação, registrado depois da 2ª | nasce REPASSE A→C (nenhum A→B) | CES-05.6 | I |
+| 158 | A→B→C; p1 (D→A) é invalidado depois que A pagou o repasse a B (p2) e B pagou C (p3) | cancela os REPASSEs de p1 e p2; `DEVOLUCAO` C→B (p3) e B→A (p2); sem colisão em `obrigacao_por_pagamento` | FIN-05 | I |
+| 159 | B cancela o próprio pagamento `DECLARADO` que originou a `DEVOLUCAO` A→B (cessão, item 2) | a `DEVOLUCAO` é cancelada | FIN-05 | I |
+| 160 | Prêmio 12500 com `PERMITIR_MULTIPLAS_AQUISICOES`: 2 × 6000, sobra 500 já paga; dois reembolsos integrais depois do fechamento | complementares 6000 + 6000 (nunca 18000); RN-FIN-18 válida | FIN-16/18 | U |
+| 161 | Complementar sem rodada contemplada aberta / anulação da rodada destino da complementar | nasce na próxima contemplação / renasce na substituta | FIN-16, SOR-13 | I |
+| 162 | CONFIRMA transcrita às 08:00 do dia 3, ou com `efetivaEm` 01:00 do dia 3 | recusada | GER-05 | I |
+| 163 | r1 e r2 vencidas sem compra; ATA CONVERTER de r2 aprovada antes da de r1 | r2 grava `fechamentoSolicitado`; quando r1 fecha, r2 fecha em cadeia | FIN-13 | I |
+| 164 | r1 fechada com sobra 3510 ainda sem destino; reembolso integral no prazo | reabre com os campos zerados; o tick não a fecha de novo nem recria a SOBRA; o contemplado pode comprar outro jogo; no prazo fecha com uma única SOBRA | FIN-13 | I |
+| 165 | Ciclo `ENCERRADO` com `semCicloSeguinte`; r5 fechada com rateio de 3510; reembolso integral no prazo | não reabre; rateio complementar de 8990 | FIN-13/16/17 | I |
+| 166 | "Aquisição concluída" em r5 e reembolso em r4 ao mesmo tempo | resultado consistente (lock `'fechamento'`); RN-FIN-18 ok | GER-06 | I |
+| 167 | Prazo vencido com cessão `EM_VOTACAO` | não fecha até a votação encerrar; fecha com o contemplado vigente de então | FIN-13 (b) | I |
+| 168 | Ex-membro contemplado de rodada `FECHADA` ainda dentro do prazo | vê a rodada e registra o reembolso | ACE, COM-12 | I |

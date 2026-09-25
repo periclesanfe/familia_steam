@@ -141,3 +141,14 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- Projeto (Controle Família Steam) ---
+.DS_Store
+next-env.d.ts
+*.tsbuildinfo
+src/generated/
+playwright-report/
+test-results/
+blob-report/
+!.env.example
+bootstrap.json
