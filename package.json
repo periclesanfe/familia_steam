@@ -24,7 +24,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed:dev": "tsx --env-file-if-exists=.env --conditions=react-server scripts/seed-dev.ts",
     "cli": "tsx --env-file-if-exists=.env --conditions=react-server scripts/cli.ts",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && node scripts/contraste.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && node scripts/contraste.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
