@@ -9,6 +9,7 @@ import {
   primeiroDiaApos,
   somarDiasCorridos,
 } from '@/domain/tempo'
+import { ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
 
@@ -78,7 +79,7 @@ export async function concluirCiclo(
       where: { id: ciclo.id },
       data: { status: 'ENCERRADO', concluidoEm: T, encerradoEm: T },
     })
-    // ponytail: rateio da SOBRA (RN-FIN-17) entra no M7/M8b
+    await ratearPendentesDoCiclo(tx, ctx, ciclo.id) // RN-FIN-17
   } else {
     await tx.ciclo.update({
       where: { id: ciclo.id },
@@ -123,7 +124,6 @@ export async function iniciarCiclo(
   tx: Tx,
   ctx: Contexto,
   ciclo: { id: string; numero: number },
-  rodadaId: string,
 ): Promise<boolean> {
   const T = ctx.agora
   const aptos = { status: { in: ['ATIVO' as const, 'IMPOSSIBILITADO' as const] } }
@@ -166,21 +166,12 @@ export async function iniciarCiclo(
     select: { id: true },
   })
   if (previstos.length < 2) {
-    // RN-CIC-07: sem ciclo seguinte
-    await tx.rodada.update({ where: { id: rodadaId }, data: { status: 'CANCELADA' } })
-    await tx.ciclo.update({ where: { id: ciclo.id }, data: { status: 'CANCELADO' } })
-    if (anterior) {
-      await tx.ciclo.update({
-        where: { id: anterior.id },
-        data: { status: 'ENCERRADO', encerradoEm: T, semCicloSeguinte: true },
-      })
-    }
-    await registrarEvento(tx, ctx, {
-      acao: 'ciclo.cancelar',
-      entidade: 'ciclo',
-      entidadeId: ciclo.id,
-      dados: { motivo: `${String(previstos.length)} participante(s) no corte (RN-CIC-07)` },
-    })
+    await semCicloSeguinte(
+      tx,
+      ctx,
+      ciclo.id,
+      `${String(previstos.length)} participante(s) no corte (RN-CIC-07)`,
+    )
     return false
   }
 
@@ -201,4 +192,49 @@ export async function iniciarCiclo(
     dados: { depois: { participantes: previstos.length } },
   })
   return true
+}
+
+/**
+ * RN-CIC-07: o ciclo PLANEJADO é cancelado com a rodada 1; o anterior (EM_REVISAO) encerra sem
+ * ciclo seguinte e as SOBRAs pendentes são rateadas (RN-FIN-17).
+ */
+export async function semCicloSeguinte(
+  tx: Tx,
+  ctx: Contexto,
+  planejadoId: string,
+  motivo: string,
+  ataNumero?: number,
+): Promise<void> {
+  const planejado = await tx.ciclo.findUniqueOrThrow({
+    where: { id: planejadoId },
+    select: { numero: true },
+  })
+  await tx.rodada.updateMany({
+    where: { cicloId: planejadoId, status: 'AGENDADA' },
+    data: { status: 'CANCELADA' },
+  })
+  await tx.ciclo.update({ where: { id: planejadoId }, data: { status: 'CANCELADO' } })
+  const anterior = await tx.ciclo.findFirst({
+    where: { numero: planejado.numero - 1, status: 'EM_REVISAO' },
+    select: { id: true },
+  })
+  if (anterior) {
+    await tx.ciclo.update({
+      where: { id: anterior.id },
+      data: {
+        status: 'ENCERRADO',
+        encerradoEm: ctx.agora,
+        semCicloSeguinte: true,
+        ...(ataNumero ? { ataEncerramentoNumero: ataNumero } : {}),
+      },
+    })
+    await ratearPendentesDoCiclo(tx, ctx, anterior.id)
+  }
+  await registrarEvento(tx, ctx, {
+    acao: 'ciclo.cancelar',
+    entidade: 'ciclo',
+    entidadeId: planejadoId,
+    dados: { motivo },
+    ...(ataNumero ? { ataNumero } : {}),
+  })
 }

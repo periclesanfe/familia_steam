@@ -4,11 +4,17 @@ import { aquisicaoAtiva } from '@/domain/compra'
 import type { Efeito } from '@/domain/efeitos'
 import { pagamentoConta } from '@/domain/financeiro'
 import { hashVersao } from '@/domain/hash'
-import { numeroDaVersao, vigenciaDeAlteracao } from '@/domain/regulamento'
-import { dataLocal, paraDb, prazoEmDias } from '@/domain/tempo'
+import {
+  numeroDaVersao,
+  parametrosSchema,
+  versaoVigente,
+  vigenciaDeAlteracao,
+} from '@/domain/regulamento'
+import { dataLocal, instanteLocal, mesDe, paraDb, prazoEmDias } from '@/domain/tempo'
 import { aplicarCessao } from '@/features/cessao/efeito'
-import { fecharRodada } from '@/features/compra/fechamento'
+import { fecharRodada, ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { aoInvalidar, aoPassarAContar } from '@/features/financeiro/derivadas'
+import { semCicloSeguinte } from '@/features/rodadas/ciclo'
 import { encerrarMembro, registrarSaidaDaFamilia } from '@/features/saidas/servico'
 import type { Contexto } from '@/server/auditoria'
 import { registrarEvento } from '@/server/auditoria'
@@ -36,6 +42,8 @@ export const EFEITOS_DISPONIVEIS = [
   'RECONHECER_SAIDA',
   'RETORNO_SORTEIOS',
   'REVINCULAR_STEAM',
+  'CONTINUIDADE_CONSORCIO',
+  'ADIAR_CICLO',
 ] as const satisfies readonly Efeito['tipo'][]
 
 export const efeitoDisponivel = (t: Efeito['tipo']): boolean =>
@@ -326,6 +334,75 @@ export async function aplicarEfeito(
       }
       await auditar('pessoa', efeito.pessoaId, { steamId64: efeito.novoSteamId64 })
       return 'aplicado: conta Steam trocada e sessões revogadas; a pessoa assina de novo no próximo login'
+    }
+
+    case 'CONTINUIDADE_CONSORCIO': {
+      // RN-CIC-10 (art. 38, p.u.)
+      const [andamento, planejado] = await Promise.all([
+        tx.ciclo.findFirst({ where: { status: 'EM_ANDAMENTO' }, select: { id: true } }),
+        tx.ciclo.findFirst({
+          where: { status: 'PLANEJADO', numero: { gt: 1 } },
+          select: { id: true },
+        }),
+      ])
+      if (!andamento) {
+        // ciclo em revisão com o seguinte planejado: RN-CIC-07 na hora
+        if (!planejado) return naoAplicavel('não há ciclo em andamento nem planejado')
+        await semCicloSeguinte(tx, ctx, planejado.id, 'encerramento do consórcio', ataNumero)
+        return 'aplicado: ciclo seguinte cancelado; consórcio encerrado com rateio das sobras'
+      }
+      if (efeito.acao === 'ENCERRAR_AO_FIM_DO_CICLO') {
+        await tx.ciclo.update({
+          where: { id: andamento.id },
+          data: { semCicloSeguinte: true, ataEncerramentoNumero: ataNumero },
+        })
+        await auditar('ciclo', andamento.id, { semCicloSeguinte: true })
+        return 'aplicado: o consórcio encerra ao fim do ciclo em andamento'
+      }
+      // ENCERRAR_IMEDIATAMENTE: sem restituições automáticas (ficam na ATA e em CRIAR_DEVOLUCAO)
+      await tx.rodada.updateMany({
+        where: { cicloId: andamento.id, status: 'AGENDADA' },
+        data: { status: 'CANCELADA' },
+      })
+      await tx.ciclo.update({
+        where: { id: andamento.id },
+        data: {
+          status: 'ENCERRADO',
+          encerradoEm: encerradaEm,
+          semCicloSeguinte: true,
+          ataEncerramentoNumero: ataNumero,
+        },
+      })
+      await ratearPendentesDoCiclo(tx, ctx, andamento.id)
+      await auditar('ciclo', andamento.id, { status: 'ENCERRADO', imediato: true })
+      return 'aplicado: ciclo encerrado imediatamente; rodadas agendadas canceladas'
+    }
+
+    case 'ADIAR_CICLO': {
+      // RN-CIC-11: move o início de um ciclo PLANEJADO (sempre um dia 3), com a rodada 1
+      const c = await tx.ciclo.findUnique({
+        where: { id: efeito.cicloId },
+        select: { status: true, rodadas: { where: { sequencia: 1, status: 'AGENDADA' } } },
+      })
+      const r1 = c?.rodadas[0]
+      if (c?.status !== 'PLANEJADO' || !r1) return naoAplicavel('o ciclo não está planejado')
+      const versoes = await tx.versaoRegulamento.findMany({
+        select: { ordem: true, vigenteDesde: true, parametros: true },
+      })
+      const p = parametrosSchema.parse(versaoVigente(versoes, encerradaEm)?.parametros)
+      const nova = efeito.novaDataInicio
+      if (Number(nova.slice(8, 10)) !== p.diaSorteio) {
+        return naoAplicavel(`a nova data precisa ser um dia ${String(p.diaSorteio)}`)
+      }
+      const agendadaPara = instanteLocal(nova, p.horaSorteio)
+      if (agendadaPara <= encerradaEm) return naoAplicavel('a nova data já passou')
+      await tx.ciclo.update({ where: { id: efeito.cicloId }, data: { dataInicio: paraDb(nova) } })
+      await tx.rodada.update({
+        where: { id: r1.id },
+        data: { mesReferencia: mesDe(nova), agendadaPara },
+      })
+      await auditar('ciclo', efeito.cicloId, { dataInicio: nova })
+      return `aplicado: o ciclo começa em ${nova.split('-').reverse().join('/')}`
     }
 
     default:

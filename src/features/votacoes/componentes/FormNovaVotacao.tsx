@@ -39,6 +39,7 @@ const ASSUNTOS = [
   ['CONTROVERSIA', 'Controvérsia (art. 47)'],
   ['EXCLUSAO_BLOQUEIO', 'Exclusão de entrada do Anexo I (art. 23, §6º)'],
   ['ALTERACAO_REGULAMENTO', 'Alteração do Regulamento (art. 42)'],
+  ['CONTINUIDADE_CONSORCIO', 'Continuidade do consórcio (art. 38)'],
   ['OUTRO', 'Outro: só registro (art. 41)'],
 ] as const
 
@@ -49,6 +50,7 @@ const EFEITOS: Record<string, string> = {
   CANCELAR_OBRIGACAO: 'Cancelar obrigação',
   CRIAR_DEVOLUCAO: 'Criar devolução',
   SUSPENDER_CONTRIBUICOES: 'Suspender contribuições de alguém no ciclo',
+  ADIAR_CICLO: 'Adiar o início de um ciclo planejado',
 }
 
 const ROTULO_PARAMETRO: Record<keyof Parametros, string> = {
@@ -208,6 +210,35 @@ export function FormNovaVotacao({
               />
             </>
           )}
+
+        {(assunto === 'CASO_OMISSO' || assunto === 'CONTROVERSIA') && efeito === 'ADIAR_CICLO' && (
+          <>
+            <Selecao
+              nome="efeito.cicloId"
+              rotulo="Ciclo"
+              itens={opcoes.ciclos.map((c) => [c.id, `Ciclo ${String(c.numero)}`])}
+            />
+            <Field>
+              <FieldLabel htmlFor="efeito.novaDataInicio">Nova data de início</FieldLabel>
+              <Input id="efeito.novaDataInicio" name="efeito.novaDataInicio" type="date" required />
+              <FieldDescription>Sempre um dia 3 (RN-CIC-11).</FieldDescription>
+            </Field>
+          </>
+        )}
+
+        {assunto === 'CONTINUIDADE_CONSORCIO' && (
+          <Selecao
+            nome="efeito.acao"
+            rotulo="O que acontece se aprovada"
+            itens={[
+              ['ENCERRAR_AO_FIM_DO_CICLO', 'Encerrar ao fim do ciclo em andamento'],
+              [
+                'ENCERRAR_IMEDIATAMENTE',
+                'Encerrar agora (restituições decididas na ATA, por devoluções)',
+              ],
+            ]}
+          />
+        )}
 
         {assunto === 'EXCLUSAO_BLOQUEIO' && (
           <Selecao

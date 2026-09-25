@@ -59,7 +59,7 @@ export async function executarRodada(
     const p = parametrosSchema.parse(versao.parametros)
 
     if (rodada.ciclo.status === 'PLANEJADO') {
-      const iniciou = await iniciarCiclo(tx, ctx, rodada.ciclo, rodada.id)
+      const iniciou = await iniciarCiclo(tx, ctx, rodada.ciclo)
       if (!iniciou) return { rodadaId, executada: false, status: 'CANCELADA' }
     }
     if (rodada.ciclo.status !== 'PLANEJADO' && rodada.ciclo.status !== 'EM_ANDAMENTO') {
