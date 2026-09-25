@@ -17,7 +17,8 @@ const nextConfig: NextConfig = {
   // Capas e avatares vêm otimizados do CDN da Steam; dispensa o sharp na imagem. Sem
   // remotePatterns: o otimizador não busca host remoto nenhum (14 SEG-05).
   images: { unoptimized: true },
-  experimental: { serverActions: { bodySizeLimit: '6mb' } },
+  // authInterrupts: forbidden() com status 403 (RN-ACE-03)
+  experimental: { serverActions: { bodySizeLimit: '6mb' }, authInterrupts: true },
   headers: () => Promise.resolve([{ source: '/:path*', headers: headersSeguranca }]),
 }
 

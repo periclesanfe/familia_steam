@@ -7,7 +7,7 @@ import { ErroDeNegocio } from '@/domain/erros'
 import { acao, ehAcao, lerFormulario } from '@/server/acao'
 import { hashToken } from '@/server/auth/sessao'
 
-import { criarPessoa, dono, limpar } from './banco'
+import { criarMembro, dono, limpar } from './banco'
 
 const cookie = vi.hoisted(() => ({ valor: undefined as string | undefined }))
 vi.mock('next/headers', () => ({
@@ -22,8 +22,11 @@ const form = (dados: Record<string, string | string[]>) => {
   return fd
 }
 
-async function entrar(expiraEm = new Date(Date.now() + 86_400_000)) {
-  const p = await criarPessoa()
+async function entrar(
+  expiraEm = new Date(Date.now() + 86_400_000),
+  status: Parameters<typeof criarMembro>[0] = 'ATIVO',
+) {
+  const { pessoa: p } = await criarMembro(status)
   const token = randomBytes(32).toString('base64url')
   await dono.sessao.create({
     data: { tokenHash: hashToken(token), pessoaId: p.id, criadaEm: new Date(), expiraEm },
@@ -64,13 +67,11 @@ describe('acao() (08 §4.1, 14 SEG-01)', () => {
       null,
       form({ valor: '25', pixEm: '2030-01-01T00:00' }), // campo extra do cliente é ignorado
     )
-    expect(r).toEqual({
-      ok: true,
-      dados: {
-        e: { valor: 25 },
-        ctx: { ator: { tipo: 'MEMBRO', pessoaId: p.id }, agora: new Date('2026-10-03T15:00:00Z') },
-      },
-    })
+    if (!r.ok) throw new Error(r.mensagem)
+    expect(r.dados.e).toEqual({ valor: 25 })
+    expect(r.dados.ctx.ator).toEqual({ tipo: 'MEMBRO', pessoaId: p.id })
+    expect(r.dados.ctx.agora).toEqual(new Date('2026-10-03T15:00:00Z'))
+    expect(r.dados.ctx.perfil.perfil).toBe('MEMBRO')
   })
 
   it('entrada inválida → erros por campo e valores de volta (12 UI-13)', async () => {
@@ -99,6 +100,45 @@ describe('acao() (08 §4.1, 14 SEG-01)', () => {
     expect(inesperado).toMatchObject({ ok: false, codigo: 'ERRO_INESPERADO' })
     expect(JSON.stringify(inesperado)).not.toContain('senha')
     expect(log.mock.calls.flat().join()).not.toContain('senha')
+  })
+
+  it('nega por padrão: PENDENTE não executa action de MEMBRO (14 SEG-01)', async () => {
+    await entrar(undefined, 'AGUARDANDO_ADESAO')
+    const handler = vi.fn()
+    const r = await acao(schema, handler)(null, form({ valor: '1' }))
+    expect(r).toMatchObject({ ok: false, codigo: 'SEM_PERMISSAO' })
+    expect(handler).not.toHaveBeenCalled()
+    const liberada = await acao(schema, () => Promise.resolve('ok'), { perfis: ['PENDENTE'] })(
+      null,
+      form({ valor: '1' }),
+    )
+    expect(liberada).toEqual({ ok: true, dados: 'ok' })
+  })
+
+  it('CA-103: chave Pix de outro membro não é alcançável (o ator vem da sessão)', async () => {
+    const { salvarDadosAcao } = await import('@/features/onboarding/acoes')
+    const eu = await entrar()
+    const outro = await dono.pessoa.create({
+      data: { apelido: 'Bia', steamId64: '76561197960287939', chavePix: 'bia@exemplo.com' },
+    })
+    const r = await salvarDadosAcao(
+      null,
+      form({
+        pessoaId: outro.id, // campo forjado: ignorado pelo schema
+        nome: 'Ana Souza',
+        apelido: 'Ana',
+        tipoChavePix: 'EMAIL',
+        chavePix: 'golpe@exemplo.com',
+        maioridade: 'on',
+      }),
+    )
+    expect(r.ok).toBe(true)
+    expect((await dono.pessoa.findUniqueOrThrow({ where: { id: outro.id } })).chavePix).toBe(
+      'bia@exemplo.com',
+    )
+    expect((await dono.pessoa.findUniqueOrThrow({ where: { id: eu.id } })).chavePix).toBe(
+      'golpe@exemplo.com',
+    )
   })
 
   it('lerFormulario: repetidos viram lista; vazio some', () => {

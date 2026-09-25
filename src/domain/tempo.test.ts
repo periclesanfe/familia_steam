@@ -6,6 +6,8 @@ import {
   fimDoDia,
   formatarDuracao,
   inicioDoMesSeguinte,
+  mesDe,
+  primeiroDiaApos,
   instanteLocal,
   paraDb,
   prazoConfirmacao,
@@ -82,5 +84,12 @@ describe('tempo', () => {
     expect(formatarDuracao(45_000)).toBe('45 s')
     expect(formatarDuracao(3 * 3_600_000 + 12 * 60_000)).toBe('3 h 12 min')
     expect(formatarDuracao(2 * 86_400_000 + 3 * 3_600_000)).toBe('2 d 3 h')
+  })
+
+  it('primeiroDiaApos: estritamente depois (RN-CIC-01)', () => {
+    expect(primeiroDiaApos('2026-10-02', 3)).toBe('2026-10-03')
+    expect(primeiroDiaApos('2026-10-03', 3)).toBe('2026-11-03')
+    expect(primeiroDiaApos('2026-12-15', 3)).toBe('2027-01-03')
+    expect(mesDe('2026-10-03')).toBe('2026-10')
   })
 })

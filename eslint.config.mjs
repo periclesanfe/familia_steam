@@ -132,6 +132,16 @@ export default defineConfig([
     rules: { 'no-restricted-syntax': ['error', semEnumTs, semProcessEnv, ...regrasDeUi] },
   },
   {
+    // Código gerado pelo shadcn (12 UI-11): mantido como a CLI entrega, sem as regras estritas
+    // de estilo de tipo que ele não segue. As regras de segurança continuam valendo.
+    files: ['src/components/ui/**'],
+    rules: {
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+  {
     // Arquivos de config em JS/MJS não passam pelo type-checker.
     files: ['**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],

@@ -61,3 +61,7 @@ export const adesaoValida = (
   versao: { sha256: string },
   pessoa: { steamId64: string },
 ): boolean => a.sha256Versao === versao.sha256 && a.codigoAmigo === codigoAmigo(pessoa.steamId64)
+
+/** Bloco de assinaturas (RN-REG-07): o texto literal aceito, com o número da versão. */
+export const declaracaoDeAdesao = (numero: string): string =>
+  `Declaro que li e concordo com todos os termos deste Regulamento, versão ${numero}, e me comprometo a pagar a contribuição mensal até o término do CICLO, inclusive após ser contemplado.`

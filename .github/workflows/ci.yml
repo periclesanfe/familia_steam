@@ -53,9 +53,9 @@ jobs:
           PGPASSWORD: consorcio
           POSTGRES_USER: consorcio
           POSTGRES_DB: consorcio
+      - run: pnpm typecheck # gera os tipos de rota (next typegen) que o lint usa
       - run: pnpm lint
       - run: pnpm format:check
-      - run: pnpm typecheck
       - run: pnpm db:deploy
       - run: pnpm test
       - run: pnpm test:integracao

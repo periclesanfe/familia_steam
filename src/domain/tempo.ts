@@ -135,3 +135,13 @@ export function formatarDuracao(ms: number): string {
   if (min > 0) return `${String(min)} min`
   return `${String(s)} s`
 }
+
+/** Primeira data com o dia do mês `dia` estritamente depois de `d` (RN-CIC-01: "primeiro dia 3"). */
+export function primeiroDiaApos(d: DataCivil, dia: number): DataCivil {
+  const [a, m, atual] = dividir(d)
+  const mesmoMes = atual < dia
+  return civilDeUtc(new Date(Date.UTC(a, mesmoMes ? m - 1 : m, dia)))
+}
+
+/** "AAAA-MM" da data civil (Rodada.mesReferencia). */
+export const mesDe = (d: DataCivil): string => d.slice(0, 7)
