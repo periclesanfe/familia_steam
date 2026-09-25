@@ -198,6 +198,7 @@ describe('pagamentos (RN-FIN-03..06, RN-ACE-09)', () => {
     const { credor, devedores, obrigacaoDe } = await comRodada1()
     const [a = '', b = ''] = devedores
     const oa = await obrigacaoDe(a)
+    vi.setSystemTime(instanteLocal('2026-10-03', '18:00')) // o Pix das 15:00 já aconteceu
     const anexo = await emTransacao((tx) =>
       salvarAnexo(tx, ctxDe(b, agora()), 'COMPROVANTE_PIX', jpeg(4)),
     )
