@@ -19,6 +19,9 @@ updates:
       # ESLint 10 quebra o plugin react do config do Next (08 §1)
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
+      # os tipos acompanham o Node de produção (.nvmrc e a imagem node:24); subir junto com ele
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
