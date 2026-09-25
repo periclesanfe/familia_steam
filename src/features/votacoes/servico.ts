@@ -35,11 +35,6 @@ export async function convocar(
     'A cessão nasce do aceite do beneficiário.',
     'art. 13',
   )
-  exigir(
-    e.assunto !== 'VETO_JOGO',
-    'EFEITO_INDISPONIVEL',
-    'O veto é convocado pelo aviso do jogo (M7).',
-  )
   const efeito = efeitoSchema.parse(e.efeito)
   exigir(
     efeitoCombina(e.assunto, efeito),
