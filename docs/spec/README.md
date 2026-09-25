@@ -24,6 +24,7 @@ Sistema web que substitui a "planilha compartilhada" do art. 39 do Regulamento e
 | 12  | [Design e interface](12-design-e-interface.md)               | Identidade sóbria, tokens e contraste, tipografia, formulários, movimento, acessibilidade e padronização (UI-nn) |
 | 13  | [Performance e dados](13-performance-e-dados.md)             | N+1, retrato do ciclo, transações, pool, cache do Next, Steam em lote, índices e teste de constância (DP-nn)     |
 | 14  | [Segurança](14-seguranca.md)                                 | Ameaças, autorização por action, sessão, CSP, papéis do banco, supply chain e mapa OWASP (SEG-nn)                |
+| 15  | [Famílias e acesso aberto](15-familias-e-acesso-aberto.md)   | Login aberto, várias famílias isoladas, indicação e convite, vigência por todos, jogos e promoções (RN-FAM-nn)   |
 
 ## Como ler
 

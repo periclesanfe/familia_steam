@@ -86,6 +86,13 @@ Cada marco termina com o sistema **implantável** e o CI verde. A ordem segue as
 - **Texto final da 1.0**, com as redações do 03 §3 escolhidas (no mínimo D-01, D-06 e D-15), depois bootstrap real dos 5 fundadores e o hash no GRUPO. A ATA de caso omisso para as omissões restantes e os operadores (D-29) é votada **antes do 1º sorteio**.
 - **Pronto quando:** CA 113 passa no CI; em produção, o login Steam real passa no smoke test e a restauração do backup foi testada.
 
+### M10 — Famílias, acesso aberto e informação de jogos ([15](15-familias-e-acesso-aberto.md))
+
+- **M10a:** login aberto (`VISITANTE`), área pessoal (jogos, lista de desejos, amigos), criar família, indicação com aprovação, convite por link, sair; `familiaId` e isolamento em todo o consórcio; vigência por assinatura de todos.
+- **M10b:** dados ricos de jogos (imagens, gêneros, avaliações, jogadores agora), histórico de preço próprio, lista de desejos e biblioteca visuais.
+- **M10c:** calendário de promoções e "em promoção agora" nas listas da família.
+- **Pronto quando:** CA 180–192 passam, e os CAs anteriores continuam passando dentro de uma família.
+
 ## Caminho mínimo para operar o 1º mês
 
 M0 → M1 → M2 → M4 → M5 → M6 → M7 → **M8a**, tudo antes do 1º sorteio. Cessão, saídas e impossibilidade podem acontecer já depois do primeiro sorteio.
