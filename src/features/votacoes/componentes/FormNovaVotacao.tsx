@@ -56,6 +56,7 @@ const EFEITOS: Record<string, string> = {
   CRIAR_DEVOLUCAO: 'Criar devolução',
   SUSPENDER_CONTRIBUICOES: 'Suspender contribuições de alguém no ciclo',
   ADIAR_CICLO: 'Adiar o início de um ciclo planejado',
+  ANULAR_RODADA: 'Anular uma rodada (novo sorteio no dia seguinte)',
 }
 
 const ROTULO_PARAMETRO: Record<keyof Parametros, string> = {
@@ -216,6 +217,17 @@ export function FormNovaVotacao({
             </>
           )}
 
+        {(assunto === 'CASO_OMISSO' || assunto === 'CONTROVERSIA') &&
+          efeito === 'ANULAR_RODADA' && (
+            <Selecao
+              nome="efeito.rodadaId"
+              rotulo="Rodada a anular"
+              itens={opcoes.rodadas.map((r) => [
+                r.id,
+                `Ciclo ${String(r.ciclo.numero)}, rodada ${String(r.sequencia)} (${r.mesReferencia})`,
+              ])}
+            />
+          )}
         {(assunto === 'CASO_OMISSO' || assunto === 'CONTROVERSIA') && efeito === 'ADIAR_CICLO' && (
           <>
             <Selecao

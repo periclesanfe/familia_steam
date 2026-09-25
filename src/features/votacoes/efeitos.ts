@@ -15,6 +15,7 @@ import { aplicarCessao } from '@/features/cessao/efeito'
 import { fecharRodada, ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { aplicarAdmissao, aplicarConvite, aplicarRemocao } from '@/features/familia/efeitos'
 import { aoInvalidar, aoPassarAContar } from '@/features/financeiro/derivadas'
+import { anularRodada } from '@/features/rodadas/anulacao'
 import { semCicloSeguinte } from '@/features/rodadas/ciclo'
 import { encerrarMembro, registrarSaidaDaFamilia } from '@/features/saidas/servico'
 import type { Contexto } from '@/server/auditoria'
@@ -48,6 +49,7 @@ export const EFEITOS_DISPONIVEIS = [
   'ADMISSAO_MEMBRO',
   'CONVITE_INTEGRANTE',
   'REMOCAO_INTEGRANTE',
+  'ANULAR_RODADA',
 ] as const satisfies readonly Efeito['tipo'][]
 
 export const efeitoDisponivel = (t: Efeito['tipo']): boolean =>
@@ -339,6 +341,9 @@ export async function aplicarEfeito(
       await auditar('pessoa', efeito.pessoaId, { steamId64: efeito.novoSteamId64 })
       return 'aplicado: conta Steam trocada e sessões revogadas; a pessoa assina de novo no próximo login'
     }
+
+    case 'ANULAR_RODADA':
+      return anularRodada(tx, ctx, efeito.rodadaId, ataNumero, encerradaEm) // RN-SOR-13
 
     case 'ADMISSAO_MEMBRO':
       return aplicarAdmissao(tx, ctx, efeito, ataNumero) // RN-CAD-12
