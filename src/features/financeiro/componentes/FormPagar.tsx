@@ -45,6 +45,7 @@ export function FormPagar({
           <InputGroup>
             <InputGroupInput
               id={id('valor')}
+              aria-describedby={`${id('valor')}-erro`}
               name="valor"
               inputMode="decimal"
               required
@@ -53,12 +54,13 @@ export function FormPagar({
             />
             <InputGroupAddon>R$</InputGroupAddon>
           </InputGroup>
-          <FieldError errors={errosDo(estado, 'valor')} />
+          <FieldError id={`${id('valor')}-erro`} errors={errosDo(estado, 'valor')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'pixEm')}>
           <FieldLabel htmlFor={id('pixEm')}>Data e hora do Pix</FieldLabel>
           <Input
             id={id('pixEm')}
+            aria-describedby={`${id('pixEm')}-erro`}
             name="pixEm"
             type="datetime-local"
             required
@@ -66,7 +68,7 @@ export function FormPagar({
             aria-invalid={!!errosDo(estado, 'pixEm')}
           />
           <FieldDescription>Horário de Brasília, como no comprovante.</FieldDescription>
-          <FieldError errors={errosDo(estado, 'pixEm')} />
+          <FieldError id={`${id('pixEm')}-erro`} errors={errosDo(estado, 'pixEm')} />
         </Field>
       </FieldGroup>
       {recebedores.length > 1 && (
@@ -89,6 +91,7 @@ export function FormPagar({
         <FieldLabel htmlFor={id('arquivo')}>Comprovante</FieldLabel>
         <Input
           id={id('arquivo')}
+          aria-describedby={`${id('arquivo')}-erro`}
           name="arquivo"
           type="file"
           accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -98,6 +101,7 @@ export function FormPagar({
         />
         <FieldDescription>JPEG, PNG, WebP ou PDF, até 5 MB.</FieldDescription>
         <FieldError
+          id={`${id('arquivo')}-erro`}
           errors={grande ? [{ message: 'O arquivo passa de 5 MB.' }] : errosDo(estado, 'arquivo')}
         />
       </Field>

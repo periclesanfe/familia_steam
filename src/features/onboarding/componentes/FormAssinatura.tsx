@@ -24,18 +24,30 @@ export function FormAssinatura({
       <ResultadoAcao estado={estado} sucesso="Regulamento assinado" />
       <FieldGroup>
         <Field orientation="horizontal" data-invalid={!!errosDo(estado, 'declaracao')}>
-          <Checkbox id="declaracao" name="declaracao" required disabled={!habilitado} />
+          <Checkbox
+            id="declaracao"
+            aria-describedby="declaracao-erro"
+            name="declaracao"
+            required
+            disabled={!habilitado}
+          />
           <FieldLabel htmlFor="declaracao" className="font-normal">
             {declaracao}
           </FieldLabel>
-          <FieldError errors={errosDo(estado, 'declaracao')} />
+          <FieldError id="declaracao-erro" errors={errosDo(estado, 'declaracao')} />
         </Field>
         <Field orientation="horizontal" data-invalid={!!errosDo(estado, 'contaUnica')}>
-          <Checkbox id="contaUnica" name="contaUnica" required disabled={!habilitado} />
+          <Checkbox
+            id="contaUnica"
+            aria-describedby="contaUnica-erro"
+            name="contaUnica"
+            required
+            disabled={!habilitado}
+          />
           <FieldLabel htmlFor="contaUnica" className="font-normal">
             Declaro que não participo do consórcio com outra conta Steam.
           </FieldLabel>
-          <FieldError errors={errosDo(estado, 'contaUnica')} />
+          <FieldError id="contaUnica-erro" errors={errosDo(estado, 'contaUnica')} />
         </Field>
       </FieldGroup>
       <div>

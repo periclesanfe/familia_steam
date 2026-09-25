@@ -386,6 +386,7 @@ export function FormNovaVotacao({
           <FieldLabel htmlFor="proposicao">Proposição</FieldLabel>
           <Textarea
             id="proposicao"
+            aria-describedby="proposicao-erro"
             name="proposicao"
             required
             minLength={10}
@@ -395,19 +396,20 @@ export function FormNovaVotacao({
           <FieldDescription>
             Escreva como mudança: o que acontece se o voto a favor vencer.
           </FieldDescription>
-          <FieldError errors={errosDo(estado, 'proposicao')} />
+          <FieldError id="proposicao-erro" errors={errosDo(estado, 'proposicao')} />
         </Field>
         <Field data-invalid={!!errosDo(estado, 'justificativa')}>
           <FieldLabel htmlFor="justificativa">Justificativa</FieldLabel>
           <Textarea
             id="justificativa"
+            aria-describedby="justificativa-erro"
             name="justificativa"
             required
             minLength={10}
             rows={3}
             defaultValue={estado && !estado.ok ? estado.valores.justificativa : undefined}
           />
-          <FieldError errors={errosDo(estado, 'justificativa')} />
+          <FieldError id="justificativa-erro" errors={errosDo(estado, 'justificativa')} />
         </Field>
       </FieldGroup>
       <div>

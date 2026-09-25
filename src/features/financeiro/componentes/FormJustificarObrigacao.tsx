@@ -18,13 +18,14 @@ export function FormJustificarObrigacao({ obrigacaoId }: { obrigacaoId: string }
         <FieldLabel htmlFor={`just-${obrigacaoId}`}>Justificar (ganha 7 dias)</FieldLabel>
         <Input
           id={`just-${obrigacaoId}`}
+          aria-describedby={`just-${obrigacaoId}-erro`}
           name="texto"
           required
           minLength={10}
           maxLength={500}
           defaultValue={estado && !estado.ok ? estado.valores.texto : undefined}
         />
-        <FieldError errors={errosDo(estado, 'texto')} />
+        <FieldError id={`just-${obrigacaoId}-erro`} errors={errosDo(estado, 'texto')} />
       </Field>
       <BotaoEnviar variant="outline">Justificar</BotaoEnviar>
       <ResultadoAcao estado={estado} sucesso="Justificativa registrada" />
