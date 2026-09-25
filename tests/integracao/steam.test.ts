@@ -114,12 +114,15 @@ describe('sincronização Steam (RN-STM-04..12)', () => {
     expect(JSON.stringify(cp)).not.toContain('<') // campos HTML do appdetails não são gravados
   })
 
-  it('CA-191 e 15 §5: preço muda 3 vezes → 3 PrecoApp; avaliações e capturas em pares do CDN', async () => {
+  it('CA-191 e 15 §5: preço muda 3 vezes → 3 PrecoApp; avaliações, jogadores agora e capturas do CDN', async () => {
     const CDN = 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150'
     const dados = stardew['413150'].data
     let preco = { final: 2499, discount_percent: 0 }
     const api = criarApiSteam(undefined, (entrada) => {
       const url = new URL((entrada as URL).toString())
+      if (url.pathname.includes('GetNumberOfCurrentPlayers')) {
+        return json({ response: { result: 1, player_count: 36230 } })
+      }
       if (url.pathname.startsWith('/appreviews/')) {
         return json({
           success: 1,
@@ -161,6 +164,10 @@ describe('sincronização Steam (RN-STM-04..12)', () => {
     expect(j.menorPrecoCentavos).toBe(1249)
     expect(j.avaliacao).toMatchObject({ rotulo: 'Extremamente positivas', pct: 98, total: 1000 })
     expect(j.app?.capturas).toEqual([`${CDN}/a.600x338.jpg`]) // o par com host estranho sai inteiro
+    expect(j.app).toMatchObject({
+      jogadoresAgora: 36230,
+      jogadoresEm: new Date('2026-10-04T12:00:00Z'),
+    })
     expect(j.app?.capturasGrandes).toEqual([`${CDN}/a.1920x1080.jpg`])
   })
 })

@@ -64,7 +64,7 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
   - suporte a controle, plataformas, idiomas;
   - descrição curta **em texto** (o HTML é descartado, SEG-04);
   - resumo de avaliações (`appreviews`, todos os idiomas, sem key: `review_score` 0–9 exibido com os termos da Steam em pt-BR, % positivas, total), buscado junto com o `appdetails`; falha comum mantém o anterior, 429/403 pausa (RN-STM-10);
-  - jogadores agora (`GetNumberOfCurrentPlayers`, atualizado com o preço).
+  - jogadores agora (`GetNumberOfCurrentPlayers`, Web API pública sem key), só para `type = game`, lido junto com os detalhes e exibido com a hora da leitura (`jogadoresEm`); falha comum mantém o anterior.
 - **Histórico de preço próprio:** `PrecoApp(appId, em, precoCentavos, descontoPct)` gravado quando o preço muda. A Steam não expõe histórico; o gráfico mostra o que o sistema observou.
 - **Lista de desejos:**
   - capa, preço, desconto e menor preço já observado;

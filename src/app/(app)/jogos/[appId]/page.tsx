@@ -84,6 +84,17 @@ export default async function JogoPage({ params }: PageProps<'/jogos/[appId]'>) 
               <span>—</span>
             )}
           </div>
+          {a?.jogadoresAgora != null && a.jogadoresEm && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-muted-foreground">Jogando agora</span>
+              <span className="text-lg font-semibold tabular-nums">
+                {a.jogadoresAgora.toLocaleString('pt-BR')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                na Steam, em {formatarDataHora(a.jogadoresEm)}
+              </span>
+            </div>
+          )}
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
             {a?.lancamento && (
               <>

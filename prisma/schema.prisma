@@ -819,6 +819,8 @@ model SteamApp {
   avaliacaoNota        Int? // appreviews review_score: 0 (poucas) a 9 (extremamente positivas)
   avaliacoesPositivas  Int?
   avaliacoesTotal      Int?
+  jogadoresAgora       Int? // GetNumberOfCurrentPlayers, lido junto com os detalhes (15 §5)
+  jogadoresEm          DateTime? @db.Timestamptz(3)
   prioridadeSync       Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
 
   @@index([prioridadeSync, detalhesEm])

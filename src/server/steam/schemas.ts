@@ -87,3 +87,8 @@ export const avaliacoesSchema = z.object({
     .object({ review_score: z.int(), total_positive: z.int(), total_reviews: z.int() })
     .optional(),
 })
+
+/** 15 §5: jogadores agora (sem key); `result` diferente de 1 = app sem contagem. */
+export const jogadoresSchema = z.object({
+  response: z.object({ result: z.number(), player_count: z.int().optional() }),
+})

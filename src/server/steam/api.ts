@@ -7,6 +7,7 @@ import {
   appDetailsSchema,
   avaliacoesSchema,
   friendListSchema,
+  jogadoresSchema,
   ownedGamesSchema,
   playerSummariesSchema,
   vanitySchema,
@@ -116,6 +117,15 @@ export function criarApiSteam(chave: string | undefined, buscar: typeof fetch = 
         `/appreviews/${String(appId)}`,
         { json: '1', language: 'all', purchase_type: 'all', num_per_page: '0' },
         avaliacoesSchema,
+        false,
+      ),
+    /** 15 §5: quantos estão jogando agora (Web API pública, sem key) */
+    jogadoresAgora: (appId: number) =>
+      chamar(
+        WEB_API,
+        '/ISteamUserStats/GetNumberOfCurrentPlayers/v1/',
+        { appid: String(appId) },
+        jogadoresSchema,
         false,
       ),
   }

@@ -263,6 +263,8 @@ export async function detalheDoJogo(appId: number) {
         publicadoras: true,
         capturas: true,
         capturasGrandes: true,
+        jogadoresAgora: true,
+        jogadoresEm: true,
       },
     }),
     db.jogoPossuido.findMany({

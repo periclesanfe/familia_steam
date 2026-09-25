@@ -207,9 +207,19 @@ function capturasDe(lista: readonly { path_thumbnail: string; path_full: string 
   return { capturas: pares.map((p) => p[0]), capturasGrandes: pares.map((p) => p[1]) }
 }
 
-/** 15 §5: avaliações da loja; falha comum mantém as anteriores, 429/403 pausa (RN-STM-10). */
-async function avaliacoesDe(api: ApiSteam, appId: number) {
+/** Falha comum mantém o valor anterior; 429/403 pausa tudo (RN-STM-10). */
+async function opcional<T>(f: () => Promise<T>): Promise<T | Record<string, never>> {
   try {
+    return await f()
+  } catch (e) {
+    if (e instanceof LimiteSteam) throw e
+    return {}
+  }
+}
+
+/** 15 §5: avaliações da loja e, para jogos, quantos estão jogando agora. */
+async function avaliacoesDe(api: ApiSteam, appId: number, ehJogo: boolean, t: Date) {
+  const notas = await opcional(async () => {
     const r = await api.avaliacoes(appId)
     const q = r.success === 1 ? r.query_summary : undefined
     return q
@@ -219,10 +229,16 @@ async function avaliacoesDe(api: ApiSteam, appId: number) {
           avaliacoesTotal: q.total_reviews,
         }
       : {}
-  } catch (e) {
-    if (e instanceof LimiteSteam) throw e
-    return {}
-  }
+  })
+  const jogadores = ehJogo
+    ? await opcional(async () => {
+        const { response: r } = await api.jogadoresAgora(appId)
+        return r.result === 1 && r.player_count !== undefined
+          ? { jogadoresAgora: r.player_count, jogadoresEm: t }
+          : {}
+      })
+    : {}
+  return { ...notas, ...jogadores }
 }
 
 /**
@@ -271,7 +287,7 @@ export async function buscarDetalhes(
           }
         : { sucesso: false, detalhesEm: t }
       // eslint-disable-next-line no-await-in-loop -- idem
-      const notas = d ? await avaliacoesDe(api, appId) : {}
+      const notas = d ? await avaliacoesDe(api, appId, d.type === 'game', t) : {}
       // eslint-disable-next-line no-await-in-loop -- idem
       const antes = await db.steamApp.findUnique({
         where: { appId },
