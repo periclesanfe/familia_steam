@@ -49,7 +49,7 @@ export async function aplicarEfeito(
   efeito: Efeito,
   ataNumero: number,
   encerradaEm: Date,
-  votacao: { justificativa: string } = { justificativa: '' },
+  votacao: { id: string; justificativa: string },
 ): Promise<string> {
   const auditar = (entidade: string, entidadeId: string, dados?: Record<string, unknown>) =>
     registrarEvento(tx, ctx, {

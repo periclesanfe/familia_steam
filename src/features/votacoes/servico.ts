@@ -224,7 +224,7 @@ async function encerrarSeDecidida(tx: Tx, ctx: Contexto, votacaoId: string): Pro
   })
   const resultado =
     r.status === 'APROVADA'
-      ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm)
+      ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm, v)
       : 'nenhum (rejeitada)'
   if (r.status === 'APROVADA') {
     await tx.votacao.update({
