@@ -9,7 +9,7 @@ import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 import { emTransacao } from '@/server/tx'
 
-import { sincronizarPessoas } from './sync'
+import { atualizarApps, sincronizarAmigos, sincronizarPessoas } from './sync'
 
 const DEZ_MIN = 10 * 60_000
 const SEIS_HORAS = 6 * 3_600_000
@@ -31,7 +31,9 @@ export async function sincronizarAgora(ctx: ContextoAcao) {
       'Sincronizado há menos de 10 minutos. Tente mais tarde.',
     )
   }
-  return sincronizarPessoas([ctx.ator.pessoaId])
+  const r = await sincronizarPessoas([ctx.ator.pessoaId])
+  await sincronizarAmigos(ctx.ator.pessoaId)
+  return r
 }
 
 /** RN-STM-04: depois do login (em `after()`), se a última sincronização tem mais de 6 h. */
@@ -44,6 +46,8 @@ export async function sincronizarSeVencido(pessoaId: string): Promise<void> {
   if (p?.steamSincronizadoEm && agora().getTime() - p.steamSincronizadoEm.getTime() < SEIS_HORAS)
     return
   await sincronizarPessoas([pessoaId])
+  await sincronizarAmigos(pessoaId)
+  await atualizarApps(20) // nomes e capas da lista de desejos primeiro (prioridade 2)
 }
 
 /**

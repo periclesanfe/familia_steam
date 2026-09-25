@@ -240,6 +240,27 @@ A v1.0 **ainda não foi assinada** (art. 46). Por isso, as decisões que **contr
 - Prorrogação sempre pelo máximo de 7 dias, estendida a todos os tipos de obrigação por analogia com o art. 25 (RN-FIN-03).
 - Bloqueio do aviso durante a cessão em andamento e compra irregular durante a votação da cessão (RN-CES-04).
 
+### D-33 — Acesso aberto e várias famílias (decidido em 25/09/2026)
+
+- Qualquer conta Steam entra e tem área pessoal; existem várias famílias isoladas, cada uma com o próprio consórcio; cada pessoa está em no máximo uma família por vez (15 §1–2).
+- Substitui a lista fechada da RN-ACE-04 e o bootstrap por operador da RN-ACE-10 como porta de entrada.
+
+### D-34 — Entrada na família por indicação aprovada (decidido em 25/09/2026)
+
+- Um membro indica um amigo Steam ou um perfil; antes da vigência, a aprovação é unânime; depois, vale o quórum do Regulamento (art. 6º/7º). O link de convite é amarrado ao SteamID do candidato (RN-FAM-04..06).
+
+### D-35 — Vigência por assinatura de todos (decidido em 25/09/2026)
+
+- A 1.0 de uma família entra em vigor quando todos os membros não encerrados assinaram, com pelo menos 2 (RN-FAM-07). Quem não quer participar sai da família.
+
+### D-36 — Calendário de promoções sem API da Steam (decidido em 25/09/2026)
+
+- A Steam não publica o calendário de promoções por API: os eventos são cadastrados por membros com o link da fonte, e as promoções atuais saem dos preços observados (15 §6).
+
+### D-37 — Organizador só antes da vigência (decidido em 25/09/2026)
+
+- Antes de o acordo entrar em vigor, quem criou a família inclui e exclui membros sozinho (RN-FAM-10). Quando todos assinam, esse papel deixa de existir e vale a regra sem administrador (art. 3º, RN-ACE-02). Substitui a aprovação unânime antes da vigência da D-34.
+
 ## 2. As decisões que os membros precisam tomar (resumo)
 
 | #   | Pergunta                                                                  | Recomendação                                         |

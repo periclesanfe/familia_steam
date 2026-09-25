@@ -4,14 +4,17 @@ import { exportar } from '@/features/financeiro/exportacao'
 import { paraCsv } from '@/lib/csv'
 import { perfilDe } from '@/server/auth/perfil'
 import { obterSessao } from '@/server/auth/sessao'
+import { comFamilia } from '@/server/familia'
 import { agora } from '@/server/relogio'
 
 // RN-ACE-12: ?formato=json (tudo num arquivo) ou ?formato=csv&tabela=<nome> (uma tabela).
 export async function GET(req: NextRequest) {
   const sessao = await obterSessao()
   const perfil = sessao && (await perfilDe(sessao.pessoaId))
-  if (!perfil || perfil.perfil === 'PENDENTE') return new NextResponse(null, { status: 404 })
-  const dados = await exportar(perfil)
+  if (!perfil || perfil.perfil === 'PENDENTE' || perfil.perfil === 'VISITANTE') {
+    return new NextResponse(null, { status: 404 })
+  }
+  const dados = await comFamilia(perfil.familiaId, () => exportar(perfil)) // 15 §4
   const dia = agora().toISOString().slice(0, 10)
   const cabecalhos = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' }
   const formato = req.nextUrl.searchParams.get('formato') ?? 'json'

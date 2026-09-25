@@ -13,6 +13,8 @@ tests
 docs
 *.md
 !README.md
+# a criação de família lê o texto da 1.0 em tempo de execução (15 RN-FAM-02)
+!docs/regulamento/regulamento-v1.0.md
 .env
 .env.*
 !.env.example

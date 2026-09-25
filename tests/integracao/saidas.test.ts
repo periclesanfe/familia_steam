@@ -41,7 +41,7 @@ describe('saídas e impossibilidade (RN-SAI, RN-CAD-04/10/11)', () => {
     expect(
       await dono.obrigacao.count({ where: { rodadaId: r2.id, devedorId: naoContemplado } }),
     ).toBe(0)
-    expect(await perfilDe(naoContemplado)).toMatchObject({ perfil: 'EX_QUITADO' })
+    expect(await perfilDe(naoContemplado)).toMatchObject({ perfil: 'VISITANTE' }) // RN-FAM-08
     const { votacaoId } = await convocar(
       ctxDe(ids.find((x) => x !== naoContemplado) ?? '', agora()),
       {
@@ -82,13 +82,13 @@ describe('saídas e impossibilidade (RN-SAI, RN-CAD-04/10/11)', () => {
     const ultimo = ids.find((x) => !contemplados.includes(x)) ?? ''
     hora('2027-01-30', '10:00')
     await sairDoConsorcio(ctxDe(ultimo, agora()))
-    const c1 = await dono.ciclo.findUniqueOrThrow({
+    const c1 = await dono.ciclo.findFirstOrThrow({
       where: { numero: 1 },
       include: { rodadas: true },
     })
     expect(c1.status).toBe('EM_REVISAO')
     expect(c1.rodadas.find((r) => r.sequencia === 5)?.status).toBe('CANCELADA')
-    const c2 = await dono.ciclo.findUniqueOrThrow({ where: { numero: 2 } })
+    const c2 = await dono.ciclo.findFirstOrThrow({ where: { numero: 2 } })
     expect(c2.dataInicio.toISOString().slice(0, 10)).toBe('2027-03-03') // 30/01 + 8 dias → 07/02 → 03/03
   })
 

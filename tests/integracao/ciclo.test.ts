@@ -26,7 +26,7 @@ async function cicloConcluido() {
     await executarRodada(r.id, null, () => 0)
     await pagarTudo(instanteLocal(dia, '18:00'))
   }
-  const c2 = await dono.ciclo.findUniqueOrThrow({
+  const c2 = await dono.ciclo.findFirstOrThrow({
     where: { numero: 2 },
     include: { rodadas: true },
   })
@@ -49,7 +49,7 @@ describe('janela de revisão (RN-CIC-03/05/06)', () => {
 
   it('CA-91: 4 confirmam e 1 silencia → ciclo 2 com 4, quórum 3; o silencioso encerra e segue integrante', async () => {
     const { ids, c2, r1 } = await cicloConcluido()
-    expect((await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).status).toBe('EM_REVISAO')
+    expect((await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).status).toBe('EM_REVISAO')
     expect(c2.dataInicio.toISOString().slice(0, 10)).toBe('2027-03-03')
     const [silencioso = '', ...confirmam] = ids
     hora('2027-02-10')
@@ -70,7 +70,7 @@ describe('janela de revisão (RN-CIC-03/05/06)', () => {
     expect(
       (await dono.integranteFamilia.findFirstOrThrow({ where: { pessoaId: silencioso } })).status,
     ).toBe('ATIVO')
-    expect((await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).status).toBe('ENCERRADO')
+    expect((await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).status).toBe('ENCERRADO')
     const { votacaoId } = await convocar(ctxDe(confirmam[0] ?? '', agora()), {
       assunto: 'OUTRO',
       proposicao: 'Teste do quórum do ciclo 2',
@@ -123,7 +123,7 @@ describe('janela de revisão (RN-CIC-03/05/06)', () => {
     await executarRodada(r1.id, null, () => 0)
     expect((await dono.ciclo.findUniqueOrThrow({ where: { id: c2.id } })).status).toBe('CANCELADO')
     expect((await dono.rodada.findUniqueOrThrow({ where: { id: r1.id } })).status).toBe('CANCELADA')
-    expect(await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).toMatchObject({
+    expect(await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).toMatchObject({
       status: 'ENCERRADO',
       semCicloSeguinte: true,
     })
@@ -162,11 +162,11 @@ describe('janela de revisão (RN-CIC-03/05/06)', () => {
       justificativa: 'Decisão da família',
       efeito: { tipo: 'CONTINUIDADE_CONSORCIO', acao: 'ENCERRAR_AO_FIM_DO_CICLO' },
     })
-    expect((await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).semCicloSeguinte).toBe(
+    expect((await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).semCicloSeguinte).toBe(
       true,
     )
     for (const i of [2, 3, 4]) await sortear(i)
-    expect((await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).status).toBe('ENCERRADO')
+    expect((await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).status).toBe('ENCERRADO')
     expect(await dono.ciclo.count({ where: { numero: 2 } })).toBe(0)
 
     const rodadas = await dono.rodada.findMany({ orderBy: { sequencia: 'asc' } })

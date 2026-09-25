@@ -15,7 +15,7 @@ export async function descreverEfeito(
     case 'NENHUM':
       return 'nenhum (só registro da decisão)'
     case 'EXCLUSAO_BLOQUEIO': {
-      const b = await tx.jogoBloqueado.findUnique({
+      const b = await tx.jogoBloqueado.findFirst({
         where: { numero: e.numero },
         select: { nome: true },
       })

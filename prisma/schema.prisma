@@ -234,6 +234,7 @@ model Pessoa {
   id                    String        @id @default(uuid()) @db.Uuid
   nome                  String? // obrigatório p/ membro e candidato (validado na app)
   apelido               String
+  familiaId             String?       @db.Uuid // família atual ou a última (15 RN-FAM-01/09)
   steamId64             String?       @unique @db.VarChar(17)
   steamNick             String?
   steamAvatarUrl        String?
@@ -272,6 +273,7 @@ model Pessoa {
 }
 
 model Membro {
+  familiaId             String                    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                    String                    @id @default(uuid()) @db.Uuid
   pessoaId              String                    @db.Uuid
   pessoa                Pessoa                    @relation(fields: [pessoaId], references: [id])
@@ -290,6 +292,7 @@ model Membro {
 }
 
 model IntegranteFamilia {
+  familiaId               String           @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                      String           @id @default(uuid()) @db.Uuid
   pessoaId                String           @db.Uuid
   pessoa                  Pessoa           @relation(fields: [pessoaId], references: [id])
@@ -311,14 +314,15 @@ model IntegranteFamilia {
 
 // ─────────────────── Regulamento ───────────────────
 model VersaoRegulamento {
+  familiaId        String    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id               String    @id @default(uuid()) @db.Uuid
-  ordem            Int       @unique // 0 = 1.0, 1 = 1.1, … (comparação numérica)
-  numero           String    @unique // exibição: "1." + ordem
+  ordem            Int // 0 = 1.0, 1 = 1.1, … (comparação numérica)
+  numero           String // exibição: "1." + ordem
   textoMarkdown    String
   parametros       Json // parametrosSchema (zod) — RN-REG-06
   sha256           String    @db.Char(64) // C-HASH
   resumoAlteracoes String?
-  ataNumero        Int?      @unique // null na 1.0
+  ataNumero        Int? // null na 1.0
   aprovadaEm       DateTime? @db.Timestamptz(3)
   vigenteDesde     DateTime? @db.Timestamptz(3) // null = 1.0 aguardando assinaturas
   criadoEm         DateTime  @default(now()) @db.Timestamptz(3)
@@ -327,10 +331,14 @@ model VersaoRegulamento {
   rodadas  Rodada[]
   votacoes Votacao[]
 
+  @@unique([familiaId, ordem])
+  @@unique([familiaId, numero])
+  @@unique([familiaId, ataNumero])
   @@map("versao_regulamento")
 }
 
 model Adesao {
+  familiaId         String            @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                String            @id @default(uuid()) @db.Uuid
   pessoaId          String            @db.Uuid
   pessoa            Pessoa            @relation(fields: [pessoaId], references: [id])
@@ -351,8 +359,9 @@ model Adesao {
 
 // ─────────────────── Ciclo, rodada, sorteio ───────────────────
 model Ciclo {
+  familiaId             String      @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                    String      @id @default(uuid()) @db.Uuid
-  numero                Int         @unique
+  numero                Int
   dataInicio            DateTime    @db.Date // sempre dia 3
   status                StatusCiclo
   concluidoEm           DateTime?   @db.Timestamptz(3)
@@ -365,10 +374,12 @@ model Ciclo {
   participacoes ParticipacaoCiclo[]
   declaracoes   Declaracao[]
 
+  @@unique([familiaId, numero])
   @@map("ciclo")
 }
 
 model ParticipacaoCiclo {
+  familiaId              String    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                     String    @id @default(uuid()) @db.Uuid
   cicloId                String    @db.Uuid
   ciclo                  Ciclo     @relation(fields: [cicloId], references: [id])
@@ -384,6 +395,7 @@ model ParticipacaoCiclo {
 }
 
 model Rodada {
+  familiaId                    String                @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                           String                @id @default(uuid()) @db.Uuid
   cicloId                      String                @db.Uuid
   ciclo                        Ciclo                 @relation(fields: [cicloId], references: [id])
@@ -433,6 +445,7 @@ model Rodada {
 
 model Sorteio {
   // só inserção (trigger)
+  familiaId       String   @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id              String   @id @default(uuid()) @db.Uuid
   rodadaId        String   @unique @db.Uuid
   rodada          Rodada   @relation(fields: [rodadaId], references: [id])
@@ -449,6 +462,7 @@ model Sorteio {
 }
 
 model Declaracao {
+  familiaId        String         @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id               String         @id @default(uuid()) @db.Uuid
   tipo             TipoDeclaracao
   pessoaId         String         @db.Uuid // sujeito do ato
@@ -471,6 +485,7 @@ model Declaracao {
 }
 
 model Cessao {
+  familiaId      String       @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id             String       @id @default(uuid()) @db.Uuid
   rodadaId       String       @db.Uuid
   rodada         Rodada       @relation(fields: [rodadaId], references: [id])
@@ -491,6 +506,7 @@ model Cessao {
 
 // ─────────────────── Financeiro ───────────────────
 model Obrigacao {
+  familiaId            String        @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                   String        @id @default(uuid()) @db.Uuid
   tipo                 TipoObrigacao
   rodadaId             String        @db.Uuid // ver §5 (semântica por tipo)
@@ -525,6 +541,7 @@ model Obrigacao {
 }
 
 model Pagamento {
+  familiaId                String             @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                       String             @id @default(uuid()) @db.Uuid
   obrigacaoId              String             @db.Uuid
   obrigacao                Obrigacao          @relation("PagamentoObrigacao", fields: [obrigacaoId], references: [id])
@@ -554,6 +571,7 @@ model Pagamento {
 
 // ─────────────────── Jogo do mês ───────────────────
 model AvisoCompra {
+  familiaId               String        @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                      String        @id @default(uuid()) @db.Uuid
   rodadaId                String        @db.Uuid
   rodada                  Rodada        @relation(fields: [rodadaId], references: [id])
@@ -583,6 +601,7 @@ model AvisoCompra {
 }
 
 model Aquisicao {
+  familiaId                 String                    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                        String                    @id @default(uuid()) @db.Uuid
   rodadaId                  String                    @db.Uuid
   rodada                    Rodada                    @relation(fields: [rodadaId], references: [id])
@@ -617,23 +636,27 @@ model Aquisicao {
 
 model JogoBloqueado {
   // Anexo I
-  numero            Int          @id // MAX+1 sob travar(tx,'ata'); nunca reaproveitado
+  familiaId         String       @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
+  numero            Int // MAX+1 sob travar(tx,'ata'); nunca reaproveitado
   tipo              TipoBloqueio
   nome              String
   appIds            Int[]
   dataVeto          DateTime?    @db.Date
   origemTexto       String? // "Versão 1.0"
   motivo            String
-  ataInclusaoNumero Int?         @unique
+  ataInclusaoNumero Int?
   protegida         Boolean      @default(false)
   excluidoEm        DateTime?    @db.Timestamptz(3)
   ataExclusaoNumero Int?
 
+  @@id([familiaId, numero])
+  @@unique([familiaId, ataInclusaoNumero])
   @@map("jogo_bloqueado")
 }
 
 // ─────────────────── Votações e ATAs ───────────────────
 model Votacao {
+  familiaId           String                     @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id                  String                     @id @default(uuid()) @db.Uuid
   assunto             AssuntoVotacao
   proposicao          String
@@ -665,6 +688,7 @@ model Votacao {
 
 model Voto {
   // só inserção (trigger)
+  familiaId String    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   votacaoId String    @db.Uuid
   votacao   Votacao   @relation(fields: [votacaoId], references: [id])
   pessoaId  String    @db.Uuid
@@ -678,7 +702,8 @@ model Voto {
 
 model Ata {
   // só inserção (trigger)
-  numero            Int      @id // MAX+1 sob travar(tx,'ata'): sem lacunas
+  familiaId         String   @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
+  numero            Int // MAX+1 sob travar(tx,'ata'): sem lacunas
   votacaoId         String   @unique @db.Uuid
   votacao           Votacao  @relation(fields: [votacaoId], references: [id])
   data              DateTime @db.Date
@@ -687,11 +712,13 @@ model Ata {
   retificaAtaNumero Int?
   geradaEm          DateTime @db.Timestamptz(3)
 
+  @@id([familiaId, numero])
   @@map("ata")
 }
 
 // ─────────────────── Anexos, auditoria, controle ───────────────────
 model Anexo {
+  familiaId    String    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id           String    @id @default(uuid()) @db.Uuid
   tipo         TipoAnexo
   mime         String // detectado pelos magic bytes
@@ -715,6 +742,7 @@ model Anexo {
 
 model EventoAuditoria {
   // só inserção (trigger)
+  familiaId    String?  @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
   id           Int      @id @default(autoincrement())
   ocorridoEm   DateTime @db.Timestamptz(3)
   atorTipo     AtorTipo
@@ -765,20 +793,35 @@ model NonceOpenId {
 
 // ─────────────────── Cache Steam ───────────────────
 model SteamApp {
-  appId               Int       @id
-  nome                String?
-  tipo                String? // game | dlc | music | demo | ...
-  gratuito            Boolean?
-  precoFinalCentavos  Int?
-  categorias          Int[] // 62 = Family Sharing
-  descritoresConteudo Int[] // 3 = Adult Only Sexual Content
-  jogoBaseAppId       Int?
-  emBreve             Boolean?
-  imagemUrl           String?
-  sucesso             Boolean? // false = appdetails success:false
-  detalhesEm          DateTime? @db.Timestamptz(3)
-  precoEm             DateTime? @db.Timestamptz(3)
-  prioridadeSync      Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
+  appId                Int       @id
+  nome                 String?
+  tipo                 String? // game | dlc | music | demo | ...
+  gratuito             Boolean?
+  precoFinalCentavos   Int?
+  categorias           Int[] // 62 = Family Sharing
+  descritoresConteudo  Int[] // 3 = Adult Only Sexual Content
+  jogoBaseAppId        Int?
+  emBreve              Boolean?
+  imagemUrl            String?
+  sucesso              Boolean? // false = appdetails success:false
+  detalhesEm           DateTime? @db.Timestamptz(3)
+  precoEm              DateTime? @db.Timestamptz(3)
+  precoInicialCentavos Int? // sem desconto (price_overview.initial)
+  descontoPct          Int? // price_overview.discount_percent
+  generos              String[]  @default([])
+  desenvolvedoras      String[]  @default([])
+  publicadoras         String[]  @default([])
+  metacritic           Int?
+  descricaoCurta       String? // texto puro (SEG-04: HTML descartado)
+  lancamento           String? // release_date.date, como a loja escreve
+  capturas             String[]  @default([]) // até 8 URLs dos CDNs da Steam (15 §5)
+  capturasGrandes      String[]  @default([]) // as mesmas, em tamanho cheio (galeria)
+  avaliacaoNota        Int? // appreviews review_score: 0 (poucas) a 9 (extremamente positivas)
+  avaliacoesPositivas  Int?
+  avaliacoesTotal      Int?
+  jogadoresAgora       Int? // GetNumberOfCurrentPlayers, lido junto com os detalhes (15 §5)
+  jogadoresEm          DateTime? @db.Timestamptz(3)
+  prioridadeSync       Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
 
   @@index([prioridadeSync, detalhesEm])
   @@map("steam_app")
@@ -810,4 +853,109 @@ model ItemListaDesejos {
 
   @@unique([pessoaId, origem, appId])
   @@map("item_lista_desejos")
+}
+
+// ─────────────────── Famílias (M10, doc 15) ───────────────────
+model Familia {
+  id          String   @id @default(uuid()) @db.Uuid
+  nome        String
+  criadaPorId String   @db.Uuid
+  criadaEm    DateTime @db.Timestamptz(3)
+
+  @@map("familia")
+}
+
+enum StatusIndicacao {
+  ABERTA
+  APROVADA
+  RECUSADA
+  CADUCOU
+  CANCELADA
+}
+
+model Indicacao {
+  id                 String          @id @default(uuid()) @db.Uuid
+  familiaId          String          @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
+  candidatoSteamId64 String          @db.VarChar(17)
+  candidatoId        String          @db.Uuid // Pessoa global, criada na indicação para sincronizar os jogos (RN-FAM-04)
+  indicadaPorId      String          @db.Uuid
+  email              String?
+  status             StatusIndicacao @default(ABERTA)
+  criadaEm           DateTime        @db.Timestamptz(3)
+  expiraEm           DateTime        @db.Timestamptz(3)
+  encerradaEm        DateTime?       @db.Timestamptz(3)
+  votacaoId          String?         @unique @db.Uuid
+
+  aprovacoes AprovacaoIndicacao[]
+  convite    Convite?
+
+  @@index([familiaId, status])
+  @@map("indicacao")
+}
+
+model AprovacaoIndicacao {
+  indicacaoId String    @db.Uuid
+  indicacao   Indicacao @relation(fields: [indicacaoId], references: [id])
+  familiaId   String    @default(dbgenerated("(NULLIF(current_setting('app.familia_id'::text, true), ''::text))::uuid")) @db.Uuid // RLS (15 §4)
+  pessoaId    String    @db.Uuid
+  aprova      Boolean
+  em          DateTime  @db.Timestamptz(3)
+
+  @@id([indicacaoId, pessoaId])
+  @@map("aprovacao_indicacao")
+}
+
+/// Global (sem RLS): o candidato ainda não está na família quando abre o link (RN-FAM-06).
+model Convite {
+  id          String    @id @default(uuid()) @db.Uuid
+  familiaId   String    @db.Uuid
+  indicacaoId String    @unique @db.Uuid
+  indicacao   Indicacao @relation(fields: [indicacaoId], references: [id])
+  steamId64   String    @db.VarChar(17)
+  token       String    @unique // aleatório; só serve à conta Steam do candidato (RN-FAM-06)
+  criadoEm    DateTime  @db.Timestamptz(3)
+  expiraEm    DateTime  @db.Timestamptz(3)
+  usadoEm     DateTime? @db.Timestamptz(3)
+  usadoPorId  String?   @db.Uuid
+
+  @@map("convite")
+}
+
+/// Cache da lista de amigos Steam (RN-FAM-04), global como os demais dados Steam.
+model AmizadeSteam {
+  pessoaId       String    @db.Uuid
+  amigoSteamId64 String    @db.VarChar(17)
+  desde          DateTime? @db.Timestamptz(3)
+  nick           String?
+  avatarUrl      String?
+  atualizadoEm   DateTime  @db.Timestamptz(3)
+
+  @@id([pessoaId, amigoSteamId64])
+  @@map("amizade_steam")
+}
+
+/// 15 §5: histórico de preço observado pelo sistema (a Steam não expõe histórico); global.
+model PrecoApp {
+  appId         Int
+  em            DateTime @db.Timestamptz(3)
+  precoCentavos Int
+  descontoPct   Int      @default(0)
+
+  @@id([appId, em])
+  @@map("preco_app")
+}
+
+/// 15 §6 (M10c): grandes promoções da Steam, cadastradas pelos membros com a fonte (a Steam não
+/// publica o calendário por API). Global: vale para todas as famílias; edições vão à auditoria.
+model EventoPromocao {
+  id          String   @id @default(uuid()) @db.Uuid
+  nome        String
+  inicio      DateTime @db.Date
+  fim         DateTime @db.Date
+  fonteUrl    String
+  criadoPorId String   @db.Uuid
+  criadoEm    DateTime @db.Timestamptz(3)
+
+  @@index([fim])
+  @@map("evento_promocao")
 }

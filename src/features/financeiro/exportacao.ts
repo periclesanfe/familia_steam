@@ -37,7 +37,9 @@ export async function exportar(p: PerfilAtual): Promise<Record<string, Record<st
       jogoPossuido,
       itemListaDesejos,
     ] = await Promise.all([
-      db.pessoa.findMany(),
+      db.pessoa.findMany({
+        where: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] },
+      }), // 15 §3: só a família
       db.membro.findMany(),
       db.integranteFamilia.findMany(),
       db.versaoRegulamento.findMany(),
@@ -58,9 +60,13 @@ export async function exportar(p: PerfilAtual): Promise<Record<string, Record<st
       db.ata.findMany(),
       db.anexo.findMany(),
       db.eventoAuditoria.findMany({ orderBy: { id: 'asc' } }),
-      db.steamApp.findMany(),
-      db.jogoPossuido.findMany(),
-      db.itemListaDesejos.findMany(),
+      db.steamApp.findMany(), // catálogo público da Steam
+      db.jogoPossuido.findMany({
+        where: { pessoa: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] } },
+      }),
+      db.itemListaDesejos.findMany({
+        where: { pessoa: { OR: [{ integrantes: { some: {} } }, { membros: { some: {} } }] } },
+      }),
     ])
     return {
       pessoa,

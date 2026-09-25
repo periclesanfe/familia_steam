@@ -24,3 +24,6 @@ trustPolicyExclude:
   - prisma@7.10.0
   - semver@6.3.1
   - eslint-import-resolver-typescript@3.10.1
+  # reselect 5.1.1 (reduxjs, dependência do recharts dos gráficos): versão atual, publicada sem
+  # atestado de proveniência depois de versões que tinham; conferida em 25/09/2026.
+  - reselect@5.1.1

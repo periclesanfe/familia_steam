@@ -82,7 +82,7 @@ async function comAdmitidos() {
     executadaEm: '2026-11-10',
   })
   for (const i of [2, 3, 4]) await sortear(i)
-  const c2 = await dono.ciclo.findUniqueOrThrow({
+  const c2 = await dono.ciclo.findFirstOrThrow({
     where: { numero: 2 },
     include: { rodadas: true },
   })

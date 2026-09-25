@@ -18,28 +18,35 @@ export default async function EntrarPage({ searchParams }: PageProps<'/entrar'>)
     typeof erro === 'string' && erro in ERROS ? ERROS[erro as keyof typeof ERROS] : null
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-12">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Família Steam</h1>
-        <p className="text-sm text-muted-foreground">
-          Controle do consórcio. Só para membros; seu login é a sua conta Steam.
+    <main className="flex flex-1 items-center justify-center bg-gradient-to-b from-primary/10 via-background to-background px-4 py-12">
+      <div className="flex w-full max-w-sm flex-col gap-6 rounded-2xl border bg-card p-8 shadow-sm">
+        <div className="flex flex-col items-center gap-3 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- ícone SVG do próprio app */}
+          <img src="/icon.svg" alt="" width={64} height={64} className="size-16" />
+          <h1 className="text-2xl font-semibold tracking-tight">Família Steam</h1>
+          <p className="text-sm text-muted-foreground">
+            Sua família Steam organizada: biblioteca compartilhada, lista de desejos e o consórcio
+            do jogo do mês. Entre com a sua conta Steam.
+          </p>
+        </div>
+        {mensagem && (
+          <Alert variant="destructive">
+            <AlertDescription>{mensagem}</AlertDescription>
+          </Alert>
+        )}
+        {/* Link (GET), não formulário: a navegação até a Steam não é mutação (14 SEG-03) */}
+        <a
+          href="/api/auth/steam"
+          className="self-center rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {/* Botão oficial da Valve (12 UI-12); a v1 do lucide não tem ícones de marca */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- imagem estática de 6 KB, sem otimizador */}
+          <img src="/steam/entrar-com-steam.png" alt="Entrar com Steam" width={180} height={35} />
+        </a>
+        <p className="text-center text-xs text-muted-foreground">
+          Não afiliado à Valve Corporation.
         </p>
       </div>
-      {mensagem && (
-        <Alert variant="destructive">
-          <AlertDescription>{mensagem}</AlertDescription>
-        </Alert>
-      )}
-      {/* Link (GET), não formulário: a navegação até a Steam não é mutação (14 SEG-03) */}
-      <a
-        href="/api/auth/steam"
-        className="self-start rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-      >
-        {/* Botão oficial da Valve (12 UI-12); a v1 do lucide não tem ícones de marca */}
-        {/* eslint-disable-next-line @next/next/no-img-element -- imagem estática de 6 KB, sem otimizador */}
-        <img src="/steam/entrar-com-steam.png" alt="Entrar com Steam" width={180} height={35} />
-      </a>
-      <p className="text-xs text-muted-foreground">Não afiliado à Valve Corporation.</p>
     </main>
   )
 }

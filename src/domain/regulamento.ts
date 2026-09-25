@@ -71,3 +71,23 @@ export const versaoAplicavelSync = <V extends VersaoComVigencia>(
   versoes: readonly V[],
   t: Date,
 ): V | null => versaoVigente(versoes, t) ?? versoes.find((v) => v.ordem === 0) ?? null
+
+export type AnexoDoTexto = { titulo: string; markdown: string }
+
+/**
+ * Separa o corpo do Regulamento dos anexos finais (assinaturas, Anexo I, Anexo II), só para
+ * exibição: o texto gravado e o seu sha256 não mudam (C-HASH).
+ */
+export function dividirRegulamento(texto: string): { corpo: string; anexos: AnexoDoTexto[] } {
+  const inicio = texto.search(/^## ASSINATURAS/m)
+  if (inicio < 0) return { corpo: texto, anexos: [] }
+  const anexos = texto
+    .slice(inicio)
+    .split(/^(?=## )/m)
+    .filter((p) => p.trim())
+    .map((p) => {
+      const [titulo = '', ...resto] = p.split('\n')
+      return { titulo: titulo.replace(/^##\s*/, '').trim(), markdown: resto.join('\n').trim() }
+    })
+  return { corpo: texto.slice(0, inicio).trimEnd(), anexos }
+}

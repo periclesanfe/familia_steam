@@ -39,3 +39,65 @@ export function imagemSteamSegura(url: string | null | undefined): string | null
     return null
   }
 }
+
+/**
+ * Capa (header 460×215) montada pelo appId no CDN da Steam: aparece antes de o appdetails ser
+ * consultado (15 §5). Mesmo host aceito por `imagemSteamSegura`.
+ */
+export const capaDoApp = (appId: number): string =>
+  `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${String(appId)}/header.jpg`
+
+/** SEG-04: descrição da loja vira texto puro (tags removidas, entidades comuns decodificadas). */
+export const textoSemHtml = (html: string): string =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 400)
+
+// review_score da loja → termos da própria Steam em pt-BR (0 = poucas avaliações)
+const ROTULOS_AVALIACAO = [
+  'Poucas avaliações',
+  'Extremamente negativas',
+  'Muito negativas',
+  'Negativas',
+  'Ligeiramente negativas',
+  'Neutras',
+  'Ligeiramente positivas',
+  'Positivas',
+  'Muito positivas',
+  'Extremamente positivas',
+] as const
+
+/** 15 §5: resumo das avaliações da loja para exibir; null se ainda não buscadas. */
+export function avaliacaoDaLoja(a: {
+  avaliacaoNota: number | null
+  avaliacoesPositivas: number | null
+  avaliacoesTotal: number | null
+}) {
+  if (a.avaliacaoNota === null || a.avaliacoesTotal === null) return null
+  const pct =
+    a.avaliacoesTotal > 0
+      ? Math.round(((a.avaliacoesPositivas ?? 0) / a.avaliacoesTotal) * 100)
+      : null
+  const nota = a.avaliacaoNota
+  return {
+    rotulo: ROTULOS_AVALIACAO[nota] ?? ROTULOS_AVALIACAO[0],
+    pct,
+    total: a.avaliacoesTotal,
+    tom:
+      nota === 0
+        ? ('neutro' as const)
+        : nota >= 6
+          ? ('sucesso' as const)
+          : nota === 5
+            ? ('atencao' as const)
+            : ('perigo' as const),
+  }
+}

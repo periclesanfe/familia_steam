@@ -1,14 +1,6 @@
-import type { LinhaDiff } from '@/domain/diff'
+import { ListaDiff, type Trecho } from '@/components/ListaDiff'
 import { dataLocal } from '@/domain/tempo'
 import { formatarDataCivil } from '@/lib/formato'
-
-type Trecho = LinhaDiff | { tipo: 'omitidas'; quantidade: number }
-
-const ESTILO = {
-  igual: { prefixo: ' ', classe: 'text-muted-foreground', rotulo: '' },
-  removida: { prefixo: '−', classe: 'bg-destructive/10 text-destructive', rotulo: 'removida: ' },
-  incluida: { prefixo: '+', classe: 'bg-success/10 text-success', rotulo: 'incluída: ' },
-} as const
 
 // 07 §3.7: o texto proposto contra a versão vigente, parâmetros alterados e a vigência (RN-REG-03).
 export function DiffRegulamento({
@@ -54,21 +46,7 @@ export function DiffRegulamento({
           </tbody>
         </table>
       )}
-      <pre className="max-h-96 overflow-auto rounded-lg border font-mono text-xs leading-relaxed">
-        {trechos.map((t, k) =>
-          t.tipo === 'omitidas' ? (
-            <div key={k} className="bg-muted/50 px-3 py-1 text-muted-foreground italic">
-              … {t.quantidade} linha(s) sem mudança
-            </div>
-          ) : (
-            <div key={k} className={`px-3 whitespace-pre-wrap ${ESTILO[t.tipo].classe}`}>
-              <span aria-hidden>{ESTILO[t.tipo].prefixo} </span>
-              <span className="sr-only">{ESTILO[t.tipo].rotulo}</span>
-              {t.texto}
-            </div>
-          ),
-        )}
-      </pre>
+      <ListaDiff trechos={trechos} />
     </div>
   )
 }

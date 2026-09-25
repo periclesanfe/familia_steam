@@ -12,6 +12,7 @@ import { exportar } from '@/features/financeiro/exportacao'
 import { executarRodada } from '@/features/rodadas/servico'
 import { salvarAnexo } from '@/server/anexos'
 import { hashToken } from '@/server/auth/sessao'
+import { FAMILIA_PADRAO } from '@/server/familia'
 import { emTransacao } from '@/server/tx'
 
 import { contarConsultas, dono, limpar } from './banco'
@@ -90,6 +91,7 @@ describe('consultas financeiras', () => {
     const membro = await exportar({
       pessoaId: ana,
       perfil: 'MEMBRO',
+      familiaId: FAMILIA_PADRAO,
       membroId: 'm',
       statusMembro: 'ATIVO',
     })
@@ -101,6 +103,7 @@ describe('consultas financeiras', () => {
     const ex = await exportar({
       pessoaId: bruno,
       perfil: 'EX_QUITADO',
+      familiaId: FAMILIA_PADRAO,
       membroId: 'm',
       statusMembro: 'ENCERRADO',
     })

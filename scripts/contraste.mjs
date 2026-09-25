@@ -16,9 +16,13 @@ const lerTokens = (bloco) =>
     }),
   )
 
-const inicioEscuro = css.indexOf('@media (prefers-color-scheme: dark) {')
-const claro = lerTokens(css.slice(css.indexOf(':root {'), inicioEscuro))
-const escuro = { ...claro, ...lerTokens(css.slice(inicioEscuro, css.indexOf('@layer base'))) }
+// tema claro em :root; escuro em :root.dark (o bloco do @media repete os mesmos tokens)
+const inicioEscuro = css.indexOf(':root.dark {')
+const claro = lerTokens(css.slice(css.indexOf(':root {'), css.indexOf(':root.light {')))
+const escuro = {
+  ...claro,
+  ...lerTokens(css.slice(inicioEscuro, css.lastIndexOf('@media (prefers-color-scheme: dark) {'))),
+}
 
 const paraSrgb = ([L, C, h]) => {
   const a = C * Math.cos((h * Math.PI) / 180)
@@ -68,6 +72,7 @@ for (const [tema, t, tinta, fundoTinta] of [
 ]) {
   conferir(tema, t, 'foreground', 'background', 4.5)
   conferir(tema, t, 'primary-foreground', 'primary', 4.5)
+  conferir(tema, t, 'primary', 'background', 3) // links e anéis na cor de destaque
   conferir(tema, t, 'muted-foreground', 'background', 4.5)
   conferir(tema, t, 'muted-foreground', 'muted', 4.5)
   conferir(tema, t, 'input', 'background', 3)

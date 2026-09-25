@@ -79,7 +79,7 @@ Todo dispositivo do Regulamento aparece aqui. "Informativo" indica que não há 
 | art. 40              | Publicação de comprovantes e sorteios                 | SOR-09, FIN-04, COM-09, ACE-09, GER-05         | D-01             | 115, 123             |
 | art. 41              | Convocação por qualquer membro                        | VOT-01..05, VOT-11                             | D-14             | 72–79                |
 | art. 41, p.u.        | 48 h ou quórum                                        | VOT-04                                         | D-14             | 72–74                |
-| art. 42              | Alterações e vigência                                 | REG-03..05                                     | D-20, D-32       | 82–85, 149           |
+| art. 42              | Alterações e vigência                                 | REG-03..05, REG-08                             | D-20, D-32       | 82–85, 149, 197–200  |
 | art. 43              | Casos omissos                                         | VOT-09                                         | —                | 71, 86, 97           |
 | art. 44              | Revisão e confirmação                                 | CIC-03..07, GER-05                             | D-17             | 91, 92, 117, 144     |
 | art. 45              | Anexos integram o Regulamento                         | REG-01, BLO-01, VOT-06                         | —                | 87                   |

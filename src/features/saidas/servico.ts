@@ -3,6 +3,7 @@ import 'server-only'
 import { exigir } from '@/domain/erros'
 import { parametrosSchema, versaoVigente } from '@/domain/regulamento'
 import { dataLocal, deDb, paraDb, somarAnos } from '@/domain/tempo'
+import { sairAntesDaVigencia } from '@/features/familias/servico'
 import { concluirCiclo } from '@/features/rodadas/ciclo'
 import type { MotivoEncerramentoMembro } from '@/generated/prisma/enums'
 import type { ContextoAcao } from '@/server/acao'
@@ -144,12 +145,22 @@ export async function sairDoConsorcio(ctx: ContextoAcao) {
   })
 }
 
-/** RN-CAD-10: saída da Família Steam; quem é membro sai do consórcio junto. */
+/**
+ * RN-CAD-10: saída da Família Steam; quem é membro sai do consórcio junto. Antes da vigência
+ * não há consórcio: a saída só desfaz o vínculo (RN-FAM-08).
+ */
 export async function sairDaFamilia(ctx: ContextoAcao) {
   return emTransacao(async (tx) => {
     await travar(tx, 'fechamento')
-    await declarar(tx, ctx, 'SAIDA_FAMILIA')
+    const vigente = await tx.versaoRegulamento.count({
+      where: { vigenteDesde: { lte: ctx.agora } },
+    })
     await registrarSaidaDaFamilia(tx, ctx, ctx.ator.pessoaId, ctx.agora)
+    if (vigente === 0) {
+      await sairAntesDaVigencia(tx, ctx)
+      return
+    }
+    await declarar(tx, ctx, 'SAIDA_FAMILIA')
     await encerrarMembro(tx, ctx, ctx.ator.pessoaId, 'SAIDA_DA_FAMILIA')
   })
 }

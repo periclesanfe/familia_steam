@@ -68,7 +68,7 @@ export async function responderProximoCiclo(
 /** 07 §3.5: janela de revisão do ciclo `numero` (EM_REVISAO) sobre o seguinte PLANEJADO. */
 export async function janelaDeRevisao(numero: number, pessoaId: string, agora: Date) {
   const [atual, seguinte] = await Promise.all([
-    db.ciclo.findUnique({ where: { numero }, select: { status: true } }),
+    db.ciclo.findFirst({ where: { numero }, select: { status: true } }),
     db.ciclo.findFirst({
       where: { numero: numero + 1, status: 'PLANEJADO' },
       select: {

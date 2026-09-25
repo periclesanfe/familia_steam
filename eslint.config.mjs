@@ -34,6 +34,7 @@ const regrasDeUi = [
 
 export default defineConfig([
   globalIgnores([
+    '.claude/**', // worktrees de outras sessões do Claude Code
     '.next/**',
     'out/**',
     'build/**',
@@ -148,6 +149,17 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+  {
+    // Gráficos do shadcn (M10): o <style> das cores vem só do ChartConfig do código (nada do
+    // usuário) e os tipos de payload do recharts são `any`.
+    files: ['src/components/ui/chart.tsx'],
+    rules: {
+      'react/no-danger': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
     },
   },
   {

@@ -169,14 +169,14 @@ describe('execução da rodada (RN-SOR-02..11, RN-CIC-02..04)', () => {
 
       await pagarTudo(instanteLocal(dia, '18:00'))
     }
-    const c1 = await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })
+    const c1 = await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })
     expect(c1.status).toBe('EM_REVISAO')
     const contemplados = await dono.rodada.findMany({
       where: { cicloId: c1.id },
       select: { contempladoId: true },
     })
     expect(new Set(contemplados.map((r) => r.contempladoId)).size).toBe(5)
-    const c2 = await dono.ciclo.findUniqueOrThrow({
+    const c2 = await dono.ciclo.findFirstOrThrow({
       where: { numero: 2 },
       include: { rodadas: true },
     })
@@ -197,7 +197,7 @@ describe('execução da rodada (RN-SOR-02..11, RN-CIC-02..04)', () => {
 
       await pagarTudo(instanteLocal(dia, '18:00'))
     }
-    const c2 = await dono.ciclo.findUniqueOrThrow({
+    const c2 = await dono.ciclo.findFirstOrThrow({
       where: { numero: 2 },
       include: { rodadas: true },
     })
@@ -215,8 +215,8 @@ describe('execução da rodada (RN-SOR-02..11, RN-CIC-02..04)', () => {
     expect(await executarRodada(c2.rodadas[0]?.id ?? '', null)).toMatchObject({
       status: 'CANCELADA',
     })
-    expect((await dono.ciclo.findUniqueOrThrow({ where: { numero: 2 } })).status).toBe('CANCELADO')
-    expect(await dono.ciclo.findUniqueOrThrow({ where: { numero: 1 } })).toMatchObject({
+    expect((await dono.ciclo.findFirstOrThrow({ where: { numero: 2 } })).status).toBe('CANCELADO')
+    expect(await dono.ciclo.findFirstOrThrow({ where: { numero: 1 } })).toMatchObject({
       status: 'ENCERRADO',
       semCicloSeguinte: true,
     })

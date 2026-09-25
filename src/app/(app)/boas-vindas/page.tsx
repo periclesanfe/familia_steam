@@ -2,19 +2,30 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
-import { FormAcao } from '@/components/FormAcao'
 import { Markdown } from '@/components/Markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { declaracaoDeAdesao } from '@/domain/regulamento'
-import { sairAcao } from '@/features/autenticacao/acoes'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { declaracaoDeAdesao, dividirRegulamento } from '@/domain/regulamento'
+import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
+import { familiaDe } from '@/features/familias/consultas'
+import { indicacoesDaFamilia } from '@/features/familias/consultas'
 import { FormAssinatura } from '@/features/onboarding/componentes/FormAssinatura'
 import { FormDados } from '@/features/onboarding/componentes/FormDados'
 import { estadoDoOnboarding } from '@/features/onboarding/consultas'
-import { TabelaAnexoI } from '@/features/regulamento/componentes/TabelaAnexoI'
+import { AnexosDoRegulamento } from '@/features/regulamento/componentes/AnexosDoRegulamento'
+import { RevisoesDoRascunho } from '@/features/regulamento/componentes/RevisoesDoRascunho'
+import { revisoesDoRascunho } from '@/features/regulamento/consultas'
 import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
+import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Boas-vindas' }
@@ -23,20 +34,20 @@ export const metadata: Metadata = { title: 'Boas-vindas' }
 export default async function BoasVindasPage() {
   // MEMBRO também: a última assinatura ativa o fundador e esta tela mostra a conclusão
   const { pessoaId, perfil } = await paginaExige(['PENDENTE', 'MEMBRO'])
-  const e = await estadoDoOnboarding(pessoaId, agora())
+  const t = agora()
+  const [e, indicacoes, familia, revisoes] = await Promise.all([
+    estadoDoOnboarding(pessoaId, t),
+    indicacoesDaFamilia(pessoaId, t),
+    familiaDe(pessoaId),
+    revisoesDoRascunho(),
+  ])
+  const antesDaVigencia = !e.inicioDoCiclo1
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
       <CabecalhoPagina
         titulo={`Boas-vindas, ${e.pessoa.apelido}`}
         descricao="Complete seu cadastro e assine o Regulamento para participar do consórcio."
-        acoes={
-          <FormAcao acao={sairAcao}>
-            <Button type="submit" variant="ghost">
-              Sair
-            </Button>
-          </FormAcao>
-        }
       />
 
       {e.assinadaEm && (
@@ -55,6 +66,24 @@ export default async function BoasVindasPage() {
             </Link>
           )}
         </Alert>
+      )}
+
+      {antesDaVigencia && familia && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Formação da família {familia}</CardTitle>
+            <CardDescription>
+              O acordo entra em vigor quando todos da família assinarem (pelo menos 2). Para chamar
+              alguém, indique pela página Início: todos aprovam antes do convite sair.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Link href="/inicio" className="w-fit text-sm font-medium underline underline-offset-4">
+              Indicar amigos Steam
+            </Link>
+            <ListaIndicacoes indicacoes={indicacoes} appUrl={env().APP_URL} familia={familia} />
+          </CardContent>
+        </Card>
       )}
 
       <Card>
@@ -100,6 +129,14 @@ export default async function BoasVindasPage() {
             <CardDescription>
               sha256 <span className="font-mono break-all">{e.versao.sha256}</span>
             </CardDescription>
+            {/* RN-REG-08: antes da vigência, qualquer membro da família ajusta o texto */}
+            {antesDaVigencia && familia && (
+              <CardAction>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/regulamento/editar">Editar o texto</Link>
+                </Button>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div
@@ -107,10 +144,19 @@ export default async function BoasVindasPage() {
               tabIndex={0}
               aria-label="Texto do Regulamento"
             >
-              <Markdown texto={e.versao.textoMarkdown} />
+              <Markdown texto={dividirRegulamento(e.versao.textoMarkdown).corpo} />
             </div>
-            <h3 className="text-base font-medium">Anexo I vigente</h3>
-            <TabelaAnexoI entradas={e.bloqueados} />
+            <h3 className="text-base font-medium">Anexos</h3>
+            <AnexosDoRegulamento
+              anexos={dividirRegulamento(e.versao.textoMarkdown).anexos}
+              bloqueados={e.bloqueados}
+            />
+            {antesDaVigencia && (
+              <>
+                <h3 className="text-base font-medium">Mudanças no rascunho</h3>
+                <RevisoesDoRascunho revisoes={revisoes} />
+              </>
+            )}
           </CardContent>
         </Card>
       )}
@@ -132,6 +178,6 @@ export default async function BoasVindasPage() {
           </CardContent>
         </Card>
       )}
-    </main>
+    </div>
   )
 }

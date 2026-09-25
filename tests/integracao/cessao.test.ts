@@ -7,7 +7,6 @@ import { mudarPagamento, registrarPagamento } from '@/features/financeiro/servic
 import { executarRodada } from '@/features/rodadas/servico'
 import { convocar, fecharVotacoesVencidas, votar } from '@/features/votacoes/servico'
 import { salvarAnexo } from '@/server/anexos'
-import { db } from '@/server/db'
 import { emTransacao } from '@/server/tx'
 
 import { dono, limpar } from './banco'
@@ -139,7 +138,7 @@ describe('cessão da vez (RN-CES, RN-FIN-04/05)', () => {
       status: 'CONFIRMADO',
     })
     expect(await derivadaDe(pE)).toBeNull()
-    expect(await premioDaRodada(db, r1.id)).toBe(12500)
+    expect(await emTransacao((tx) => premioDaRodada(tx, r1.id))).toBe(12500)
     const ata = await dono.ata.findFirstOrThrow()
     expect(ata.markdown).toContain('passa a ser o contemplado da rodada')
 

@@ -3,6 +3,7 @@ import 'server-only'
 import { aquisicaoAtiva, type Validacao } from '@/domain/compra'
 import { complementacao, gasto, sobra } from '@/domain/financeiro'
 import { db } from '@/server/db'
+import { emTransacao } from '@/server/tx'
 
 import { premioDaRodada } from './fechamento'
 import { fatosDoAviso } from './servico'
@@ -49,10 +50,12 @@ export async function jogoDaRodada(rodadaId: string, pessoaId: string, agora: Da
       },
     }),
   ])
-  const detalhes = await db.$transaction(async (tx) =>
-    Promise.all(avisos.map((a) => fatosDoAviso(tx, a.id, agora))),
+  const [detalhes, premioR] = await emTransacao((tx) =>
+    Promise.all([
+      Promise.all(avisos.map((a) => fatosDoAviso(tx, a.id, agora))),
+      premioDaRodada(tx, rodadaId),
+    ]),
   )
-  const premioR = await premioDaRodada(db, rodadaId)
   const gastoR = gasto(aquisicoes)
   const souContemplado = rodada.contempladoId === pessoaId
   const aberta = rodada.status === 'CONTEMPLADA'

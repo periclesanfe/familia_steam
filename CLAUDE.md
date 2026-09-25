@@ -14,7 +14,7 @@ Controle do Consórcio da Família Steam. A spec em `docs/spec/` é a fonte da v
 
 ## Invariantes que não se negociam
 
-- Não existe papel de administrador (art. 3º). Todo poder coletivo é efeito de votação aprovada (RN-VOT-07/09).
+- Não existe papel de administrador (art. 3º). Todo poder coletivo é efeito de votação aprovada (RN-VOT-07/09). Única exceção: antes da vigência de uma família, quem a criou organiza as entradas e exclusões (RN-FAM-10, D-37); o papel acaba quando todos assinam.
 - O domínio (`src/domain`) é puro: sem I/O, com `agora` injetado e sem `new Date()`.
 - Dinheiro em centavos (`Int`). Datas de negócio no fuso `America/Sao_Paulo`, com `DataCivil` para campos `@db.Date`.
 - Toda mutação: uma transação, o lock da regra e `EventoAuditoria` na mesma transação.
