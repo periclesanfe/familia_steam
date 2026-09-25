@@ -133,6 +133,17 @@ async function validarPreCondicao(tx: Tx, efeito: Efeito): Promise<void> {
   if (efeito.tipo === 'REGULARIZAR_AQUISICAO') {
     exigir(await tx.aquisicao.findUnique({ where: { id: efeito.aquisicaoId } }), 'NAO_ENCONTRADO')
   }
+  if (efeito.tipo === 'PERMANENCIA_ART30') {
+    const m = await tx.membro.findFirst({
+      where: { pessoaId: efeito.pessoaId, status: 'IMPOSSIBILITADO' },
+    })
+    exigir(
+      m,
+      'ENTRADA_INVALIDA',
+      'Só se delibera a permanência de quem está impossibilitado.',
+      'art. 30',
+    )
+  }
   if (efeito.tipo === 'CANCELAR_OBRIGACAO') {
     exigir(await tx.obrigacao.findUnique({ where: { id: efeito.obrigacaoId } }), 'NAO_ENCONTRADO')
   }
@@ -308,10 +319,13 @@ export async function cancelarVotacao(ctx: ContextoAcao, e: { votacaoId: string 
   })
 }
 
-/** Tick, passo 1 (RN-VOT-13): encerra as vencidas por PRAZO, cada uma na própria transação. */
+/**
+ * Tick, passo 1 (RN-VOT-04/13): apura todas as abertas, cada uma na própria transação — as
+ * vencidas encerram por PRAZO e as que ficaram decididas por saída de eleitor também encerram.
+ */
 export async function fecharVotacoesVencidas(): Promise<{ encerradas: number; erros: string[] }> {
   const vencidas = await db.votacao.findMany({
-    where: { status: 'ABERTA', encerraEm: { lte: agora() } },
+    where: { status: 'ABERTA' },
     orderBy: { encerraEm: 'asc' },
     select: { id: true },
   })

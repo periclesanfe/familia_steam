@@ -49,6 +49,16 @@ export async function descreverEfeito(
       return 'permitir mais de uma aquisição na rodada'
     case 'DESBLOQUEAR_CONTEUDO_ADULTO':
       return `liberar o app ${String(e.appId)} da checagem de conteúdo adulto (falso positivo)`
+    case 'PERMANENCIA_ART30':
+      return `excluir ${await apelido(e.pessoaId)} do consórcio${e.escopo === 'CONSORCIO_E_FAMILIA' ? ' e da família' : ''} (art. 30)`
+    case 'RECONHECER_IMPOSSIBILIDADE':
+      return `reconhecer a impossibilidade de pagamento de ${await apelido(e.pessoaId)}`
+    case 'RECONHECER_SAIDA':
+      return `reconhecer a saída de ${await apelido(e.pessoaId)} (${e.saida === 'SAIDA_FAMILIA' ? 'da família' : 'do consórcio'})`
+    case 'RETORNO_SORTEIOS':
+      return `devolver ${await apelido(e.pessoaId)} aos sorteios`
+    case 'REVINCULAR_STEAM':
+      return `trocar a conta Steam de ${await apelido(e.pessoaId)} para ${e.novoSteamId64}`
     case 'ALTERACAO_REGULAMENTO':
       return `aprovar nova versão do Regulamento: ${e.resumo}`
     default:

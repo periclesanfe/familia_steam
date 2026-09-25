@@ -6,6 +6,7 @@ import { hashVersao } from '@/domain/hash'
 import { numeroDaVersao, vigenciaDeAlteracao } from '@/domain/regulamento'
 import { dataLocal, paraDb, prazoEmDias } from '@/domain/tempo'
 import { fecharRodada } from '@/features/compra/fechamento'
+import { encerrarMembro, registrarSaidaDaFamilia } from '@/features/saidas/servico'
 import type { Contexto } from '@/server/auditoria'
 import { registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
@@ -26,6 +27,11 @@ export const EFEITOS_DISPONIVEIS = [
   'REGULARIZAR_AQUISICAO',
   'PERMITIR_MULTIPLAS_AQUISICOES',
   'DESBLOQUEAR_CONTEUDO_ADULTO',
+  'PERMANENCIA_ART30',
+  'RECONHECER_IMPOSSIBILIDADE',
+  'RECONHECER_SAIDA',
+  'RETORNO_SORTEIOS',
+  'REVINCULAR_STEAM',
 ] as const satisfies readonly Efeito['tipo'][]
 
 export const efeitoDisponivel = (t: Efeito['tipo']): boolean =>
@@ -221,6 +227,96 @@ export async function aplicarEfeito(
       })
       await auditar('rodada', efeito.rodadaId)
       return 'aplicado: a rodada aceita mais de uma aquisição'
+    }
+
+    case 'PERMANENCIA_ART30': {
+      // RN-SAI-06.5: aprovada exclui do consórcio (e, no escopo família, autoriza a remoção)
+      const m = await tx.membro.findFirst({
+        where: { pessoaId: efeito.pessoaId, status: 'IMPOSSIBILITADO' },
+      })
+      if (!m) return naoAplicavel('a pessoa não está impossibilitada')
+      await encerrarMembro(tx, ctx, efeito.pessoaId, 'EXCLUSAO_ART30', encerradaEm, ataNumero)
+      if (efeito.escopo === 'CONSORCIO_E_FAMILIA') {
+        await tx.integranteFamilia.updateMany({
+          where: { pessoaId: efeito.pessoaId, status: 'ATIVO' },
+          data: { status: 'REMOCAO_AUTORIZADA', ataRemocaoNumero: ataNumero },
+        })
+      }
+      return `aplicado: excluída do consórcio${efeito.escopo === 'CONSORCIO_E_FAMILIA' ? ' e remoção da família autorizada' : ''}`
+    }
+
+    case 'RECONHECER_IMPOSSIBILIDADE': {
+      const { count } = await tx.membro.updateMany({
+        where: { pessoaId: efeito.pessoaId, status: 'ATIVO' },
+        data: { status: 'IMPOSSIBILITADO', impossibilitadoDesde: encerradaEm },
+      })
+      if (count === 0) return naoAplicavel('a pessoa não é membro ativo')
+      await auditar('membro', efeito.pessoaId)
+      return 'aplicado: impossibilidade reconhecida (art. 30)'
+    }
+
+    case 'RETORNO_SORTEIOS': {
+      const { count } = await tx.membro.updateMany({
+        where: { pessoaId: efeito.pessoaId, status: 'IMPOSSIBILITADO' },
+        data: { status: 'ATIVO', impossibilitadoDesde: null },
+      })
+      if (count === 0) return naoAplicavel('a pessoa não está impossibilitada')
+      await auditar('membro', efeito.pessoaId)
+      return 'aplicado: volta a concorrer a partir do próximo sorteio'
+    }
+
+    case 'RECONHECER_SAIDA': {
+      if (efeito.saida === 'SAIDA_FAMILIA')
+        await registrarSaidaDaFamilia(tx, ctx, efeito.pessoaId, efeito.efetivaEm)
+      const ok = await encerrarMembro(
+        tx,
+        ctx,
+        efeito.pessoaId,
+        efeito.saida === 'SAIDA_FAMILIA' ? 'SAIDA_DA_FAMILIA' : 'SAIDA_VOLUNTARIA',
+        efeito.efetivaEm,
+        ataNumero,
+      )
+      return ok ? 'aplicado: saída reconhecida' : naoAplicavel('a pessoa não tem vínculo aberto')
+    }
+
+    case 'REVINCULAR_STEAM': {
+      // RN-ACE-16: troca a conta e revoga todas as sessões na mesma transação
+      const ocupado = await tx.pessoa.findUnique({
+        where: { steamId64: efeito.novoSteamId64 },
+        select: { id: true },
+      })
+      if (ocupado && ocupado.id !== efeito.pessoaId)
+        return naoAplicavel('o novo SteamID já pertence a outra pessoa')
+      const antes = await tx.pessoa.findUnique({
+        where: { id: efeito.pessoaId },
+        select: { steamId64: true },
+      })
+      if (!antes) return naoAplicavel('pessoa inexistente')
+      await tx.pessoa.update({
+        where: { id: efeito.pessoaId },
+        data: { steamId64: efeito.novoSteamId64 },
+      })
+      await tx.sessao.updateMany({
+        where: { pessoaId: efeito.pessoaId, revogadaEm: null },
+        data: { revogadaEm: encerradaEm },
+      })
+      if (efeito.incluirNaFamilia) {
+        await tx.integranteFamilia.updateMany({
+          where: { pessoaId: efeito.pessoaId, status: 'ATIVO' },
+          data: { status: 'REMOCAO_AUTORIZADA', ataRemocaoNumero: ataNumero },
+        })
+        await tx.integranteFamilia.create({
+          data: {
+            pessoaId: efeito.pessoaId,
+            steamId64: efeito.novoSteamId64,
+            origem: 'CONVITE',
+            status: 'CONVITE_AUTORIZADO',
+            ataConviteNumero: ataNumero,
+          },
+        })
+      }
+      await auditar('pessoa', efeito.pessoaId, { steamId64: efeito.novoSteamId64 })
+      return 'aplicado: conta Steam trocada e sessões revogadas; a pessoa assina de novo no próximo login'
     }
 
     default:
