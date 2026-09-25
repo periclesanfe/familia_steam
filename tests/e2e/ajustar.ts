@@ -27,6 +27,7 @@ async function main(acao: string) {
         status: r1.status,
         contemplado: r1.contemplado?.steamId64 ?? null,
         sobraCentavos: r1.sobraCentavos,
+        executadaEm: r1.executadaEm?.getTime() ?? null,
       }
     case 'loja': // cache recente da loja e bibliotecas públicas: o aviso não chama a Steam
       await dono.pessoa.updateMany({ data: { steamJogosPublicos: true } })

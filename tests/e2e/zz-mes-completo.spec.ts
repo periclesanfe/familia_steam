@@ -16,7 +16,13 @@ const FUNDADORES = [
 ]
 const JPEG = { name: 'c.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 1]) }
 
-type Ajuste = { rodadaId?: string; status?: string; contemplado?: string; sobraCentavos?: number }
+type Ajuste = {
+  rodadaId?: string
+  status?: string
+  contemplado?: string
+  sobraCentavos?: number
+  executadaEm?: number
+}
 
 function ajustar(acao: string): Ajuste {
   const saida = execFileSync(
@@ -100,7 +106,11 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
   await c.getByText('Registrar compra', { exact: true }).first().click()
   await c.locator('#c-app').fill('1145350')
   await c.locator('#c-nome').fill('Hades II')
-  await c.locator('#c-compradaEm').fill(campoLocal(new Date(Date.now() - 5 * 60_000)))
+  // a compra precisa ser depois do sorteio (CA-69) e no passado; o campo tem precisão de minuto
+  const sorteioEm = ajustar('rodada').executadaEm ?? 0
+  const espera = sorteioEm + 61_000 - Date.now()
+  if (espera > 0) await c.waitForTimeout(espera)
+  await c.locator('#c-compradaEm').fill(campoLocal(new Date()))
   await c.locator('#c-valor').fill('89,90')
   await c.locator('#c-arquivo').setInputFiles(JPEG)
   await c
@@ -110,7 +120,13 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
     .click()
 
   // aquisição concluída → rodada fechada com SOBRA de 12500 − 8990
-  await c.getByRole('button', { name: 'Aquisição concluída' }).first().click()
+  const concluir = c.getByRole('button', { name: 'Aquisição concluída' }).first()
+  await concluir.waitFor({ timeout: 15_000 }).catch(async (e: unknown) => {
+    // diagnóstico no CI: mostra o erro de negócio do formulário da compra
+    console.log('alertas:', await c.getByRole('alert').allTextContents())
+    throw e
+  })
+  await concluir.click()
   await c.getByRole('alertdialog').getByRole('button', { name: 'Aquisição concluída' }).click()
   await expect
     .poll(() => ajustar('rodada'))
