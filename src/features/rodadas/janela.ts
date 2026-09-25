@@ -2,6 +2,7 @@ import 'server-only'
 
 import { exigir } from '@/domain/erros'
 import { deDb, prazoConfirmacao } from '@/domain/tempo'
+import { autoria, type Transcricao } from '@/features/transcricao/ato'
 import type { ContextoAcao } from '@/server/acao'
 import { registrarEvento } from '@/server/auditoria'
 import { db } from '@/server/db'
@@ -17,7 +18,9 @@ const APTOS = { status: { in: ['ATIVO' as const, 'IMPOSSIBILITADO' as const] } }
 export async function responderProximoCiclo(
   ctx: ContextoAcao,
   e: { cicloId: string; confirma: boolean },
+  transcricao?: Transcricao, // RN-GER-05: efetivaEm e registradaEm antes do prazo (CA-162)
 ): Promise<void> {
+  const a = autoria(ctx, transcricao)
   return emTransacao(async (tx) => {
     const rodada1 = await tx.rodada.findFirstOrThrow({
       where: { cicloId: e.cicloId, sequencia: 1 },
@@ -31,12 +34,13 @@ export async function responderProximoCiclo(
     exigir(
       ciclo.status === 'PLANEJADO' &&
         ciclo.numero > 1 &&
-        ctx.agora < prazoConfirmacao(deDb(ciclo.dataInicio)),
+        ctx.agora < prazoConfirmacao(deDb(ciclo.dataInicio)) &&
+        a.efetivaEm < prazoConfirmacao(deDb(ciclo.dataInicio)),
       'ENTRADA_INVALIDA',
       'A janela de confirmação deste ciclo não está aberta.',
       'art. 44',
     )
-    const eu = ctx.ator.pessoaId
+    const eu = a.pessoaId
     exigir(await tx.membro.count({ where: { pessoaId: eu, ...APTOS } }), 'SEM_PERMISSAO')
     await tx.declaracao.updateMany({
       where: {
@@ -49,14 +53,7 @@ export async function responderProximoCiclo(
     })
     const tipo = e.confirma ? 'CONFIRMA_PROXIMO_CICLO' : 'RECUSA_PROXIMO_CICLO'
     const d = await tx.declaracao.create({
-      data: {
-        tipo,
-        pessoaId: eu,
-        cicloId: e.cicloId,
-        efetivaEm: ctx.agora,
-        registradaEm: ctx.agora,
-        registradaPorId: eu,
-      },
+      data: { ...a, tipo, cicloId: e.cicloId },
       select: { id: true },
     })
     await registrarEvento(tx, ctx, {
