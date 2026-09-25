@@ -184,3 +184,39 @@ export async function familiaDe(pessoaId: string): Promise<string | null> {
   const f = await dbBase.familia.findUnique({ where: { id: p.familiaId }, select: { nome: true } })
   return f?.nome ?? null
 }
+
+/** Membros da família da pessoa (RLS) com a situação de cada um, para o card do Início. */
+export async function membrosDaMinhaFamilia() {
+  const [membros, versao] = await Promise.all([
+    db.membro.findMany({
+      where: { status: { not: 'ENCERRADO' } },
+      select: {
+        status: true,
+        pessoa: {
+          select: {
+            id: true,
+            apelido: true,
+            steamNick: true,
+            steamAvatarUrl: true,
+            adesoes: { select: { id: true }, take: 1 },
+          },
+        },
+      },
+      orderBy: { pessoa: { apelido: 'asc' } },
+    }),
+    db.versaoRegulamento.findFirst({
+      where: { vigenteDesde: { not: null } },
+      select: { id: true },
+    }),
+  ])
+  return {
+    emVigor: versao !== null,
+    membros: membros.map((m) => ({
+      id: m.pessoa.id,
+      nome: m.pessoa.steamNick ?? m.pessoa.apelido,
+      avatarUrl: m.pessoa.steamAvatarUrl,
+      assinou: m.pessoa.adesoes.length > 0,
+      status: m.status,
+    })),
+  }
+}

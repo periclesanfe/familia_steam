@@ -5,14 +5,14 @@ import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Markdown } from '@/components/Markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { declaracaoDeAdesao } from '@/domain/regulamento'
+import { declaracaoDeAdesao, dividirRegulamento } from '@/domain/regulamento'
 import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
 import { familiaDe } from '@/features/familias/consultas'
 import { indicacoesDaFamilia } from '@/features/familias/consultas'
 import { FormAssinatura } from '@/features/onboarding/componentes/FormAssinatura'
 import { FormDados } from '@/features/onboarding/componentes/FormDados'
 import { estadoDoOnboarding } from '@/features/onboarding/consultas'
-import { TabelaAnexoI } from '@/features/regulamento/componentes/TabelaAnexoI'
+import { AnexosDoRegulamento } from '@/features/regulamento/componentes/AnexosDoRegulamento'
 import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
 import { env } from '@/server/env'
@@ -125,10 +125,13 @@ export default async function BoasVindasPage() {
               tabIndex={0}
               aria-label="Texto do Regulamento"
             >
-              <Markdown texto={e.versao.textoMarkdown} />
+              <Markdown texto={dividirRegulamento(e.versao.textoMarkdown).corpo} />
             </div>
-            <h3 className="text-base font-medium">Anexo I vigente</h3>
-            <TabelaAnexoI entradas={e.bloqueados} />
+            <h3 className="text-base font-medium">Anexos</h3>
+            <AnexosDoRegulamento
+              anexos={dividirRegulamento(e.versao.textoMarkdown).anexos}
+              bloqueados={e.bloqueados}
+            />
           </CardContent>
         </Card>
       )}

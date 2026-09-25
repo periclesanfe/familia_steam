@@ -12,7 +12,8 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { dataLocal } from '@/domain/tempo'
 import { criarFamiliaAcao, indicarAcao } from '@/features/familias/acoes'
-import { minhaArea } from '@/features/familias/consultas'
+import { ListaAmigos } from '@/features/familias/componentes/ListaAmigos'
+import { membrosDaMinhaFamilia, minhaArea } from '@/features/familias/consultas'
 import { sincronizarAgoraAcao } from '@/features/steam/acoes'
 import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { paginaExige, TODOS_OS_PERFIS } from '@/server/auth/guardas'
@@ -24,8 +25,11 @@ export const metadata: Metadata = { title: 'Início' }
 export default async function InicioPage() {
   const { pessoaId, perfil } = await paginaExige(TODOS_OS_PERFIS)
   const t = agora()
-  const a = await minhaArea(pessoaId, t)
   const naFamilia = perfil === 'MEMBRO' || perfil === 'PENDENTE'
+  const [a, familia] = await Promise.all([
+    minhaArea(pessoaId, t),
+    naFamilia ? membrosDaMinhaFamilia() : null,
+  ])
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -78,6 +82,34 @@ export default async function InicioPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {familia && (
+              <ul className="flex flex-col divide-y rounded-lg border">
+                {familia.membros.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PessoaAvatar apelido={m.nome} url={m.avatarUrl} />
+                      <span className="truncate">{m.nome}</span>
+                    </span>
+                    {familia.emVigor ? (
+                      <StatusBadge
+                        rotulo={m.status === 'ATIVO' ? 'Membro' : 'Aguardando'}
+                        tom={m.status === 'ATIVO' ? 'sucesso' : 'atencao'}
+                      />
+                    ) : (
+                      <StatusBadge
+                        rotulo={m.assinou ? 'Assinou' : 'Falta assinar'}
+                        tom={m.assinou ? 'sucesso' : 'atencao'}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {familia && !familia.emVigor && (
+              <p className="text-xs text-muted-foreground">
+                O acordo entra em vigor quando todos assinarem (pelo menos 2).
+              </p>
             )}
             {perfil === 'VISITANTE' && (
               <FormAcao acao={criarFamiliaAcao} className="flex flex-col gap-3">
@@ -156,34 +188,7 @@ export default async function InicioPage() {
               Nenhum amigo encontrado. Deixe a lista de amigos pública e sincronize.
             </p>
           ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {a.amigos.map((f) => (
-                <li
-                  key={f.amigoSteamId64}
-                  className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <PessoaAvatar apelido={f.nick ?? '?'} url={f.avatarUrl} />
-                    <span className="truncate">{f.nick ?? f.amigoSteamId64}</span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    {f.naMinhaFamilia ? (
-                      <StatusBadge rotulo="Na família" tom="sucesso" />
-                    ) : f.noSistema ? (
-                      <StatusBadge rotulo="No sistema" tom="neutro" />
-                    ) : null}
-                    {naFamilia && !f.naMinhaFamilia && (
-                      <FormAcao acao={indicarAcao} sucesso="Indicação enviada para aprovação">
-                        <input type="hidden" name="conta" value={f.amigoSteamId64} />
-                        <BotaoEnviar size="sm" variant="outline">
-                          Indicar
-                        </BotaoEnviar>
-                      </FormAcao>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ListaAmigos amigos={a.amigos} podeIndicar={naFamilia} />
           )}
           {naFamilia && (
             <FormAcao

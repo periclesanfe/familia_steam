@@ -8,6 +8,7 @@ import {
   parametrosSchema,
   versaoVigente,
   vigenciaDeAlteracao,
+  dividirRegulamento,
 } from './regulamento'
 import { instanteLocal } from './tempo'
 
@@ -58,5 +59,21 @@ describe('regulamento', () => {
     expect(adesaoValida(a, { sha256: 'h1' }, { steamId64 })).toBe(true)
     expect(adesaoValida(a, { sha256: 'h2' }, { steamId64 })).toBe(false)
     expect(adesaoValida(a, { sha256: 'h1' }, { steamId64: '76561197960287931' })).toBe(false)
+  })
+})
+
+describe('dividirRegulamento (exibição dos anexos)', () => {
+  it('separa o corpo das assinaturas e dos anexos, sem perder texto', () => {
+    const texto =
+      '# R\n\n## CAPÍTULO I\ntexto\n\n## ASSINATURAS DOS MEMBROS\nassine\n\n## ANEXO I — LISTA\ntabela\n## ANEXO II — ATA\nmodelo\n'
+    const { corpo, anexos } = dividirRegulamento(texto)
+    expect(corpo).toBe('# R\n\n## CAPÍTULO I\ntexto')
+    expect(anexos.map((a) => a.titulo)).toEqual([
+      'ASSINATURAS DOS MEMBROS',
+      'ANEXO I — LISTA',
+      'ANEXO II — ATA',
+    ])
+    expect(anexos[2]?.markdown).toBe('modelo')
+    expect(dividirRegulamento('sem anexos').anexos).toEqual([])
   })
 })
