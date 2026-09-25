@@ -115,6 +115,32 @@ describe('acao() (08 §4.1, 14 SEG-01)', () => {
     expect(liberada).toEqual({ ok: true, dados: 'ok' })
   })
 
+  it('CA-103: chave Pix de outro membro não é alcançável (o ator vem da sessão)', async () => {
+    const { salvarDadosAcao } = await import('@/features/onboarding/acoes')
+    const eu = await entrar()
+    const outro = await dono.pessoa.create({
+      data: { apelido: 'Bia', steamId64: '76561197960287939', chavePix: 'bia@exemplo.com' },
+    })
+    const r = await salvarDadosAcao(
+      null,
+      form({
+        pessoaId: outro.id, // campo forjado: ignorado pelo schema
+        nome: 'Ana Souza',
+        apelido: 'Ana',
+        tipoChavePix: 'EMAIL',
+        chavePix: 'golpe@exemplo.com',
+        maioridade: 'on',
+      }),
+    )
+    expect(r.ok).toBe(true)
+    expect((await dono.pessoa.findUniqueOrThrow({ where: { id: outro.id } })).chavePix).toBe(
+      'bia@exemplo.com',
+    )
+    expect((await dono.pessoa.findUniqueOrThrow({ where: { id: eu.id } })).chavePix).toBe(
+      'golpe@exemplo.com',
+    )
+  })
+
   it('lerFormulario: repetidos viram lista; vazio some', () => {
     expect(lerFormulario(form({ a: ['1', '2'], b: '', c: 'x' }))).toEqual({ a: ['1', '2'], c: 'x' })
   })
