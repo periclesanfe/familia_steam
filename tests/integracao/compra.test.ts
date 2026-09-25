@@ -28,6 +28,8 @@ const jpeg = (n: number) => new File([new Uint8Array([0xff, 0xd8, 0xff, n])], 'c
 
 /** Cache da loja recente: o aviso não chama a Steam (RN-STM-10). */
 async function lojaEmCache() {
+  // bibliotecas públicas (vazias): V9/V10 verificáveis, sem exigir evidência
+  await dono.pessoa.updateMany({ data: { steamJogosPublicos: true } })
   await dono.steamApp.createMany({
     data: [HADES, OUTRO].map((appId) => ({
       appId,

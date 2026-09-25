@@ -10,6 +10,8 @@ import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AbaJogo } from '@/features/compra/componentes/AbaJogo'
+import { jogoDaRodada } from '@/features/compra/consultas'
 import { ListaObrigacoes } from '@/features/financeiro/componentes/ListaObrigacoes'
 import { pagamentosDaRodada } from '@/features/financeiro/consultas'
 import { nomeDoMes, textoDoSorteio } from '@/features/grupo/textos'
@@ -43,10 +45,18 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
   const temPagamentos = d.rodada.status === 'CONTEMPLADA' || d.rodada.status === 'FECHADA'
   const abas = [
     { id: 'sorteio', rotulo: 'Sorteio' },
-    ...(temPagamentos ? [{ id: 'pagamentos', rotulo: 'Pagamentos' }] : []),
+    ...(temPagamentos
+      ? [
+          { id: 'pagamentos', rotulo: 'Pagamentos' },
+          { id: 'jogo', rotulo: 'Jogo' },
+        ]
+      : []),
   ]
   const aba = abas.some((a) => a.id === abaPedida) ? (abaPedida as string) : 'sorteio'
-  const pagamentos = aba === 'pagamentos' ? await pagamentosDaRodada(id, t) : null
+  const [pagamentos, jogo] = await Promise.all([
+    aba === 'pagamentos' ? pagamentosDaRodada(id, t) : null,
+    aba === 'jogo' ? jogoDaRodada(id, pessoaId, t) : null,
+  ])
   const { rodada: r, sorteio } = d
   const eu = d.participantes.find((p) => p.eu)
   const link = `${env().APP_URL}/rodadas/${r.id}`
@@ -60,7 +70,9 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
       />
       <AbasNaUrl abas={abas} ativa={aba} base={`/rodadas/${r.id}`} />
 
-      {pagamentos ? (
+      {jogo ? (
+        <AbaJogo d={jogo} agora={t} />
+      ) : pagamentos ? (
         <section aria-labelledby="pagamentos" className="flex flex-col gap-4">
           <h2 id="pagamentos" className="sr-only">
             Pagamentos
@@ -170,7 +182,7 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
         </Card>
       ) : null}
 
-      {!pagamentos && d.participantes.length > 0 && (
+      {!pagamentos && !jogo && d.participantes.length > 0 && (
         <section aria-labelledby="participantes" className="flex flex-col gap-3">
           <h2 id="participantes" className="text-lg font-semibold">
             {sorteio ? 'Participantes no corte' : 'Situação prevista'}
