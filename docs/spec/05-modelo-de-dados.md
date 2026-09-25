@@ -3,6 +3,7 @@
 PostgreSQL 17+ com Prisma ORM 7.10.x (versões em [08](08-arquitetura-e-qualidade.md)). **Schema validado com `prisma validate` 7.10.0 e SQL do §3 aplicado e testado em Postgres 17 (PGlite) em 24/09/2026.**
 
 Convenções:
+
 - Modelos e campos em **português sem acento** (ADR-004); **tabelas** em `snake_case` via `@@map`; **colunas com o nome do campo (camelCase)** — no SQL manual, sempre entre aspas (`"pessoaId"`).
 - PK `uuid`; instantes em `timestamptz(3)`; datas de negócio em `date` via o tipo `DataCivil` (C-DATA, 02 §0); dinheiro em `Int` (centavos).
 - ATAs são referenciadas pelo **número**, como no Regulamento (`ataXNumero Int?`, sem FK).
@@ -865,7 +866,7 @@ model ItemListaDesejos {
 
 ## 3. Constraints em SQL (migração manual `0002_regras`)
 
-O Prisma não expressa índices parciais, CHECKs e triggers. Criar com `prisma migrate dev --create-only --name regras` e colar o SQL abaixo. Os índices manuais são todos **parciais**, e o `migrate dev` não os derruba (índice total manual seria removido como *drift*).
+O Prisma não expressa índices parciais, CHECKs e triggers. Criar com `prisma migrate dev --create-only --name regras` e colar o SQL abaixo. Os índices manuais são todos **parciais**, e o `migrate dev` não os derruba (índice total manual seria removido como _drift_).
 
 ```sql
 -- Unicidades parciais
@@ -924,29 +925,29 @@ INSERT INTO controle (chave, "atualizadoEm") VALUES ('tick', now()), ('steam_pau
 
 ## 4. Dados derivados (não armazenados)
 
-| Derivado | Função | Base |
-|---|---|---|
-| Perfil de acesso | `perfilDe` (em `src/server/auth/perfil.ts`, lê o banco) | `Membro.status` + obrigações e pagamentos abertos + rodada aberta como contemplado |
-| Versão vigente | `versaoVigente(versoes, t)` | maior `ordem` com `vigenteDesde ≤ t` |
-| Adesão válida | `adesaoValida(a, versao, pessoa)` | `a.sha256Versao === versao.sha256 ∧ a.codigoAmigo === codigoAmigo(pessoa.steamId64)` |
-| Vencimento efetivo | `vencimentoEfetivo(o, params)` | `justificadaEm < vencimentoEm ? addDays(vencimentoEm, diasProrrogacao, {in: tz(SP)}) : vencimentoEm` (04/10 00:00 → 11/10 00:00) |
-| Saldo, atraso, quitação | `saldo`, `emAtraso`, `quitada` | `Pagamento` (RN-FIN-06/08) |
-| Em dia, postergado | `emDia`, `postergado` | obrigações + corte |
-| Contemplados do ciclo, NC | `contempladosDoCiclo` | `Rodada.contempladoId` (não ANULADA/CANCELADA) |
-| Participantes previstos | `participantesPrevistos` | fundadores (ciclo 1) ou confirmações + admitidos (RN-CIC-03) |
-| Pagantes da rodada | `Rodada.pagantesNoCorte` | **congelado** na contemplação |
-| Prêmio, gasto, sobra, complementação | `premio`, `gasto`, `sobra` | obrigações + aquisições (gasto e sobra congelados no fechamento) |
-| Rodada contemplada anterior/próxima | `anteriorContemplada`, `proximaContemplada` | ordem `(ciclo.numero, sequencia)`, só `CONTEMPLADA`/`FECHADA` |
-| Status do aviso | `statusAviso` | aviso + votações + aquisições + `agora` |
-| Exige 16 IV | `exige16IV(aviso)` | V10 do snapshot acusa posse ∨ `declarantesPosseIds.length > 0` |
-| Aquisição ativa | `aquisicaoAtiva(a)` | `reembolsoValorCentavos` nulo ou < `valorCentavos` |
-| SOBRA pendente (principal e complementar) | `sobrasPendentes(r)` | RN-FIN-14/16 (só com `r` FECHADA) |
-| Pendências da rodada | `pendenciasDaRodada` | prazo, aviso, cessão, fechamento anterior |
-| Status exibido da votação | `apurarVotacao` | votos + `agora` (materializado pelo tick) |
-| Prazo de confirmação do ciclo | `prazoConfirmacao(dataInicio)` | `dataInicio` 00:00 SP (= fim do dia 2) |
-| Vagas livres da família | `vagasLivres` | integrantes + `vagaBloqueadaAte` |
-| Biblioteca da família | query | `JogoPossuido` ⋈ `SteamApp` (categoria 62) |
-| Desbloqueio de conteúdo adulto | consulta | `Votacao` APROVADA com efeito `DESBLOQUEAR_CONTEUDO_ADULTO` para o appId |
+| Derivado                                  | Função                                                  | Base                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Perfil de acesso                          | `perfilDe` (em `src/server/auth/perfil.ts`, lê o banco) | `Membro.status` + obrigações e pagamentos abertos + rodada aberta como contemplado                                               |
+| Versão vigente                            | `versaoVigente(versoes, t)`                             | maior `ordem` com `vigenteDesde ≤ t`                                                                                             |
+| Adesão válida                             | `adesaoValida(a, versao, pessoa)`                       | `a.sha256Versao === versao.sha256 ∧ a.codigoAmigo === codigoAmigo(pessoa.steamId64)`                                             |
+| Vencimento efetivo                        | `vencimentoEfetivo(o, params)`                          | `justificadaEm < vencimentoEm ? addDays(vencimentoEm, diasProrrogacao, {in: tz(SP)}) : vencimentoEm` (04/10 00:00 → 11/10 00:00) |
+| Saldo, atraso, quitação                   | `saldo`, `emAtraso`, `quitada`                          | `Pagamento` (RN-FIN-06/08)                                                                                                       |
+| Em dia, postergado                        | `emDia`, `postergado`                                   | obrigações + corte                                                                                                               |
+| Contemplados do ciclo, NC                 | `contempladosDoCiclo`                                   | `Rodada.contempladoId` (não ANULADA/CANCELADA)                                                                                   |
+| Participantes previstos                   | `participantesPrevistos`                                | fundadores (ciclo 1) ou confirmações + admitidos (RN-CIC-03)                                                                     |
+| Pagantes da rodada                        | `Rodada.pagantesNoCorte`                                | **congelado** na contemplação                                                                                                    |
+| Prêmio, gasto, sobra, complementação      | `premio`, `gasto`, `sobra`                              | obrigações + aquisições (gasto e sobra congelados no fechamento)                                                                 |
+| Rodada contemplada anterior/próxima       | `anteriorContemplada`, `proximaContemplada`             | ordem `(ciclo.numero, sequencia)`, só `CONTEMPLADA`/`FECHADA`                                                                    |
+| Status do aviso                           | `statusAviso`                                           | aviso + votações + aquisições + `agora`                                                                                          |
+| Exige 16 IV                               | `exige16IV(aviso)`                                      | V10 do snapshot acusa posse ∨ `declarantesPosseIds.length > 0`                                                                   |
+| Aquisição ativa                           | `aquisicaoAtiva(a)`                                     | `reembolsoValorCentavos` nulo ou < `valorCentavos`                                                                               |
+| SOBRA pendente (principal e complementar) | `sobrasPendentes(r)`                                    | RN-FIN-14/16 (só com `r` FECHADA)                                                                                                |
+| Pendências da rodada                      | `pendenciasDaRodada`                                    | prazo, aviso, cessão, fechamento anterior                                                                                        |
+| Status exibido da votação                 | `apurarVotacao`                                         | votos + `agora` (materializado pelo tick)                                                                                        |
+| Prazo de confirmação do ciclo             | `prazoConfirmacao(dataInicio)`                          | `dataInicio` 00:00 SP (= fim do dia 2)                                                                                           |
+| Vagas livres da família                   | `vagasLivres`                                           | integrantes + `vagaBloqueadaAte`                                                                                                 |
+| Biblioteca da família                     | query                                                   | `JogoPossuido` ⋈ `SteamApp` (categoria 62)                                                                                       |
+| Desbloqueio de conteúdo adulto            | consulta                                                | `Votacao` APROVADA com efeito `DESBLOQUEAR_CONTEUDO_ADULTO` para o appId                                                         |
 
 ## 5. Notas de implementação
 

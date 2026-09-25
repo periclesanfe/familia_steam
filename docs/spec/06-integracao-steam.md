@@ -10,17 +10,17 @@ Fatos conferidos em 24/09/2026 (pesquisa técnica): endpoints testados com `curl
 
 ## 1. Resumo das fontes
 
-| Dado | Endpoint | API key? | Requisito do lado do membro |
-|---|---|---|---|
-| Login (SteamID64) | OpenID 2.0 `https://steamcommunity.com/openid/login` | não | nenhum |
-| Nick, avatar, URL, visibilidade | `ISteamUser/GetPlayerSummaries/v2` | **sim** | nenhum (dados públicos) |
-| URL/vanity → SteamID64 (bootstrap) | `ISteamUser/ResolveVanityURL/v1` | **sim** | nenhum |
-| Jogos que a pessoa possui | `IPlayerService/GetOwnedGames/v1` | **sim** | **Detalhes dos jogos = Público** |
-| Lista de desejos (com prioridade) | `IWishlistService/GetWishlist/v1` | não | lista pública (verificar se segue "Detalhes dos jogos") |
-| Detalhes da loja (preço BRL, categorias, conteúdo adulto, tipo) | `store.steampowered.com/api/appdetails` | não (não oficial) | nenhum |
-| Apps de um pacote (`/sub/<id>`) | `store.steampowered.com/api/packagedetails?packageids=<id>&cc=br&l=brazilian` (verificar; usa `data.apps[].id`, `data.price.final`) | não (não oficial) | nenhum |
-| Busca de jogo por nome | `store.steampowered.com/api/storesearch/?term=…&cc=br&l=brazilian` (verificar) | não (não oficial) | nenhum |
-| Composição da Família Steam | `IFamilyGroupsService/*` | **exige token de sessão do usuário (~24 h)** | **não usado** (RN-STM-12) |
+| Dado                                                            | Endpoint                                                                                                                            | API key?                                     | Requisito do lado do membro                             |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| Login (SteamID64)                                               | OpenID 2.0 `https://steamcommunity.com/openid/login`                                                                                | não                                          | nenhum                                                  |
+| Nick, avatar, URL, visibilidade                                 | `ISteamUser/GetPlayerSummaries/v2`                                                                                                  | **sim**                                      | nenhum (dados públicos)                                 |
+| URL/vanity → SteamID64 (bootstrap)                              | `ISteamUser/ResolveVanityURL/v1`                                                                                                    | **sim**                                      | nenhum                                                  |
+| Jogos que a pessoa possui                                       | `IPlayerService/GetOwnedGames/v1`                                                                                                   | **sim**                                      | **Detalhes dos jogos = Público**                        |
+| Lista de desejos (com prioridade)                               | `IWishlistService/GetWishlist/v1`                                                                                                   | não                                          | lista pública (verificar se segue "Detalhes dos jogos") |
+| Detalhes da loja (preço BRL, categorias, conteúdo adulto, tipo) | `store.steampowered.com/api/appdetails`                                                                                             | não (não oficial)                            | nenhum                                                  |
+| Apps de um pacote (`/sub/<id>`)                                 | `store.steampowered.com/api/packagedetails?packageids=<id>&cc=br&l=brazilian` (verificar; usa `data.apps[].id`, `data.price.final`) | não (não oficial)                            | nenhum                                                  |
+| Busca de jogo por nome                                          | `store.steampowered.com/api/storesearch/?term=…&cc=br&l=brazilian` (verificar)                                                      | não (não oficial)                            | nenhum                                                  |
+| Composição da Família Steam                                     | `IFamilyGroupsService/*`                                                                                                            | **exige token de sessão do usuário (~24 h)** | **não usado** (RN-STM-12)                               |
 
 `STEAM_API_KEY`: uma chave gratuita, de uma conta sem restrição (que já gastou pelo menos US$ 5), usada **só no servidor**. Limite: 100.000 chamadas por dia, muito acima do necessário.
 
@@ -91,7 +91,7 @@ sequenceDiagram
     - jogos gratuitos não trazem `price_overview`;
     - `price_overview.initial` e `.final` já vêm em **centavos** (19990 = R$ 199,90);
     - a resposta tem `Cache-Control: max-age=3600`.
-- **RN-STM-09 — Campos usados:** `type`, `name`, `is_free`, `price_overview{final, initial, discount_percent, currency}`, `categories[].id` (**62 = Family Sharing**), `content_descriptors.ids` (1 = alguma nudez ou conteúdo sexual; 2 = violência frequente; **3 = conteúdo sexual só para adultos**; 4 = nudez ou conteúdo sexual frequente; 5 = conteúdo adulto geral; mapeamento *provável*, verificar), `fullgame.appid` (DLC), `release_date.coming_soon`, `header_image`.
+- **RN-STM-09 — Campos usados:** `type`, `name`, `is_free`, `price_overview{final, initial, discount_percent, currency}`, `categories[].id` (**62 = Family Sharing**), `content_descriptors.ids` (1 = alguma nudez ou conteúdo sexual; 2 = violência frequente; **3 = conteúdo sexual só para adultos**; 4 = nudez ou conteúdo sexual frequente; 5 = conteúdo adulto geral; mapeamento _provável_, verificar), `fullgame.appid` (DLC), `release_date.coming_soon`, `header_image`.
 - **RN-STM-10 — Cache e limite de taxa.**
   - O limite não documentado é cerca de 200 requisições a cada 5 min por IP. Ao estourar, a API devolve 429 ou 403.
   - O tick processa **até 20** `SteamApp` por execução, em ordem de `prioridadeSync` desc e `detalhesEm` asc, com pelo menos 1,5 s entre chamadas.
@@ -102,7 +102,7 @@ sequenceDiagram
 
 ## 5. Biblioteca da família (derivada)
 
-- **RN-STM-12 — Sem `IFamilyGroupsService`.** Esses endpoints funcionam só com o *access token* da sessão web do usuário (dura cerca de 24 h e é obtido da loja logada), não com a API key. Pedir esse token seria pedir uma credencial da conta. **Decisão:** a composição da família é registrada no sistema (RN-CAD-08/09), e a "biblioteca da família" é aproximada:
+- **RN-STM-12 — Sem `IFamilyGroupsService`.** Esses endpoints funcionam só com o _access token_ da sessão web do usuário (dura cerca de 24 h e é obtido da loja logada), não com a API key. Pedir esse token seria pedir uma credencial da conta. **Decisão:** a composição da família é registrada no sistema (RN-CAD-08/09), e a "biblioteca da família" é aproximada:
   - `bibliotecaFamilia = ⋃ JogoPossuido` de membros e integrantes com SteamID sincronizado, com join em `SteamApp`;
   - filtro "compartilhável": `62 ∈ categorias`. Categoria desconhecida → "verificando…";
   - por jogo: quem possui, total de cópias e horas jogadas por dono.
@@ -116,18 +116,18 @@ sequenceDiagram
 
 ## 6. Uso nas regras do jogo do mês
 
-| Regra | Dado Steam | Onde |
-|---|---|---|
-| RN-COM-01/02 lista e origem do jogo | `GetWishlist` + itens manuais | lista, aviso |
-| V1/V2 Anexo I | local + `fullgame.appid`, `appIdsIncluidos` | aviso, compra |
-| V3/V4 conteúdo adulto | `content_descriptors.ids` | aviso |
-| V6 compartilhável | `categories` contém 62 | aviso |
-| V7/V8 tipo e item virtual | `type`, `is_free`, nome da DLC, `is_free` do jogo base | aviso |
-| V9 o próprio contemplado já possui | `GetOwnedGames` (contemplado) | aviso |
-| V10 outro membro possui | `GetOwnedGames` (demais membros `ATIVO` ou `IMPOSSIBILITADO`, RN-COM-04) | aviso, compra |
-| V12 pré-venda | `release_date.coming_soon` | aviso |
-| RN-COM-11 verificação pós-compra | `GetOwnedGames` (contemplado) | tick, até 7 dias depois da compra |
-| Preço de referência | `price_overview.final` | aviso (não substitui o comprovante) |
+| Regra                               | Dado Steam                                                               | Onde                                |
+| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| RN-COM-01/02 lista e origem do jogo | `GetWishlist` + itens manuais                                            | lista, aviso                        |
+| V1/V2 Anexo I                       | local + `fullgame.appid`, `appIdsIncluidos`                              | aviso, compra                       |
+| V3/V4 conteúdo adulto               | `content_descriptors.ids`                                                | aviso                               |
+| V6 compartilhável                   | `categories` contém 62                                                   | aviso                               |
+| V7/V8 tipo e item virtual           | `type`, `is_free`, nome da DLC, `is_free` do jogo base                   | aviso                               |
+| V9 o próprio contemplado já possui  | `GetOwnedGames` (contemplado)                                            | aviso                               |
+| V10 outro membro possui             | `GetOwnedGames` (demais membros `ATIVO` ou `IMPOSSIBILITADO`, RN-COM-04) | aviso, compra                       |
+| V12 pré-venda                       | `release_date.coming_soon`                                               | aviso                               |
+| RN-COM-11 verificação pós-compra    | `GetOwnedGames` (contemplado)                                            | tick, até 7 dias depois da compra   |
+| Preço de referência                 | `price_overview.final`                                                   | aviso (não substitui o comprovante) |
 
 ### Entrada do jogo no aviso
 
@@ -153,33 +153,48 @@ Com algo privado, mostrar o passo a passo: **Steam → Perfil → Editar perfil 
 // src/server/steam/schemas.ts
 export const appDetailsSchema = z.object({
   success: z.boolean(),
-  data: z.object({
-    steam_appid: z.number(),
-    type: z.string(),
-    name: z.string(),
-    is_free: z.boolean(),
-    required_age: z.coerce.number().optional(),
-    price_overview: z.object({
-      currency: z.string(), initial: z.number(), final: z.number(), discount_percent: z.number(),
-    }).optional(),
-    categories: z.array(z.object({ id: z.number(), description: z.string() })).optional(),
-    content_descriptors: z.object({ ids: z.array(z.number()).nullable(), notes: z.string().nullable() }).optional(),
-    fullgame: z.object({ appid: z.coerce.number(), name: z.string() }).optional(),
-    release_date: z.object({ coming_soon: z.boolean(), date: z.string() }).optional(),
-    header_image: z.string().url().optional(),
-  }).optional(),
+  data: z
+    .object({
+      steam_appid: z.number(),
+      type: z.string(),
+      name: z.string(),
+      is_free: z.boolean(),
+      required_age: z.coerce.number().optional(),
+      price_overview: z
+        .object({
+          currency: z.string(),
+          initial: z.number(),
+          final: z.number(),
+          discount_percent: z.number(),
+        })
+        .optional(),
+      categories: z.array(z.object({ id: z.number(), description: z.string() })).optional(),
+      content_descriptors: z
+        .object({ ids: z.array(z.number()).nullable(), notes: z.string().nullable() })
+        .optional(),
+      fullgame: z.object({ appid: z.coerce.number(), name: z.string() }).optional(),
+      release_date: z.object({ coming_soon: z.boolean(), date: z.string() }).optional(),
+      header_image: z.string().url().optional(),
+    })
+    .optional(),
 })
 
 export const ownedGamesSchema = z.object({
   response: z.object({
     game_count: z.number().optional(),
-    games: z.array(z.object({ appid: z.number(), name: z.string().optional(), playtime_forever: z.number() })).optional(),
+    games: z
+      .array(
+        z.object({ appid: z.number(), name: z.string().optional(), playtime_forever: z.number() }),
+      )
+      .optional(),
   }),
 })
 
 export const wishlistSchema = z.object({
   response: z.object({
-    items: z.array(z.object({ appid: z.number(), priority: z.number(), date_added: z.number() })).optional(),
+    items: z
+      .array(z.object({ appid: z.number(), priority: z.number(), date_added: z.number() }))
+      .optional(),
   }),
 })
 ```

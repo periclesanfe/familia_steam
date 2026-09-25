@@ -6,18 +6,19 @@ Princípio (art. 3º): **não existe administrador**. Há um único papel humano
 
 O perfil é **derivado** a cada requisição por `perfilDe(pessoaId)` (em `src/server/auth/perfil.ts`), a partir de `Pessoa`, `Membro`, obrigações, pagamentos e rodadas. Nada fica gravado no cookie.
 
-| Perfil | Condição | Pode |
-|---|---|---|
-| `VISITANTE` | sem sessão | página de login |
-| `PENDENTE` | `Membro.status ∈ {AGUARDANDO_ADESAO, AGUARDANDO_CICLO}` | onboarding: próprio cadastro; leitura do Regulamento e do Anexo I vigente (dentro do onboarding); assinatura; sair do consórcio (se `AGUARDANDO_CICLO`) |
-| `MEMBRO` | `Membro.status ∈ {ATIVO, IMPOSSIBILITADO}` | ler tudo; todas as ações coletivas; votar |
-| `EX_COM_PENDENCIA` | membro encerrado com: obrigação aberta como devedor ou credor; **ou** pagamento `DECLARADO`/`CONTESTADO` em que é `recebedorId`; **ou** papel de contemplado vigente de rodada `CONTEMPLADA` não fechada, ou `FECHADA` com `agora < prazoCompraAte`; **ou** saída depois de contemplado num ciclo `EM_ANDAMENTO` (continua pagante, RN-SAI-03) | ver e pagar as próprias obrigações; confirmar, contestar ou retirar a contestação de pagamentos recebidos; justificar; ler as ATAs que o citam (pelos links do extrato); **na rodada em que é contemplado:** ver a página, registrar ou substituir o aviso, registrar compra e reembolso, marcar "aquisição concluída" e "transferir como SOBRA" (RN-SAI-04); com a rodada `FECHADA` no prazo, só ver e registrar reembolso |
-| `EX_QUITADO` | membro encerrado sem pendência | ler e exportar os próprios dados; pedir anonimização |
-| *(integrante não membro)* | só `IntegranteFamilia` | **nada**: não tem login |
-| `SISTEMA` | job `tick` e efeitos de votação | RN-SOR-02, RN-VOT-07, sincronização Steam |
-| `OPERADOR` | acesso ao servidor e ao banco | só a CLI de bootstrap (RN-ACE-10) e a infraestrutura |
+| Perfil                    | Condição                                                                                                                                                                                                                                                                                                                                       | Pode                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VISITANTE`               | sem sessão                                                                                                                                                                                                                                                                                                                                     | página de login                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `PENDENTE`                | `Membro.status ∈ {AGUARDANDO_ADESAO, AGUARDANDO_CICLO}`                                                                                                                                                                                                                                                                                        | onboarding: próprio cadastro; leitura do Regulamento e do Anexo I vigente (dentro do onboarding); assinatura; sair do consórcio (se `AGUARDANDO_CICLO`)                                                                                                                                                                                                                                                                     |
+| `MEMBRO`                  | `Membro.status ∈ {ATIVO, IMPOSSIBILITADO}`                                                                                                                                                                                                                                                                                                     | ler tudo; todas as ações coletivas; votar                                                                                                                                                                                                                                                                                                                                                                                   |
+| `EX_COM_PENDENCIA`        | membro encerrado com: obrigação aberta como devedor ou credor; **ou** pagamento `DECLARADO`/`CONTESTADO` em que é `recebedorId`; **ou** papel de contemplado vigente de rodada `CONTEMPLADA` não fechada, ou `FECHADA` com `agora < prazoCompraAte`; **ou** saída depois de contemplado num ciclo `EM_ANDAMENTO` (continua pagante, RN-SAI-03) | ver e pagar as próprias obrigações; confirmar, contestar ou retirar a contestação de pagamentos recebidos; justificar; ler as ATAs que o citam (pelos links do extrato); **na rodada em que é contemplado:** ver a página, registrar ou substituir o aviso, registrar compra e reembolso, marcar "aquisição concluída" e "transferir como SOBRA" (RN-SAI-04); com a rodada `FECHADA` no prazo, só ver e registrar reembolso |
+| `EX_QUITADO`              | membro encerrado sem pendência                                                                                                                                                                                                                                                                                                                 | ler e exportar os próprios dados; pedir anonimização                                                                                                                                                                                                                                                                                                                                                                        |
+| _(integrante não membro)_ | só `IntegranteFamilia`                                                                                                                                                                                                                                                                                                                         | **nada**: não tem login                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `SISTEMA`                 | job `tick` e efeitos de votação                                                                                                                                                                                                                                                                                                                | RN-SOR-02, RN-VOT-07, sincronização Steam                                                                                                                                                                                                                                                                                                                                                                                   |
+| `OPERADOR`                | acesso ao servidor e ao banco                                                                                                                                                                                                                                                                                                                  | só a CLI de bootstrap (RN-ACE-10) e a infraestrutura                                                                                                                                                                                                                                                                                                                                                                        |
 
 Papéis de contexto usados na matriz:
+
 - **próprio**: o sujeito do ato;
 - **contemplado**: o contemplado vigente da rodada;
 - **recebedor**: `Pagamento.recebedorId`;
@@ -48,7 +49,7 @@ Papéis de contexto usados na matriz:
 - **RN-ACE-08 — Chave Pix.** Visível a todos os `MEMBRO` e ao titular, e ao `EX_COM_PENDENCIA` só para os seus credores. **Nunca** aparece em texto para o GRUPO, em logs, na auditoria ou em snapshots (mascarada, RN-GER-04).
 - **RN-ACE-09 — Anexos.**
   - **Upload:** um arquivo por chamada, por `enviarAnexoAcao` (≤ 5 MB), que cria o `Anexo` com `enviadoPorId = ator` e `entidade/entidadeId = null`.
-    - `mime` = tipo detectado pelos *magic bytes* (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF....WEBP`, PDF `%PDF-`), nunca o informado pelo cliente. Outros tipos são recusados (HEIC, SVG, HTML…).
+    - `mime` = tipo detectado pelos _magic bytes_ (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF....WEBP`, PDF `%PDF-`), nunca o informado pelo cliente. Outros tipos são recusados (HEIC, SVG, HTML…).
     - Gravação de chamada entra só como `linkExterno` com `https:`. Nesse caso: `mime = 'text/uri-list'`, `tamanhoBytes = 0`, `sha256 = sha256hex(utf8(url))`, `conteudo = null`; a UI mostra o link, sem download.
   - **Vínculo:** uma action só aceita `anexoId` com `enviadoPorId = ator` e `entidadeId` nulo, e grava `entidade/entidadeId` na mesma transação. Única exceção: o reuso do mesmo comprovante em outro pagamento do mesmo par devedor/recebedor (RN-FIN-04). Evidências de declaração do aviso usam `entidade = 'aviso'`.
   - **Download** `/api/anexos/[id]`:
@@ -75,7 +76,7 @@ Papéis de contexto usados na matriz:
     - Mudar texto ou parâmetros muda o `sha256` e **invalida todas as adesões**.
     - Mudar o `steamId64` de um fundador invalida só a adesão dele (`adesaoValida` compara o código de amigo) e **revoga as sessões dessa pessoa**.
   - Depois da vigência, a CLI recusa qualquer escrita.
-- **RN-ACE-11 — Operador sem poder de negócio.** Fora do bootstrap, alterar dados por SQL é proibido por acordo. As defesas são auditoria, exportação livre e backup. Recomendam-se pelo menos 2 operadores, nomeados em ATA (D-29). *ponytail:* sem cadeia de hash na auditoria; se houver desconfiança, encadear `sha256(anterior || evento)` e publicar o último hash no GRUPO todo mês.
+- **RN-ACE-11 — Operador sem poder de negócio.** Fora do bootstrap, alterar dados por SQL é proibido por acordo. As defesas são auditoria, exportação livre e backup. Recomendam-se pelo menos 2 operadores, nomeados em ATA (D-29). _ponytail:_ sem cadeia de hash na auditoria; se houver desconfiança, encadear `sha256(anterior || evento)` e publicar o último hash no GRUPO todo mês.
 - **RN-ACE-12 — Exportação.**
   - Qualquer `MEMBRO` exporta a base (JSON único + CSV por tabela), **exceto** `sessao`, `nonce_openid`, `controle` e os bytes de `anexo.conteudo` (anexos baixados à parte).
   - Os `EX_*` exportam: a própria `Pessoa`; `Adesao`, `Declaracao` e `Voto` próprios; `Obrigacao` e `Pagamento` em que são devedores ou credores; as ATAs que os citam.
@@ -108,101 +109,101 @@ Legenda: **M** = MEMBRO (`ATIVO`/`IMPOSSIBILITADO`); **P** = PENDENTE; **X** = E
 
 ### 3.1 Identidade e cadastro
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Entrar com Steam | M, P, X, EX_QUITADO | SteamID na lista (RN-ACE-04) | RN-STM-01 |
-| Sair / sair de todos | qualquer sessão | Server Action | RN-ACE-05 |
-| Editar o próprio apelido e nome | próprio | nome congelado nas adesões | RN-CAD-01 |
-| Alterar a própria chave Pix | próprio | notifica os pagadores com obrigação aberta | RN-CAD-05 |
-| Ver a chave Pix de outro | M; X só dos seus credores | — | RN-ACE-08 |
-| Declarar maioridade e assinar a versão | próprio (P) | versão aplicável; declaração literal | RN-REG-07 |
-| Sincronizar os próprios dados Steam | próprio | 1 a cada 10 min | RN-STM-04 |
-| Editar a lista de desejos (itens manuais, ordem) | próprio | — | RN-COM-01 |
-| Alterar o SteamID64 | ninguém; S por ATA `REVINCULAR_STEAM` | revoga as sessões | RN-ACE-16 |
-| Pedir anonimização | próprio (EX_QUITADO) | sem pendência | RN-CAD-15 |
+| Ação                                             | Quem                                  | Condições                                  | Regra     |
+| ------------------------------------------------ | ------------------------------------- | ------------------------------------------ | --------- |
+| Entrar com Steam                                 | M, P, X, EX_QUITADO                   | SteamID na lista (RN-ACE-04)               | RN-STM-01 |
+| Sair / sair de todos                             | qualquer sessão                       | Server Action                              | RN-ACE-05 |
+| Editar o próprio apelido e nome                  | próprio                               | nome congelado nas adesões                 | RN-CAD-01 |
+| Alterar a própria chave Pix                      | próprio                               | notifica os pagadores com obrigação aberta | RN-CAD-05 |
+| Ver a chave Pix de outro                         | M; X só dos seus credores             | —                                          | RN-ACE-08 |
+| Declarar maioridade e assinar a versão           | próprio (P)                           | versão aplicável; declaração literal       | RN-REG-07 |
+| Sincronizar os próprios dados Steam              | próprio                               | 1 a cada 10 min                            | RN-STM-04 |
+| Editar a lista de desejos (itens manuais, ordem) | próprio                               | —                                          | RN-COM-01 |
+| Alterar o SteamID64                              | ninguém; S por ATA `REVINCULAR_STEAM` | revoga as sessões                          | RN-ACE-16 |
+| Pedir anonimização                               | próprio (EX_QUITADO)                  | sem pendência                              | RN-CAD-15 |
 
 ### 3.2 Família e composição
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Registrar execução na Steam de convite ou remoção | M | vínculo `CONVITE_AUTORIZADO` ou `REMOCAO_AUTORIZADA` | RN-CAD-08/09 |
-| Declarar a própria saída da família | próprio (M, X); **sem transcrição** | confirmação com consequências | RN-CAD-10 |
-| Declarar a própria saída do consórcio | próprio (M, ou P em `AGUARDANDO_CICLO`); **sem transcrição** | idem | RN-SAI-01 |
-| Declarar impossibilidade de pagamento | próprio (M); **sem transcrição** | — | RN-SAI-06 |
-| Confirmar ou recusar o próximo ciclo | próprio (M), ou transcrição | dentro da janela; transcrição até o prazo de confirmação | RN-CIC-05, RN-GER-05 |
-| Editar a data de bloqueio de vaga | M | justificativa obrigatória | RN-CAD-11 |
+| Ação                                              | Quem                                                         | Condições                                                | Regra                |
+| ------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- | -------------------- |
+| Registrar execução na Steam de convite ou remoção | M                                                            | vínculo `CONVITE_AUTORIZADO` ou `REMOCAO_AUTORIZADA`     | RN-CAD-08/09         |
+| Declarar a própria saída da família               | próprio (M, X); **sem transcrição**                          | confirmação com consequências                            | RN-CAD-10            |
+| Declarar a própria saída do consórcio             | próprio (M, ou P em `AGUARDANDO_CICLO`); **sem transcrição** | idem                                                     | RN-SAI-01            |
+| Declarar impossibilidade de pagamento             | próprio (M); **sem transcrição**                             | —                                                        | RN-SAI-06            |
+| Confirmar ou recusar o próximo ciclo              | próprio (M), ou transcrição                                  | dentro da janela; transcrição até o prazo de confirmação | RN-CIC-05, RN-GER-05 |
+| Editar a data de bloqueio de vaga                 | M                                                            | justificativa obrigatória                                | RN-CAD-11            |
 
 ### 3.3 Sorteio
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Declarar ou revogar "não concorrer" | próprio (M; participante ou previsto), ou transcrição | rodada `AGENDADA`, antes do corte, fora do art. 14 | RN-SOR-12 |
-| Registrar justificativa antecipada | próprio (M, ou X pagante do ciclo), ou transcrição | antes do sorteio | RN-FIN-03 |
-| Realizar o sorteio | S; M como reserva | `agora ≥ agendadaPara`, rodada `AGENDADA`, anterior executada | RN-SOR-02 |
-| Anexar evidência ao sorteio | M | só acumula; link https | RN-SOR-09 |
-| Anular sorteio | ninguém; S por ATA `ANULAR_RODADA` | sem aquisição, ciclo `EM_ANDAMENTO` e nenhuma rodada posterior executada | RN-SOR-13 |
+| Ação                                | Quem                                                  | Condições                                                                | Regra     |
+| ----------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ | --------- |
+| Declarar ou revogar "não concorrer" | próprio (M; participante ou previsto), ou transcrição | rodada `AGENDADA`, antes do corte, fora do art. 14                       | RN-SOR-12 |
+| Registrar justificativa antecipada  | próprio (M, ou X pagante do ciclo), ou transcrição    | antes do sorteio                                                         | RN-FIN-03 |
+| Realizar o sorteio                  | S; M como reserva                                     | `agora ≥ agendadaPara`, rodada `AGENDADA`, anterior executada            | RN-SOR-02 |
+| Anexar evidência ao sorteio         | M                                                     | só acumula; link https                                                   | RN-SOR-09 |
+| Anular sorteio                      | ninguém; S por ATA `ANULAR_RODADA`                    | sem aquisição, ciclo `EM_ANDAMENTO` e nenhuma rodada posterior executada | RN-SOR-13 |
 
 ### 3.4 Financeiro
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Registrar pagamento | devedor (M ou X), credor ou qualquer M | comprovante (ou forma diversa); valor ≤ saldo; pagador derivado | RN-FIN-04 |
-| Confirmar ou contestar recebimento | **recebedor** (M ou X) | pagamento `DECLARADO` | RN-FIN-05 |
-| Retirar contestação | **recebedor** (M ou X) | pagamento `CONTESTADO` | RN-FIN-05 |
-| Cancelar pagamento declarado | **devedor** | `DECLARADO` ou `CONTESTADO` | RN-FIN-05 |
-| Justificar e prorrogar | devedor (M ou X), ou transcrição | antes do vencimento (transcrição até +48 h) | RN-FIN-03 |
-| Cancelar obrigação | ninguém; S por ATA `CANCELAR_OBRIGACAO` | — | RN-VOT-09 |
-| Ver quem deve a quem e extratos | M (tudo); X (os próprios) | — | RN-FIN-19 |
-| Exportar | M (tudo); X/EX (os próprios) | RN-ACE-12 | RN-ACE-12 |
+| Ação                               | Quem                                    | Condições                                                       | Regra     |
+| ---------------------------------- | --------------------------------------- | --------------------------------------------------------------- | --------- |
+| Registrar pagamento                | devedor (M ou X), credor ou qualquer M  | comprovante (ou forma diversa); valor ≤ saldo; pagador derivado | RN-FIN-04 |
+| Confirmar ou contestar recebimento | **recebedor** (M ou X)                  | pagamento `DECLARADO`                                           | RN-FIN-05 |
+| Retirar contestação                | **recebedor** (M ou X)                  | pagamento `CONTESTADO`                                          | RN-FIN-05 |
+| Cancelar pagamento declarado       | **devedor**                             | `DECLARADO` ou `CONTESTADO`                                     | RN-FIN-05 |
+| Justificar e prorrogar             | devedor (M ou X), ou transcrição        | antes do vencimento (transcrição até +48 h)                     | RN-FIN-03 |
+| Cancelar obrigação                 | ninguém; S por ATA `CANCELAR_OBRIGACAO` | —                                                               | RN-VOT-09 |
+| Ver quem deve a quem e extratos    | M (tudo); X (os próprios)               | —                                                               | RN-FIN-19 |
+| Exportar                           | M (tudo); X/EX (os próprios)            | RN-ACE-12                                                       | RN-ACE-12 |
 
 ### 3.5 Jogo do mês
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Registrar ou substituir aviso de compra | contemplado (M ou X) | rodada `CONTEMPLADA` não fechada, sem cessão em andamento, antes do prazo | RN-COM-03 |
-| Declarar ou retirar "eu tenho este jogo" (16 IV) | próprio (M) | aviso ativo, antes da autorização | RN-COM-07 |
-| Registrar compra | **só o contemplado (M ou X)** | comprovante; revalidação | RN-COM-09 |
-| Marcar "aquisição concluída" | contemplado (M ou X) | ≥ 1 aquisição ativa; sem cessão em andamento | RN-FIN-13 |
-| Registrar reembolso e escolher o destino ("transferir como SOBRA") | contemplado (M ou X) | sem cessão em andamento | RN-COM-12 |
-| Anexar print da biblioteca | contemplado (M ou X) | verificação `NAO_VERIFICAVEL` | RN-COM-11 |
-| Marcar "compartilhamento perdido" | M | informativo | RN-COM-16 |
+| Ação                                                               | Quem                          | Condições                                                                 | Regra     |
+| ------------------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------- | --------- |
+| Registrar ou substituir aviso de compra                            | contemplado (M ou X)          | rodada `CONTEMPLADA` não fechada, sem cessão em andamento, antes do prazo | RN-COM-03 |
+| Declarar ou retirar "eu tenho este jogo" (16 IV)                   | próprio (M)                   | aviso ativo, antes da autorização                                         | RN-COM-07 |
+| Registrar compra                                                   | **só o contemplado (M ou X)** | comprovante; revalidação                                                  | RN-COM-09 |
+| Marcar "aquisição concluída"                                       | contemplado (M ou X)          | ≥ 1 aquisição ativa; sem cessão em andamento                              | RN-FIN-13 |
+| Registrar reembolso e escolher o destino ("transferir como SOBRA") | contemplado (M ou X)          | sem cessão em andamento                                                   | RN-COM-12 |
+| Anexar print da biblioteca                                         | contemplado (M ou X)          | verificação `NAO_VERIFICAVEL`                                             | RN-COM-11 |
+| Marcar "compartilhamento perdido"                                  | M                             | informativo                                                               | RN-COM-16 |
 
 ### 3.6 Cessão
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Propor cessão | contemplado | RN-CES-01/02 | RN-CES-01 |
+| Ação                                | Quem                          | Condições                    | Regra     |
+| ----------------------------------- | ----------------------------- | ---------------------------- | --------- |
+| Propor cessão                       | contemplado                   | RN-CES-01/02                 | RN-CES-01 |
 | Aceitar ou recusar ser beneficiário | beneficiário (não transcrito) | proposta `AGUARDANDO_ACEITE` | RN-CES-03 |
-| Retirar a proposta | cedente | até a aprovação | RN-CES-03 |
+| Retirar a proposta                  | cedente                       | até a aprovação              | RN-CES-03 |
 
 ### 3.7 Votações e Anexo I
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Convocar votação | M | RN-VOT-01; veto na janela; cessão só pelo aceite | RN-VOT-01 |
-| Votar | eleitor do snapshot, ainda M, não impedido | votação aberta, antes de `encerraEm` | RN-VOT-03 |
-| Cancelar a votação | convocante | antes de votos de outros; **nunca** `VETO_JOGO` | RN-VOT-05 |
-| Gerar ATA e aplicar o efeito | S | na apuração | RN-VOT-06/07 |
-| Incluir ou excluir entrada do Anexo I | ninguém; S por ATA | — | RN-BLO-02/04 |
-| Editar ou apagar ATA, voto, sorteio, adesão ou auditoria | **ninguém** | trigger no banco | RN-GER-03 |
+| Ação                                                     | Quem                                       | Condições                                        | Regra        |
+| -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ------------ |
+| Convocar votação                                         | M                                          | RN-VOT-01; veto na janela; cessão só pelo aceite | RN-VOT-01    |
+| Votar                                                    | eleitor do snapshot, ainda M, não impedido | votação aberta, antes de `encerraEm`             | RN-VOT-03    |
+| Cancelar a votação                                       | convocante                                 | antes de votos de outros; **nunca** `VETO_JOGO`  | RN-VOT-05    |
+| Gerar ATA e aplicar o efeito                             | S                                          | na apuração                                      | RN-VOT-06/07 |
+| Incluir ou excluir entrada do Anexo I                    | ninguém; S por ATA                         | —                                                | RN-BLO-02/04 |
+| Editar ou apagar ATA, voto, sorteio, adesão ou auditoria | **ninguém**                                | trigger no banco                                 | RN-GER-03    |
 
 ### 3.8 Regulamento e ciclo
 
-| Ação | Quem | Condições | Regra |
-|---|---|---|---|
-| Propor alteração | M, via votação `ALTERACAO_REGULAMENTO` | uma aberta por vez | RN-REG-03 |
-| Mudar parâmetros (valor, horário, prazos) | ninguém; S por ATA de alteração | — | RN-REG-06 |
-| Encerrar o consórcio | ninguém; S por ATA `CONTINUIDADE_CONSORCIO` | — | RN-CIC-10 |
+| Ação                                      | Quem                                        | Condições          | Regra     |
+| ----------------------------------------- | ------------------------------------------- | ------------------ | --------- |
+| Propor alteração                          | M, via votação `ALTERACAO_REGULAMENTO`      | uma aberta por vez | RN-REG-03 |
+| Mudar parâmetros (valor, horário, prazos) | ninguém; S por ATA de alteração             | —                  | RN-REG-06 |
+| Encerrar o consórcio                      | ninguém; S por ATA `CONTINUIDADE_CONSORCIO` | —                  | RN-CIC-10 |
 
 ## 4. Transcrição de atos do GRUPO (reserva, RN-GER-05)
 
-| Ato transcrito | Por quem | Evidência | Limite | Efeito |
-|---|---|---|---|---|
-| Não concorrer | qualquer M | print + horário da mensagem | `registradaEm < corte` | igual ao ato próprio, marcado "transcrito por X"; o sujeito é avisado e pode revogar até o corte |
-| Confirmação ou recusa de ciclo | qualquer M | idem | `efetivaEm` e `registradaEm` < `prazoConfirmacao` | idem; revogável pelo sujeito até o corte da 1ª rodada |
-| Justificativa de prorrogação | qualquer M | idem | `efetivaEm < vencimentoEm`; até +48 h | prorroga |
-| Pagamento | qualquer M | comprovante | — | nasce `DECLARADO` (não é transcrição, é registro, RN-FIN-04) |
-| **Impossibilidade, saída do consórcio, saída da família** | **não se transcrevem** | — | — | só o titular; senão, ATA `RECONHECER_IMPOSSIBILIDADE` ou `RECONHECER_SAIDA` |
-| **Voto, aceite de Regulamento, aviso de compra, compra, aceite de cessão** | **não se transcrevem** | — | — | exigem o titular autenticado |
+| Ato transcrito                                                             | Por quem               | Evidência                   | Limite                                            | Efeito                                                                                           |
+| -------------------------------------------------------------------------- | ---------------------- | --------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Não concorrer                                                              | qualquer M             | print + horário da mensagem | `registradaEm < corte`                            | igual ao ato próprio, marcado "transcrito por X"; o sujeito é avisado e pode revogar até o corte |
+| Confirmação ou recusa de ciclo                                             | qualquer M             | idem                        | `efetivaEm` e `registradaEm` < `prazoConfirmacao` | idem; revogável pelo sujeito até o corte da 1ª rodada                                            |
+| Justificativa de prorrogação                                               | qualquer M             | idem                        | `efetivaEm < vencimentoEm`; até +48 h             | prorroga                                                                                         |
+| Pagamento                                                                  | qualquer M             | comprovante                 | —                                                 | nasce `DECLARADO` (não é transcrição, é registro, RN-FIN-04)                                     |
+| **Impossibilidade, saída do consórcio, saída da família**                  | **não se transcrevem** | —                           | —                                                 | só o titular; senão, ATA `RECONHECER_IMPOSSIBILIDADE` ou `RECONHECER_SAIDA`                      |
+| **Voto, aceite de Regulamento, aviso de compra, compra, aceite de cessão** | **não se transcrevem** | —                           | —                                                 | exigem o titular autenticado                                                                     |
 
 A transcrição nunca reabre prazo nem altera um corte já executado.

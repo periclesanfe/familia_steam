@@ -8,19 +8,19 @@ Sistema web que substitui a "planilha compartilhada" do art. 39 do Regulamento e
 
 ## Documentos
 
-| # | Documento | Conteúdo |
-|---|---|---|
-| 01 | [Visão e escopo](01-visao-e-escopo.md) | Objetivo, atores, escopo, princípios e glossário (regulamento ↔ sistema) |
-| 02 | [Regras de negócio](02-regras-de-negocio.md) | Todas as regras (RN-xxx), com artigo de origem, algoritmos e máquinas de estado |
-| 03 | [Decisões de interpretação](03-decisoes-de-interpretacao.md) | Omissões e ambiguidades do texto, default adotado, alternativas e propostas de redação para a v1.0 |
-| 04 | [Acessos e perfis](04-acessos-e-perfis.md) | Perfis, matriz de permissões, login Steam, bootstrap sem administrador, privacidade |
-| 05 | [Modelo de dados](05-modelo-de-dados.md) | Diagrama ER, schema Prisma, constraints e dados derivados |
-| 06 | [Integração Steam](06-integracao-steam.md) | OpenID, Web API, Store API, sincronização, cache e validações dos arts. 15 a 19 |
-| 07 | [Telas e rotas](07-telas-e-rotas.md) | Mapa de rotas, conteúdo e ações de cada tela, componentes, painel de pendências e textos para o GRUPO |
-| 08 | [Arquitetura e qualidade](08-arquitetura-e-qualidade.md) | Stack e versões, ADRs, estrutura de pastas, padrões, lint, Prettier, testes, CI, jobs e deploy |
-| 09 | [Cenários de aceitação](09-cenarios-de-aceitacao.md) | Casos Dado/Quando/Então que viram testes |
-| 10 | [Plano de implementação](10-plano-de-implementacao.md) | Marcos M0 a M9 com entregáveis e critérios de pronto |
-| 11 | [Rastreabilidade](11-rastreabilidade.md) | Mapa artigo → regras → cenários |
+| #   | Documento                                                    | Conteúdo                                                                                              |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| 01  | [Visão e escopo](01-visao-e-escopo.md)                       | Objetivo, atores, escopo, princípios e glossário (regulamento ↔ sistema)                              |
+| 02  | [Regras de negócio](02-regras-de-negocio.md)                 | Todas as regras (RN-xxx), com artigo de origem, algoritmos e máquinas de estado                       |
+| 03  | [Decisões de interpretação](03-decisoes-de-interpretacao.md) | Omissões e ambiguidades do texto, default adotado, alternativas e propostas de redação para a v1.0    |
+| 04  | [Acessos e perfis](04-acessos-e-perfis.md)                   | Perfis, matriz de permissões, login Steam, bootstrap sem administrador, privacidade                   |
+| 05  | [Modelo de dados](05-modelo-de-dados.md)                     | Diagrama ER, schema Prisma, constraints e dados derivados                                             |
+| 06  | [Integração Steam](06-integracao-steam.md)                   | OpenID, Web API, Store API, sincronização, cache e validações dos arts. 15 a 19                       |
+| 07  | [Telas e rotas](07-telas-e-rotas.md)                         | Mapa de rotas, conteúdo e ações de cada tela, componentes, painel de pendências e textos para o GRUPO |
+| 08  | [Arquitetura e qualidade](08-arquitetura-e-qualidade.md)     | Stack e versões, ADRs, estrutura de pastas, padrões, lint, Prettier, testes, CI, jobs e deploy        |
+| 09  | [Cenários de aceitação](09-cenarios-de-aceitacao.md)         | Casos Dado/Quando/Então que viram testes                                                              |
+| 10  | [Plano de implementação](10-plano-de-implementacao.md)       | Marcos M0 a M9 com entregáveis e critérios de pronto                                                  |
+| 11  | [Rastreabilidade](11-rastreabilidade.md)                     | Mapa artigo → regras → cenários                                                                       |
 
 ## Como ler
 
