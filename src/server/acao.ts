@@ -5,6 +5,7 @@ import { unstable_rethrow } from 'next/navigation'
 import type { z } from 'zod'
 
 import { type CodigoErro, ERROS, ErroDeNegocio } from '@/domain/erros'
+import type { EstadoAcao } from '@/lib/estado-acao'
 
 import type { Contexto } from './auditoria'
 import { type Perfil, type PerfilAtual, perfilDe } from './auth/perfil'
@@ -18,16 +19,7 @@ export type ContextoAcao = Contexto & {
   perfil: PerfilAtual
 }
 
-export type EstadoAcao<D = unknown> =
-  | { ok: true; dados: D }
-  | {
-      ok: false
-      codigo: CodigoErro | 'ERRO_INESPERADO'
-      mensagem: string
-      artigo?: string
-      erros?: Record<string, string[]>
-      valores: Record<string, string>
-    }
+export type { EstadoAcao }
 
 /** Estado inicial do `useActionState`. */
 export const ESTADO_INICIAL = null
