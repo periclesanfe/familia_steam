@@ -1,0 +1,27 @@
+# 14 SEG-10: atualizações semanais em grupo, com espera de 3 dias (os alertas de segurança não esperam).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 3 }
+    groups:
+      dependencias: { patterns: ['*'] }
+    ignore:
+      # Prisma fixado em 7.10.x até decisão de migrar para o 8 (08 §1)
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+      # typescript-eslint 8 não aceita TS ≥ 6.1 (08 §1)
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # ESLint 10 quebra o plugin react do config do Next (08 §1)
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 3 }
+    groups:
+      actions: { patterns: ['*'] }

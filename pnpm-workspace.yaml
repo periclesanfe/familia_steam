@@ -10,3 +10,17 @@ allowBuilds:
 # (capas e avatares já vêm otimizados do CDN da Steam), então ele fica fora: −18 MB na imagem.
 ignoredOptionalDependencies:
   - sharp
+# 14 SEG-10: advisories altos em dependências transitivas da CLI do prisma 7.10 (corrigidas upstream)
+overrides:
+  mysql2: ^3.22.0
+  deepmerge-ts: ^8.0.0
+
+# 14 SEG-10: supply chain. minimumReleaseAge 1440 já é o padrão do pnpm 11; explícito para não sumir.
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+# Linhas antigas fixadas de propósito, publicadas antes do trusted publishing das versões novas
+# (prisma 7.10 × 8 RC; semver 6 × 7; resolver 3 × 4). Revisar ao atualizar cada uma.
+trustPolicyExclude:
+  - prisma@7.10.0
+  - semver@6.3.1
+  - eslint-import-resolver-typescript@3.10.1

@@ -18,4 +18,13 @@ describe('lerEnv', () => {
   it('recusa DEV_LOGIN=1 em produção (RN-ACE-14)', () => {
     expect(() => lerEnv({ ...base, NODE_ENV: 'production', DEV_LOGIN: '1' })).toThrow()
   })
+
+  it('exige APP_URL https em produção, salvo localhost (14 SEG-02)', () => {
+    const prod = { ...base, NODE_ENV: 'production' }
+    expect(() => lerEnv({ ...prod, APP_URL: 'http://consorcio.exemplo.com' })).toThrow()
+    expect(lerEnv({ ...prod, APP_URL: 'https://consorcio.exemplo.com' }).APP_URL).toBe(
+      'https://consorcio.exemplo.com',
+    )
+    expect(lerEnv({ ...prod, APP_URL: 'http://localhost:3100' }).NODE_ENV).toBe('production')
+  })
 })

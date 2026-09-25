@@ -21,6 +21,17 @@ export default defineConfig({
           name: 'integracao',
           include: ['tests/integracao/**/*.test.ts'],
           environment: 'node',
+          globalSetup: ['tests/integracao/setup-global.ts'],
+          // Banco próprio dos testes (criado por docker/initdb): o app como app_rw, a limpeza como dono.
+          env: {
+            DATABASE_URL:
+              process.env.TEST_DATABASE_URL ??
+              'postgresql://app_rw:app_rw@localhost:5433/consorcio_teste',
+            MIGRATE_DATABASE_URL:
+              process.env.TEST_MIGRATE_DATABASE_URL ??
+              'postgresql://app_owner:app_owner@localhost:5433/consorcio_teste',
+            APP_URL: 'http://localhost:3100',
+          },
         },
       },
     ],
