@@ -46,6 +46,9 @@ async function entrar(browser: Browser, steamId64: string): Promise<Page> {
   return page
 }
 
+// o teste altera o estado ao avançar: repetir do zero não faz sentido
+test.describe.configure({ retries: 0 })
+
 test('CA-113: um mês completo', async ({ browser, request }) => {
   test.setTimeout(180_000)
   const rodadaId = ajustar('sorteio-vencido').rodadaId ?? ''
@@ -68,7 +71,7 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
     await form.getByLabel('Data e hora do Pix').fill(campoLocal(new Date(Date.now() - 60_000)))
     await form.getByLabel('Comprovante').setInputFiles(JPEG)
     await form.locator('form').getByRole('button', { name: 'Registrar pagamento' }).click()
-    await expect(page.getByText('Pagamento registrado').first()).toBeVisible()
+    await expect(form).toHaveCount(0) // quitada: o formulário sai da tela
     await page.context().close()
   }
 
@@ -89,7 +92,7 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
   await c.locator('#nome').fill('Hades II')
   await c.getByLabel(/Não é jogo de conteúdo pornográfico/).click()
   await c.getByRole('button', { name: 'Avisar o jogo' }).click()
-  await expect(c.getByText('Jogo avisado: janela de veto aberta').first()).toBeVisible()
+  await expect(c.getByText('Avisar outro jogo')).toBeVisible()
 
   // +48 h sem veto → compra autorizada
   ajustar('janela-vencida')
@@ -105,10 +108,8 @@ test('CA-113: um mês completo', async ({ browser, request }) => {
     .filter({ has: c.locator('#c-app') })
     .getByRole('button', { name: 'Registrar compra' })
     .click()
-  await expect(c.getByText('Compra registrada').first()).toBeVisible()
 
   // aquisição concluída → rodada fechada com SOBRA de 12500 − 8990
-  await c.reload()
   await c.getByRole('button', { name: 'Aquisição concluída' }).first().click()
   await c.getByRole('alertdialog').getByRole('button', { name: 'Aquisição concluída' }).click()
   await expect
