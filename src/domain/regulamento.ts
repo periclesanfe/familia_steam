@@ -65,3 +65,9 @@ export const adesaoValida = (
 /** Bloco de assinaturas (RN-REG-07): o texto literal aceito, com o número da versão. */
 export const declaracaoDeAdesao = (numero: string): string =>
   `Declaro que li e concordo com todos os termos deste Regulamento, versão ${numero}, e me comprometo a pagar a contribuição mensal até o término do CICLO, inclusive após ser contemplado.`
+
+/** Versão vigente em t ou, antes da vigência, a 1.0 (ordem 0). */
+export const versaoAplicavelSync = <V extends VersaoComVigencia>(
+  versoes: readonly V[],
+  t: Date,
+): V | null => versaoVigente(versoes, t) ?? versoes.find((v) => v.ordem === 0) ?? null

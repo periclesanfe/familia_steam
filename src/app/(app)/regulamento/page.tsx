@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Markdown } from '@/components/Markdown'
@@ -26,6 +27,14 @@ export default async function RegulamentoPage() {
             : 'Aguardando a assinatura de todos os fundadores (art. 46).'
         }
       />
+      <nav aria-label="Documentos relacionados" className="flex gap-4 text-sm">
+        <Link href="/atas" className="underline underline-offset-4">
+          ATAs
+        </Link>
+        <Link href="/bloqueados" className="underline underline-offset-4">
+          Anexo I
+        </Link>
+      </nav>
       <p className="text-xs text-muted-foreground">
         sha256 <span className="font-mono break-all">{versao.sha256}</span>
       </p>

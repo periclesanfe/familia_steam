@@ -6,8 +6,16 @@ import type {
   StatusPagamento,
   StatusCiclo,
   StatusRodada,
+  StatusVotacao,
   TipoContemplacao,
 } from '@/generated/prisma/enums'
+
+export const STATUS_VOTACAO: Record<StatusVotacao, { rotulo: string; tom: Tom }> = {
+  ABERTA: { rotulo: 'Aberta', tom: 'neutro' },
+  APROVADA: { rotulo: 'Aprovada', tom: 'sucesso' },
+  REJEITADA: { rotulo: 'Rejeitada', tom: 'perigo' },
+  CANCELADA: { rotulo: 'Cancelada', tom: 'inativo' },
+}
 
 export type Tom = 'neutro' | 'sucesso' | 'atencao' | 'perigo' | 'inativo'
 type Rotulo = { rotulo: string; tom: Tom }
