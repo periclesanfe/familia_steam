@@ -23,9 +23,10 @@ const jpeg = (n: number) => new File([new Uint8Array([0xff, 0xd8, 0xff, n])], 'c
 async function sorteada() {
   const ids = await prepararCiclo1()
   hora('12:00')
-  const r1 = await dono.rodada.findFirstOrThrow({ where: { sequencia: 1 } })
-  await executarRodada(r1.id, null, () => 0)
-  const A = (await dono.rodada.findUniqueOrThrow({ where: { id: r1.id } })).contempladoId ?? ''
+  const agendada = await dono.rodada.findFirstOrThrow({ where: { sequencia: 1 } })
+  await executarRodada(agendada.id, null, () => 0)
+  const r1 = await dono.rodada.findUniqueOrThrow({ where: { id: agendada.id } })
+  const A = r1.contempladoId ?? ''
   const [B = '', C = '', D = '', E = ''] = ids.filter((x) => x !== A)
   return { r1, A, B, C, D, E }
 }
@@ -120,7 +121,8 @@ describe('cessão da vez (RN-CES, RN-FIN-04/05)', () => {
 
     const r = await dono.rodada.findUniqueOrThrow({ where: { id: r1.id } })
     expect(r.contempladoId).toBe(B)
-    expect(r.prazoCompraAte).toEqual(r1.prazoCompraAte)
+    expect(r.prazoCompraAte).toEqual(r1.prazoCompraAte) // art. 20: conta do sorteio original
+    expect(r1.prazoCompraAte).not.toBeNull()
     expect(await dono.cessao.findUniqueOrThrow({ where: { id: cessaoId } })).toMatchObject({
       status: 'APROVADA',
     })
