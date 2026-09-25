@@ -11,7 +11,11 @@ import { emTransacao, travar } from '@/server/tx'
 const EM_ANDAMENTO = ['AGUARDANDO_ACEITE', 'EM_VOTACAO'] as const
 const HORAS_CIENCIA = 96
 
-/** RN-CES-01/02: a rodada ainda admite cessão e o beneficiário é elegível. */
+/**
+ * RN-CES-01/02: a rodada ainda admite cessão e o beneficiário é elegível.
+ * ponytail: o alerta (sem bloqueio) para beneficiário postergado ou que optou por não concorrer
+ * não é exibido; entra quando a aba Cessão mostrar a situação de cada um no sorteio.
+ */
 async function validarProposta(
   tx: Tx,
   agora: Date,
