@@ -16,6 +16,8 @@ export async function limpar(): Promise<void> {
     WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations', 'controle')`
   const lista = tabelas.map((t) => `"${t.tablename}"`).join(', ')
   await dono.$executeRawUnsafe(`TRUNCATE ${lista} RESTART IDENTITY CASCADE`)
+  // controle guarda estado técnico (lease do tick, pausa da Steam): volta ao inicial
+  await dono.controle.updateMany({ data: { ate: null, valor: undefined } })
 }
 
 /** 13 DP-16: número de consultas que `fn` dispara pelo `db` do app (sem BEGIN/COMMIT). */
