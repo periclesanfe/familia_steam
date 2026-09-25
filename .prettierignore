@@ -1,0 +1,10 @@
+src/generated
+.next
+pnpm-lock.yaml
+prisma/migrations
+coverage
+playwright-report
+test-results
+# O hash do texto normativo entra no sistema (C-HASH): não formatar.
+docs/regulamento
+AGENTS.md
