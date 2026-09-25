@@ -39,3 +39,10 @@ export function imagemSteamSegura(url: string | null | undefined): string | null
     return null
   }
 }
+
+/**
+ * Capa (header 460×215) montada pelo appId no CDN da Steam: aparece antes de o appdetails ser
+ * consultado (15 §5). Mesmo host aceito por `imagemSteamSegura`.
+ */
+export const capaDoApp = (appId: number): string =>
+  `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${String(appId)}/header.jpg`

@@ -104,7 +104,7 @@ export async function sincronizarPessoas(
 
 async function gravarPessoa(
   pessoaId: string,
-  jogos: { appid: number; playtime_forever: number }[] | undefined,
+  jogos: { appid: number; name?: string | undefined; playtime_forever: number }[] | undefined,
   desejos: { appid: number; priority: number; date_added: number }[] | undefined,
   t: Date,
 ) {
@@ -121,9 +121,15 @@ async function gravarPessoa(
         })),
       })
       await tx.steamApp.createMany({
-        data: jogos.map((j) => ({ appId: j.appid, prioridadeSync: 1 })),
+        data: jogos.map((j) => ({ appId: j.appid, nome: j.name ?? null, prioridadeSync: 1 })),
         skipDuplicates: true,
       })
+      // o GetOwnedGames já traz o nome: preenche os apps que ainda não tinham (sem esperar o appdetails)
+      const comNome = jogos.filter((j) => j.name)
+      await tx.$executeRaw`
+        UPDATE steam_app s SET nome = v.nome
+        FROM unnest(${comNome.map((j) => j.appid)}::int[], ${comNome.map((j) => j.name ?? '')}::text[]) AS v(id, nome)
+        WHERE s."appId" = v.id AND s.nome IS NULL`
     }
     // RN-STM-07: {"response":{}} é "vazia" se a biblioteca é pública; se tudo é privado, mantém o
     // último snapshot. Substitui os itens STEAM e mantém os MANUAL, exibidos depois.

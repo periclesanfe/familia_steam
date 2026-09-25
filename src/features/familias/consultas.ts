@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { capaDoApp } from '@/domain/steam'
 import { db, dbBase } from '@/server/db'
 
 const nomeDe = (p: { steamNick: string | null; apelido: string }) => p.steamNick ?? p.apelido
@@ -80,7 +81,7 @@ export async function minhaArea(pessoaId: string, agora: Date) {
       return {
         ...d,
         nome: app?.nome ?? d.tituloLivre ?? `App ${String(d.appId)}`,
-        imagemUrl: app?.imagemUrl ?? null,
+        imagemUrl: app?.imagemUrl ?? (d.appId ? capaDoApp(d.appId) : null),
       }
     }),
   }

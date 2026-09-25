@@ -9,7 +9,7 @@ import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 import { emTransacao } from '@/server/tx'
 
-import { sincronizarPessoas, sincronizarAmigos } from './sync'
+import { atualizarApps, sincronizarAmigos, sincronizarPessoas } from './sync'
 
 const DEZ_MIN = 10 * 60_000
 const SEIS_HORAS = 6 * 3_600_000
@@ -47,6 +47,7 @@ export async function sincronizarSeVencido(pessoaId: string): Promise<void> {
     return
   await sincronizarPessoas([pessoaId])
   await sincronizarAmigos(pessoaId)
+  await atualizarApps(20) // nomes e capas da lista de desejos primeiro (prioridade 2)
 }
 
 /**

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { parametrosSchema, versaoAplicavelSync } from '@/domain/regulamento'
 import { codigoAmigo } from '@/domain/regulamento'
+import { capaDoApp } from '@/domain/steam'
 import { dataLocal, deDb } from '@/domain/tempo'
 import { db } from '@/server/db'
 
@@ -29,7 +30,9 @@ const selecaoApp = {
 export async function bibliotecaDaFamilia() {
   // 15 §3: JogoPossuido é global; a família vê só os seus integrantes (o RLS filtra a relação)
   const posses = await db.jogoPossuido.findMany({
-    where: { pessoa: { integrantes: { some: { status: 'ATIVO' } } } },
+    where: {
+      pessoa: { OR: [{ integrantes: { some: { status: 'ATIVO' } } }, { membros: { some: {} } }] },
+    },
     select: { appId: true, minutosJogados: true, pessoa: { select: { id: true, apelido: true } } },
   })
   const apps = await db.steamApp.findMany({
@@ -53,7 +56,7 @@ export async function bibliotecaDaFamilia() {
       return {
         appId,
         nome: app?.nome ?? `App ${String(appId)}`,
-        imagemUrl: app?.imagemUrl ?? null,
+        imagemUrl: app?.imagemUrl ?? capaDoApp(appId),
         compartilhavel: compartilhavel(app),
         donos: g.donos.sort((a, b) => a.apelido.localeCompare(b.apelido)),
         copias: g.donos.length,
