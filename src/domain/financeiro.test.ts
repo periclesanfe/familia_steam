@@ -88,4 +88,14 @@ describe('recebedores (RN-FIN-04)', () => {
       padrao: 'c',
     })
   })
+
+  it('CA-154: devedor da CONTRIBUICAO A→B (item 3) não escolhe A como recebedor', () => {
+    const renascida = { tipo: 'CONTRIBUICAO', devedorId: 'a', credorId: 'b', criadaEm: t('18:00') }
+    expect(
+      recebedores(renascida, [{ cedenteId: 'a', encerradaEm: t('18:00') }], t('19:00')),
+    ).toEqual({
+      opcoes: ['b'],
+      padrao: 'b',
+    })
+  })
 })

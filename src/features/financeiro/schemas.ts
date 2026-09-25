@@ -30,6 +30,7 @@ export const registrarPagamentoSchema = z
     pixEm: instante,
     anexoId: z.uuid().optional(),
     formaDiversa: z.literal('on').optional(),
+    recebedorId: z.uuid().optional(),
   })
   .refine((d) => d.formaDiversa === 'on' || d.anexoId !== undefined, {
     path: ['anexoId'],
@@ -73,6 +74,10 @@ export const pagarSchema = z
       .optional()
       .transform((f) => (f && f.size > 0 ? f : undefined)),
     formaDiversa: z.literal('on').optional(),
+    recebedorId: z
+      .union([z.uuid(), z.literal('')])
+      .optional()
+      .transform((v) => (v === '' ? undefined : v)),
   })
   .refine((d) => d.formaDiversa === 'on' || d.arquivo !== undefined, {
     path: ['arquivo'],

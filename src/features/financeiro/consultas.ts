@@ -2,6 +2,7 @@ import 'server-only'
 
 import {
   type ContribuicaoFato,
+  recebedores,
   saldo,
   situacao,
   type Situacao,
@@ -24,6 +25,7 @@ const selecaoObrigacao = {
   justificativa: true,
   canceladaEm: true,
   autoquitada: true,
+  criadaEm: true,
   devedor: { select: { apelido: true } },
   credor: { select: { apelido: true, chavePix: true, chavePixAlteradaEm: true } },
   rodada: {
@@ -33,6 +35,10 @@ const selecaoObrigacao = {
       cicloId: true,
       ciclo: { select: { numero: true } },
       versaoRegulamento: { select: { parametros: true } },
+      cessoes: {
+        where: { status: 'APROVADA' },
+        select: { cedenteId: true, encerradaEm: true, cedente: { select: { apelido: true } } },
+      },
     },
   },
   pagamentos: {
@@ -71,6 +77,8 @@ export type ObrigacaoDTO = {
   chavePixCredor: string | null
   chavePixAlteradaEm: Date | null
   pagamentos: ObrigacaoLida['pagamentos']
+  /** RN-FIN-04: para quem o Pix pode ter ido (mais de um só com cessão aprovada). */
+  recebedores: { id: string; nome: string }[]
 }
 
 /** Converte a linha do banco no fato do domínio e no DTO da tela (13 DP-04). */
@@ -81,6 +89,11 @@ function paraDTO(o: ObrigacaoLida, agora: Date, verPix: boolean): ObrigacaoDTO {
     diasProrrogacao: parametrosSchema.parse(o.rodada.versaoRegulamento?.parametros).diasProrrogacao,
   }
   const venc = vencimentoEfetivo(fato, fato.diasProrrogacao)
+  const cessoes = o.rodada.cessoes.flatMap((c) =>
+    c.encerradaEm ? [{ ...c, encerradaEm: c.encerradaEm }] : [],
+  )
+  const nomes = new Map(cessoes.map((c) => [c.cedenteId, c.cedente.apelido]))
+  nomes.set(o.credorId, o.credor.apelido)
   return {
     id: o.id,
     tipo: o.tipo,
@@ -103,6 +116,10 @@ function paraDTO(o: ObrigacaoLida, agora: Date, verPix: boolean): ObrigacaoDTO {
     chavePixCredor: verPix ? o.credor.chavePix : null,
     chavePixAlteradaEm: o.credor.chavePixAlteradaEm,
     pagamentos: o.pagamentos,
+    recebedores: recebedores(o, cessoes, agora).opcoes.map((id) => ({
+      id,
+      nome: nomes.get(id) ?? id,
+    })),
   }
 }
 

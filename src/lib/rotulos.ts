@@ -4,6 +4,7 @@ import type {
   MotivoContestacao,
   MotivoSemContemplado,
   StatusPagamento,
+  StatusCessao,
   StatusCiclo,
   StatusRodada,
   StatusVotacao,
@@ -26,6 +27,14 @@ export const STATUS_RODADA: Record<StatusRodada, Rotulo> = {
   SEM_CONTEMPLADO: { rotulo: 'Sem contemplado', tom: 'atencao' },
   FECHADA: { rotulo: 'Fechada', tom: 'inativo' },
   ANULADA: { rotulo: 'Anulada', tom: 'perigo' },
+  CANCELADA: { rotulo: 'Cancelada', tom: 'inativo' },
+}
+
+export const STATUS_CESSAO: Record<StatusCessao, Rotulo> = {
+  AGUARDANDO_ACEITE: { rotulo: 'Aguardando aceite', tom: 'atencao' },
+  EM_VOTACAO: { rotulo: 'Em votação', tom: 'neutro' },
+  APROVADA: { rotulo: 'Aprovada', tom: 'sucesso' },
+  REJEITADA: { rotulo: 'Rejeitada', tom: 'perigo' },
   CANCELADA: { rotulo: 'Cancelada', tom: 'inativo' },
 }
 

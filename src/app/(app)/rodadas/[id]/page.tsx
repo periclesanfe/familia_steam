@@ -10,6 +10,8 @@ import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AbaCessao } from '@/features/cessao/componentes/AbaCessao'
+import { cessaoDaRodada } from '@/features/cessao/consultas'
 import { AbaJogo } from '@/features/compra/componentes/AbaJogo'
 import { jogoDaRodada } from '@/features/compra/consultas'
 import { ListaObrigacoes } from '@/features/financeiro/componentes/ListaObrigacoes'
@@ -35,7 +37,7 @@ import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Rodada' }
 
-// 07 §3.4: detalhe da rodada. Aba Sorteio no M4; Pagamentos (M5), Jogo (M7) e Cessão (M8a) depois.
+// 07 §3.4: detalhe da rodada com as abas Sorteio, Pagamentos, Jogo e Cessão.
 export default async function RodadaPage({ params, searchParams }: PageProps<'/rodadas/[id]'>) {
   const { pessoaId } = await paginaExige(['MEMBRO'])
   const [{ id }, { aba: abaPedida }] = await Promise.all([params, searchParams])
@@ -49,13 +51,15 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
       ? [
           { id: 'pagamentos', rotulo: 'Pagamentos' },
           { id: 'jogo', rotulo: 'Jogo' },
+          { id: 'cessao', rotulo: 'Cessão' },
         ]
       : []),
   ]
   const aba = abas.some((a) => a.id === abaPedida) ? (abaPedida as string) : 'sorteio'
-  const [pagamentos, jogo] = await Promise.all([
+  const [pagamentos, jogo, cessao] = await Promise.all([
     aba === 'pagamentos' ? pagamentosDaRodada(id, t) : null,
     aba === 'jogo' ? jogoDaRodada(id, pessoaId, t) : null,
+    aba === 'cessao' ? cessaoDaRodada(id, pessoaId, t) : null,
   ])
   const { rodada: r, sorteio } = d
   const eu = d.participantes.find((p) => p.eu)
@@ -70,7 +74,9 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
       />
       <AbasNaUrl abas={abas} ativa={aba} base={`/rodadas/${r.id}`} />
 
-      {jogo ? (
+      {cessao ? (
+        <AbaCessao rodadaId={r.id} d={cessao} />
+      ) : jogo ? (
         <AbaJogo d={jogo} agora={t} />
       ) : pagamentos ? (
         <section aria-labelledby="pagamentos" className="flex flex-col gap-4">
@@ -182,7 +188,7 @@ export default async function RodadaPage({ params, searchParams }: PageProps<'/r
         </Card>
       ) : null}
 
-      {!pagamentos && !jogo && d.participantes.length > 0 && (
+      {!pagamentos && !jogo && !cessao && d.participantes.length > 0 && (
         <section aria-labelledby="participantes" className="flex flex-col gap-3">
           <h2 id="participantes" className="text-lg font-semibold">
             {sorteio ? 'Participantes no corte' : 'Situação prevista'}
