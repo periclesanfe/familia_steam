@@ -39,7 +39,8 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 
 - **RN-GER-06 — Concorrência.** `travar(tx, chave)` = `pg_advisory_xact_lock(hashtextextended(chave, 0))`. Chaves:
   - `'fechamento'` (global, **sempre o primeiro lock** da transação): `fecharRodada` (inclusive a cascata), reembolso e reabertura, SOBRA complementar (RN-FIN-16) e toda criação de SOBRA e rateio (RN-SOR-10.3, tick). Evita _write skew_ entre rodadas vizinhas. _ponytail:_ serializa esses fluxos, o que com 5 pessoas não custa nada.
-  - `'rodada:'+id`: execução do sorteio × declaração de não concorrer; operações da rodada.
+  - `'rodada:'+id`: execução do sorteio × declaração de não concorrer; operações da rodada, inclusive registro, confirmação, contestação e cancelamento de pagamento e justificativa (o saldo é conferido sob o lock).
+  - `'regulamento'`: assinatura de adesão (duas últimas assinaturas simultâneas geram uma só vigência, RN-REG-01).
   - `'votacao:'+id`: voto × voto × encerramento.
   - `'ata'`: numeração de ATA e de entrada do Anexo I.
   - Dentro do lock, o serviço relê o estado antes de agir.

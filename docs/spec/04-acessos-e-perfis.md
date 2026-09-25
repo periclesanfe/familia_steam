@@ -48,7 +48,7 @@ Papéis de contexto usados na matriz:
   - O `EX_QUITADO` lê os próprios dados.
 - **RN-ACE-08 — Chave Pix.** Visível a todos os `MEMBRO` e ao titular, e ao `EX_COM_PENDENCIA` só para os seus credores. **Nunca** aparece em texto para o GRUPO, em logs, na auditoria ou em snapshots (mascarada, RN-GER-04).
 - **RN-ACE-09 — Anexos.**
-  - **Upload:** um arquivo por chamada, por `enviarAnexoAcao` (≤ 5 MB), que cria o `Anexo` com `enviadoPorId = ator` e `entidade/entidadeId = null`.
+  - **Upload:** um arquivo por chamada, por `enviarAnexoAcao` (≤ 5 MB), que cria o `Anexo` com `enviadoPorId = ator` e `entidade/entidadeId = null`. O "Paguei" da tela (`pagarAcao`) faz as duas etapas numa ação: grava o anexo e registra o pagamento. Se o registro falhar, o anexo fica solto e só quem o enviou o vê.
     - `mime` = tipo detectado pelos _magic bytes_ (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF....WEBP`, PDF `%PDF-`), nunca o informado pelo cliente. Outros tipos são recusados (HEIC, SVG, HTML…).
     - Gravação de chamada entra só como `linkExterno` com `https:`. Nesse caso: `mime = 'text/uri-list'`, `tamanhoBytes = 0`, `sha256 = sha256hex(utf8(url))`, `conteudo = null`; a UI mostra o link, sem download.
   - **Vínculo:** uma action só aceita `anexoId` com `enviadoPorId = ator` e `entidadeId` nulo, e grava `entidade/entidadeId` na mesma transação. Única exceção: o reuso do mesmo comprovante em outro pagamento do mesmo par devedor/recebedor (RN-FIN-04). Evidências de declaração do aviso usam `entidade = 'aviso'`.

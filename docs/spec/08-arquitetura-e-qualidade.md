@@ -317,7 +317,7 @@ export default defineConfig([
 }
 ```
 
-Regras adicionais de ESLint entram no M1: UI (12 UI-17), `no-await-in-loop` (13 DP-01), `react/no-danger`, `$queryRawUnsafe` e `process.env` (14 SEG-04/06).
+O cliente (`src/components`, `src/lib`) pode importar `@/generated/prisma/enums`: são objetos `as const`, sem runtime do Prisma. Regras adicionais de ESLint entram no M1: UI (12 UI-17), `no-await-in-loop` (13 DP-01), `react/no-danger`, `$queryRawUnsafe` e `process.env` (14 SEG-04/06).
 
 `--conditions=react-server` evita que o pacote `server-only` lance erro fora do Next. `lint-staged`: `*.{ts,tsx}` → `eslint --fix` + `prettier --write`; `*.{json,md,css,yml}` → `prettier --write` (fora `docs/regulamento`). Husky: `pre-commit` → `lint-staged`.
 
