@@ -32,7 +32,7 @@ Papéis de contexto usados na matriz:
 - **RN-ACE-03 — Autorização no servidor.** Toda Server Action e toda query de página chamam um guard que lê o estado atual no banco: `exigirMembro()`, `exigirPerfil(...)`, `exigirContemplado(rodadaId)`, `exigirRecebedor(pagamentoId)`, `exigirDevedor(obrigacaoId)`, etc. Exclusão, saída ou impossibilidade valem na requisição seguinte, sem derrubar a sessão.
 - **RN-ACE-04 — Login só com Steam** (fluxo em [06 §2](06-integracao-steam.md#2-login-com-steam-openid-20)). Entra só quem tem `Pessoa.steamId64` com `Membro` não encerrado ou perfil `EX_*`. Qualquer outra conta, inclusive de integrante não membro, recebe a mensagem neutra "Esta conta Steam não está autorizada". Não há autocadastro: pessoas nascem no bootstrap (fundadores) ou por efeito de ATA (admissão).
 - **RN-ACE-05 — Sessão.**
-  - Token aleatório de 32 bytes no cookie `sessao` (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`); o banco guarda só o `sha256`.
+  - Token aleatório de 32 bytes no cookie `__Host-sessao` (`sessao` em `http://localhost`; [14](14-seguranca.md), SEG-02), com `HttpOnly`, `Secure`, `SameSite=Lax` e `Path=/`; o banco guarda só o `sha256`.
   - **Validade fixa de 30 dias**: o `Max-Age` do cookie é igual a `expiraEm`, sem renovação. Ao expirar, um novo login cria outra sessão.
   - "Sair" e "Sair de todos os dispositivos" são **Server Actions** (`sairAcao`, `sairDeTodosAcao`) que revogam as sessões.
 - **RN-ACE-06 — Onboarding.** Enquanto faltar requisito da RN-CAD-02, a pessoa é redirecionada a `/boas-vindas`, onde:
@@ -93,7 +93,7 @@ Papéis de contexto usados na matriz:
 - **RN-ACE-15 — Segurança HTTP.**
   - **Mutações** só por Server Actions, que verificam a origem e passam pelo guard. As exceções são o callback OpenID (protegido pelo `state`), o login dev (guard duplo) e o tick (Bearer). Toda Server Action exportada é um endpoint POST público e sempre passa pelo guard.
   - **CSP com nonce por requisição**, gerada em `proxy.ts`: `default-src 'self'; script-src 'self' 'nonce-{n}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.steamstatic.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://steamcommunity.com`. `'unsafe-eval'` só em dev.
-  - **Headers estáticos** em `next.config.ts`: `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` e `X-Frame-Options: DENY`.
+  - **Headers estáticos** em `next.config.ts`: `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` e `Cross-Origin-Opener-Policy: same-origin`. O proxy só monta a CSP, sem autenticar. Modelo de ameaças e decisões complementares: [14](14-seguranca.md).
   - **Segredos:** `STEAM_API_KEY` e `CRON_SECRET` (≥ 32 caracteres) ficam só no servidor. O tick compara o Bearer com `crypto.timingSafeEqual`.
   - **Logs** não levam PII (chave Pix, comprovante, token) nem URLs com `key=`.
   - **Markdown** (Regulamento, ATA, proposição, justificativa) é renderizado com `react-markdown` + `remark-gfm`, **sem `rehype-raw`**: HTML escapado e `urlTransform` padrão. `dangerouslySetInnerHTML` é proibido.

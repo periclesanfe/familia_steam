@@ -174,7 +174,11 @@ export const appDetailsSchema = z.object({
         .optional(),
       fullgame: z.object({ appid: z.coerce.number(), name: z.string() }).optional(),
       release_date: z.object({ coming_soon: z.boolean(), date: z.string() }).optional(),
-      header_image: z.string().url().optional(),
+      // só https em *.steamstatic.com; outro host vira ausente (14, SEG-04)
+      header_image: z
+        .url({ protocol: /^https$/, hostname: /\.steamstatic\.com$/ })
+        .optional()
+        .catch(undefined),
     })
     .optional(),
 })
@@ -199,4 +203,4 @@ export const wishlistSchema = z.object({
 })
 ```
 
-Toda chamada usa o `fetch` injetado em `src/server/steam/api.ts` (os testes usam fixtures JSON), com `AbortSignal.timeout(5000)`. A resposta é validada com o schema, e o log registra só endpoint, latência e status. **Nunca** vão para o log a URL (que contém `key=`), o erro bruto do fetch ou payload com PII.
+Toda chamada usa o `fetch` injetado em `src/server/steam/api.ts` (os testes usam fixtures JSON), com `AbortSignal.timeout(5000)` e `redirect: 'error'`. A **API key vai no header `x-webapi-key`**, nunca na query, e por isso a URL não carrega segredo ([14](14-seguranca.md), SEG-06). A URL é montada com `new URL(constante)` + `searchParams`; link colado pelo usuário nunca vira `fetch` (SEG-04). A resposta é validada com o schema, que ignora os campos HTML do `appdetails` (`detailed_description`, `about_the_game`, `short_description`): eles não são gravados nem exibidos. O log registra só endpoint, latência e status; **nunca** o erro bruto do fetch ou payload com PII.

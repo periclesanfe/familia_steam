@@ -1,6 +1,6 @@
 # 07 — Telas, rotas e componentes
 
-Interface em pt-BR, **mobile-first** (o membro paga o Pix pelo celular), tema claro e escuro, shadcn/ui + Tailwind v4. Horários sempre com a indicação "horário de Brasília".
+Interface em pt-BR, **mobile-first** (o membro paga o Pix pelo celular), tema claro e escuro pelo sistema, shadcn/ui + Tailwind v4. Horários no fuso de Brasília, indicado uma vez por tela e em todo campo de data. Visual, tokens, formulários, movimento e acessibilidade: [12](12-design-e-interface.md). Consultas e N+1: [13](13-performance-e-dados.md).
 
 ## 1. Mapa de rotas (App Router)
 
@@ -78,7 +78,7 @@ O `EX_COM_PENDENCIA` vê só **Painel**, **Financeiro** (o próprio extrato), **
 
 ### 3.2 `/boas-vindas` (onboarding, RN-ACE-06)
 
-Etapas em um formulário (react-hook-form + zod):
+Etapas em um formulário (`useActionState` + zod no servidor, [12](12-design-e-interface.md) UI-13):
 
 1. **Conta Steam:** avatar, nick e código de amigo (só leitura) e status de privacidade com o guia (06 §7).
 2. **Dados:** nome, apelido, chave Pix e tipo (com a dica "prefira chave aleatória").
@@ -235,15 +235,15 @@ Outros templates: rodada sem contemplado (com motivo), lembrete de pagamento (19
 
 ### 6.1 shadcn/ui (em `src/components/ui`, gerados pela CLI)
 
-`button, card, badge, alert, alert-dialog, dialog, sheet, dropdown-menu, form, input, textarea, select, radio-group, checkbox, switch, label, tabs, table, tooltip, popover, hover-card, command, avatar, skeleton, separator, scroll-area, progress, sidebar, breadcrumb, sonner, pagination`. Tabelas são `table` + `pagination` renderizadas no servidor, com filtros e página em `searchParams` (sem TanStack Table).
+A lista oficial (o que usar e o que não usar, com os motivos) está em [12](12-design-e-interface.md) UI-11. Tabelas são `table` renderizadas no servidor, com filtros e página em `searchParams` (sem TanStack Table).
 
 ### 6.2 Compartilhados de domínio (`src/components`)
 
 | Componente                       | Responsabilidade                                                                                                    |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `Dinheiro`                       | `centavos → "R$ 1.234,56"` (`Intl.NumberFormat('pt-BR')`), com prop `sinal`                                         |
-| `DataHora`                       | instante formatado em SP (`dd/MM HH:mm`), com tooltip ISO e modo relativo ("em 3 h")                                |
-| `Prazo`                          | contagem regressiva com tom: neutro (> 24 h), atenção (< 24 h), perigo (vencido); `aria-label` completo             |
+| `DataHora`                       | instante formatado em SP (`03/10 às 12:00`), `<time dateTime>` e `title` com a data completa (12 UI-08)             |
+| `Prazo`                          | data absoluta + contagem com relógio compartilhado e tom: neutro (> 24 h), atenção (< 24 h), perigo (12 UI-15)      |
 | `StatusBadge`                    | mapeia cada enum para rótulo pt-BR e variante; um único dicionário em `src/lib/rotulos.ts`                          |
 | `PessoaAvatar`                   | avatar Steam + apelido; link para o perfil                                                                          |
 | `ArtigoRef`                      | `<ArtigoRef art="23" par="2" />`: tooltip com o texto do artigo na versão vigente e link para `/regulamento#art-23` |
@@ -254,7 +254,7 @@ Outros templates: rodada sem contemplado (com motivo), lembrete de pagamento (19
 | `PlacarVotacao`                  | barras a favor, contra, abstenção e pendentes, com linha do quórum e nomes                                          |
 | `LinhaDoTempo`                   | eventos de auditoria de uma entidade                                                                                |
 | `Markdown`                       | renderização segura de texto normativo e livre (RN-ACE-15)                                                          |
-| `EstadoVazio`, `CabecalhoPagina` | layout consistente                                                                                                  |
+| `CabecalhoPagina`, `AbasNaUrl`   | layout consistente; abas como navegação por `?aba=` (12 UI-10). Estado vazio usa o `empty` do shadcn                |
 | `SteamAppCard`                   | capa, nome, preço, selos (compartilhável, bloqueado, DLC)                                                           |
 
 ### 6.3 Regras de componentização
@@ -262,7 +262,7 @@ Outros templates: rodada sem contemplado (com motivo), lembrete de pagamento (19
 - **Server Components por padrão.** `"use client"` só em interação: formulários, diálogos, contagem, copiar, drag-and-drop.
 - Componentes de feature ficam em `src/features/<feature>/componentes/`. Vão para `src/components/` só depois do **segundo uso** entre features.
 - Um componente, um arquivo, exportação nomeada; props tipadas com `type` (não `interface` de uma implementação só).
-- Formulários: `react-hook-form` + `@hookform/resolvers/zod` com o **mesmo schema** que a Server Action valida (`src/features/<f>/schemas.ts`).
+- Formulários: `<form action>` + `useActionState`, sem biblioteca de formulário; o schema zod de `src/features/<f>/schemas.ts` valida no servidor ([12](12-design-e-interface.md) UI-13).
 - Markdown (Regulamento, ATA, proposição, justificativa) só via o componente `Markdown` (`react-markdown` + `remark-gfm`, **sem `rehype-raw`**, âncoras `#art-N` por componente customizado). `dangerouslySetInnerHTML` é proibido (RN-ACE-15). Links externos com `rel="noopener noreferrer"`.
 - Sem estado global de cliente: a fonte da verdade é o servidor. Depois de uma action, usar `revalidatePath` ou `refresh()`.
 
