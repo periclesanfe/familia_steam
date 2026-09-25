@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { imagemSteamSegura, ordenarListaDesejos } from '@/domain/steam'
+import { imagemSteamSegura, ordenarListaDesejos, textoSemHtml } from '@/domain/steam'
 import { db, dbBase } from '@/server/db'
 import { env } from '@/server/env'
 import { log } from '@/server/log'
@@ -224,6 +224,18 @@ export async function buscarDetalhes(
             tipo: d.type,
             gratuito: d.is_free,
             precoFinalCentavos: d.price_overview?.final ?? null,
+            precoInicialCentavos: d.price_overview?.initial ?? d.price_overview?.final ?? null,
+            descontoPct: d.price_overview?.discount_percent ?? (d.price_overview ? 0 : null),
+            generos: (d.genres ?? []).map((g) => g.description).slice(0, 8),
+            desenvolvedoras: (d.developers ?? []).slice(0, 4),
+            publicadoras: (d.publishers ?? []).slice(0, 4),
+            metacritic: d.metacritic?.score ?? null,
+            descricaoCurta: d.short_description ? textoSemHtml(d.short_description) : null,
+            lancamento: d.release_date?.date ?? null,
+            capturas: (d.screenshots ?? [])
+              .map((c) => imagemSteamSegura(c.path_thumbnail))
+              .filter((u): u is string => u !== null)
+              .slice(0, 8),
             categorias: (d.categories ?? []).map((c) => c.id),
             descritoresConteudo: d.content_descriptors?.ids ?? [],
             jogoBaseAppId: d.fullgame?.appid ?? null,
@@ -235,7 +247,29 @@ export async function buscarDetalhes(
           }
         : { sucesso: false, detalhesEm: t }
       // eslint-disable-next-line no-await-in-loop -- idem
+      const antes = await db.steamApp.findUnique({
+        where: { appId },
+        select: { precoFinalCentavos: true, descontoPct: true },
+      })
+      // eslint-disable-next-line no-await-in-loop -- idem
       await db.steamApp.upsert({ where: { appId }, create: { appId, ...dados }, update: dados })
+      // 15 §5: histórico próprio de preço, gravado quando preço ou desconto mudam (CA-191)
+      const final = d?.price_overview?.final
+      if (
+        final !== undefined &&
+        (antes?.precoFinalCentavos !== final ||
+          antes.descontoPct !== (d?.price_overview?.discount_percent ?? 0))
+      ) {
+        // eslint-disable-next-line no-await-in-loop -- idem
+        await db.precoApp.create({
+          data: {
+            appId,
+            em: t,
+            precoCentavos: final,
+            descontoPct: d?.price_overview?.discount_percent ?? 0,
+          },
+        })
+      }
       atualizados++
     } catch (e) {
       if (e instanceof LimiteSteam) {

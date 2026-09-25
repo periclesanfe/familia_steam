@@ -46,3 +46,17 @@ export function imagemSteamSegura(url: string | null | undefined): string | null
  */
 export const capaDoApp = (appId: number): string =>
   `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${String(appId)}/header.jpg`
+
+/** SEG-04: descrição da loja vira texto puro (tags removidas, entidades comuns decodificadas). */
+export const textoSemHtml = (html: string): string =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 400)

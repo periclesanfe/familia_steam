@@ -793,20 +793,29 @@ model NonceOpenId {
 
 // ─────────────────── Cache Steam ───────────────────
 model SteamApp {
-  appId               Int       @id
-  nome                String?
-  tipo                String? // game | dlc | music | demo | ...
-  gratuito            Boolean?
-  precoFinalCentavos  Int?
-  categorias          Int[] // 62 = Family Sharing
-  descritoresConteudo Int[] // 3 = Adult Only Sexual Content
-  jogoBaseAppId       Int?
-  emBreve             Boolean?
-  imagemUrl           String?
-  sucesso             Boolean? // false = appdetails success:false
-  detalhesEm          DateTime? @db.Timestamptz(3)
-  precoEm             DateTime? @db.Timestamptz(3)
-  prioridadeSync      Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
+  appId                Int       @id
+  nome                 String?
+  tipo                 String? // game | dlc | music | demo | ...
+  gratuito             Boolean?
+  precoFinalCentavos   Int?
+  categorias           Int[] // 62 = Family Sharing
+  descritoresConteudo  Int[] // 3 = Adult Only Sexual Content
+  jogoBaseAppId        Int?
+  emBreve              Boolean?
+  imagemUrl            String?
+  sucesso              Boolean? // false = appdetails success:false
+  detalhesEm           DateTime? @db.Timestamptz(3)
+  precoEm              DateTime? @db.Timestamptz(3)
+  precoInicialCentavos Int? // sem desconto (price_overview.initial)
+  descontoPct          Int? // price_overview.discount_percent
+  generos              String[]  @default([])
+  desenvolvedoras      String[]  @default([])
+  publicadoras         String[]  @default([])
+  metacritic           Int?
+  descricaoCurta       String? // texto puro (SEG-04: HTML descartado)
+  lancamento           String? // release_date.date, como a loja escreve
+  capturas             String[]  @default([]) // até 8 URLs dos CDNs da Steam (15 §5)
+  prioridadeSync       Int       @default(0) // 3 aviso · 2 desejo · 1 possuído
 
   @@index([prioridadeSync, detalhesEm])
   @@map("steam_app")
@@ -917,4 +926,15 @@ model AmizadeSteam {
 
   @@id([pessoaId, amigoSteamId64])
   @@map("amizade_steam")
+}
+
+/// 15 §5: histórico de preço observado pelo sistema (a Steam não expõe histórico); global.
+model PrecoApp {
+  appId         Int
+  em            DateTime @db.Timestamptz(3)
+  precoCentavos Int
+  descontoPct   Int      @default(0)
+
+  @@id([appId, em])
+  @@map("preco_app")
 }

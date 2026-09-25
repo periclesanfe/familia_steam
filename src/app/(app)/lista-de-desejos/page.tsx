@@ -3,7 +3,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
-import { Dinheiro } from '@/components/Dinheiro'
 import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -14,24 +13,25 @@ import {
   removerDesejoAcao,
   sincronizarAgoraAcao,
 } from '@/features/steam/acoes'
+import { GradeDesejos } from '@/features/steam/componentes/GradeDesejos'
 import { perfilDoMembro } from '@/features/steam/consultas'
-import { paginaExige } from '@/server/auth/guardas'
+import { paginaExige, TODOS_OS_PERFIS } from '@/server/auth/guardas'
 
 export const metadata: Metadata = { title: 'Minha lista de desejos' }
 
 // 07 §3.12 / RN-COM-01: itens da Steam (só leitura, na ordem da Steam) + itens manuais.
 export default async function ListaDeDesejosPage() {
-  const { pessoaId } = await paginaExige(['MEMBRO'])
+  const { pessoaId } = await paginaExige(TODOS_OS_PERFIS) // lista pessoal (15 §1)
   const m = await perfilDoMembro(pessoaId)
   const itens = m?.desejos ?? []
   const steam = itens.filter((i) => i.origem === 'STEAM')
   const manuais = itens.filter((i) => i.origem === 'MANUAL')
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6">
       <CabecalhoPagina
         titulo="Minha lista de desejos"
-        descricao="A ordem vale como prioridade para o jogo do mês (art. 15)."
+        descricao="Preços e promoções atualizados da loja. A ordem vale como prioridade para o jogo do mês (art. 15)."
         acoes={
           <FormAcao acao={sincronizarAgoraAcao} sucesso="Sincronização concluída">
             <Button type="submit" variant="outline">
@@ -47,27 +47,7 @@ export default async function ListaDeDesejosPage() {
         {steam.length === 0 ? (
           <p className="text-sm text-muted-foreground">Vazia, privada ou ainda não sincronizada.</p>
         ) : (
-          <ol className="flex flex-col divide-y rounded-lg border text-sm">
-            {steam.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                <span>
-                  <span className="text-muted-foreground tabular-nums">{d.posicao}. </span>
-                  <Link
-                    href={`/jogos/${String(d.appId)}`}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    {d.nome}
-                  </Link>
-                </span>
-                <span className="flex items-center gap-2">
-                  {d.precoCentavos !== null && (
-                    <Dinheiro centavos={d.precoCentavos} className="text-muted-foreground" />
-                  )}
-                  {d.bloqueado && <StatusBadge rotulo="Anexo I" tom="perigo" />}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <GradeDesejos itens={steam} />
         )}
       </section>
       <section aria-labelledby="manuais" className="flex flex-col gap-3">

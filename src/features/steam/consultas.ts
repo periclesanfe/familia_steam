@@ -19,6 +19,10 @@ const selecaoApp = {
   tipo: true,
   gratuito: true,
   precoFinalCentavos: true,
+  precoInicialCentavos: true,
+  descontoPct: true,
+  generos: true,
+  metacritic: true,
   categorias: true,
   descritoresConteudo: true,
   imagemUrl: true,
@@ -185,12 +189,16 @@ export async function perfilDoMembro(pessoaId: string) {
       ...desejos.flatMap((d) => (d.appId ? [d.appId] : [])),
     ]),
   ]
-  const apps = new Map(
-    (await db.steamApp.findMany({ where: { appId: { in: ids } }, select: selecaoApp })).map((a) => [
-      a.appId,
-      a,
-    ]),
-  )
+  const [listaApps, minimos] = await Promise.all([
+    db.steamApp.findMany({ where: { appId: { in: ids } }, select: selecaoApp }),
+    db.precoApp.groupBy({
+      by: ['appId'],
+      where: { appId: { in: desejos.flatMap((d) => (d.appId ? [d.appId] : [])) } },
+      _min: { precoCentavos: true },
+    }),
+  ])
+  const apps = new Map(listaApps.map((a) => [a.appId, a]))
+  const menor = new Map(minimos.map((m) => [m.appId, m._min.precoCentavos]))
   const bloqueado = new Set(bloqueados.flatMap((b) => b.appIds))
   return {
     pessoa: { ...pessoa, codigoAmigo: pessoa.steamId64 ? codigoAmigo(pessoa.steamId64) : null },
@@ -211,6 +219,15 @@ export async function perfilDoMembro(pessoaId: string) {
         ...d,
         nome: a?.nome ?? d.tituloLivre ?? `App ${String(d.appId)}`,
         precoCentavos: a?.precoFinalCentavos ?? null,
+        precoInicialCentavos: a?.precoInicialCentavos ?? null,
+        descontoPct: a?.descontoPct ?? null,
+        menorPrecoCentavos: d.appId ? (menor.get(d.appId) ?? null) : null,
+        gratuito: a?.gratuito ?? null,
+        generos: a?.generos ?? [],
+        metacritic: a?.metacritic ?? null,
+        emBreve: a?.emBreve ?? null,
+        compartilhavel: compartilhavel(a),
+        imagemUrl: a?.imagemUrl ?? (d.appId ? capaDoApp(d.appId) : null),
         bloqueado: d.appId !== null && bloqueado.has(d.appId),
       }
     }),

@@ -4,6 +4,7 @@ import {
   BookOpen,
   Dices,
   FileSignature,
+  Heart,
   House,
   LayoutDashboard,
   ScrollText,
@@ -37,7 +38,10 @@ type Grupo = { titulo: string; itens: Item[] }
 function grupos(perfil: Perfil): Grupo[] {
   const pessoal: Grupo = {
     titulo: 'Você',
-    itens: [{ href: '/inicio', rotulo: 'Início', Icone: House }],
+    itens: [
+      { href: '/inicio', rotulo: 'Início', Icone: House },
+      { href: '/lista-de-desejos', rotulo: 'Lista de desejos', Icone: Heart },
+    ],
   }
   if (perfil === 'VISITANTE') return [pessoal]
   if (perfil === 'PENDENTE') {

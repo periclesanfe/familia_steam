@@ -39,12 +39,26 @@ const dadosApp = z.object({
   type: z.string(),
   name: z.string(),
   is_free: z.boolean(),
-  price_overview: z.object({ final: z.number(), currency: z.string() }).optional(),
+  price_overview: z
+    .object({
+      final: z.number(),
+      initial: z.number().optional(),
+      discount_percent: z.number().optional(),
+      currency: z.string(),
+    })
+    .optional(),
   categories: z.array(z.object({ id: z.number() })).optional(),
   content_descriptors: z.object({ ids: z.array(z.number()).nullable() }).optional(),
   fullgame: z.object({ appid: z.coerce.number() }).optional(),
-  release_date: z.object({ coming_soon: z.boolean() }).optional(),
+  release_date: z.object({ coming_soon: z.boolean(), date: z.string().optional() }).optional(),
   header_image: z.string().optional(),
+  // 15 §5: informação para a lista de desejos e a página do jogo
+  genres: z.array(z.object({ description: z.string() })).optional(),
+  developers: z.array(z.string()).optional(),
+  publishers: z.array(z.string()).optional(),
+  metacritic: z.object({ score: z.number() }).optional(),
+  short_description: z.string().optional(),
+  screenshots: z.array(z.object({ path_thumbnail: z.string(), path_full: z.string() })).optional(),
 })
 
 /** RN-STM-08: a chave do objeto pode não ser o appId pedido — lê-se o primeiro valor. */
