@@ -141,3 +141,27 @@ export const conservaRodada = (e: {
 }): boolean =>
   Math.min(e.gastoCentavos, e.premioCentavos) + e.sobraCentavos + e.complementares ===
   e.premioCentavos
+
+export type CessaoAprovadaFato = { cedenteId: string; encerradaEm: Date }
+
+/**
+ * RN-FIN-04: para quem pode ter ido o Pix. Em CONTRIBUICAO, SOBRA e REPASSE_CESSAO, além do
+ * credor atual, os cedentes das cessões aprovadas depois que a obrigação nasceu (o credor foi
+ * redirecionado). Default: o credor vigente em `pixEm`, descartado o cedente que é o devedor.
+ */
+export function recebedores(
+  o: { tipo: string; devedorId: string; credorId: string; criadaEm: Date },
+  cessoes: readonly CessaoAprovadaFato[],
+  pixEm: Date,
+): { opcoes: string[]; padrao: string } {
+  if (!['CONTRIBUICAO', 'SOBRA', 'REPASSE_CESSAO'].includes(o.tipo)) {
+    return { opcoes: [o.credorId], padrao: o.credorId }
+  }
+  const depois = cessoes
+    .filter((c) => c.encerradaEm > o.criadaEm && c.cedenteId !== o.devedorId)
+    .toSorted((a, b) => a.encerradaEm.getTime() - b.encerradaEm.getTime())
+  return {
+    opcoes: [...new Set([...depois.map((c) => c.cedenteId), o.credorId])],
+    padrao: depois.find((c) => c.encerradaEm > pixEm)?.cedenteId ?? o.credorId,
+  }
+}

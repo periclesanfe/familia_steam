@@ -45,44 +45,10 @@ export async function convocar(
 
   try {
     return await emTransacao(async (tx) => {
-      const versoes = await tx.versaoRegulamento.findMany({
-        select: { id: true, ordem: true, vigenteDesde: true, parametros: true, numero: true },
-      })
-      const versao = versaoVigente(versoes, ctx.agora)
-      if (!versao) throw new ErroDeNegocio('REGULAMENTO_NAO_VIGENTE') // CA-89
-      const p = parametrosSchema.parse(versao.parametros)
       await validarPreCondicao(tx, efeito)
-
-      const eleitores = await tx.membro.findMany({ where: APTOS, select: { pessoaId: true } })
-      const eleitoresIds = eleitores.map((m) => m.pessoaId)
-      exigir(eleitoresIds.includes(ctx.ator.pessoaId), 'SEM_PERMISSAO')
-      const impedidosIds = efeito.tipo === 'PERMANENCIA_ART30' ? [efeito.pessoaId] : []
-      const id = randomUUID()
-      await tx.votacao.create({
-        data: {
-          id,
-          assunto: e.assunto,
-          proposicao: e.proposicao,
-          justificativa: e.justificativa,
-          efeito,
-          chaveObjeto: chaveObjeto(efeito, id),
-          convocadaPorId: ctx.ator.pessoaId,
-          abertaEm: ctx.agora,
-          encerraEm: somarHoras(ctx.agora, p.horasVotacao),
-          eleitoresIds,
-          impedidosIds,
-          n: eleitoresIds.length,
-          quorum: calcularQuorum(eleitoresIds.length),
-          versaoRegulamentoId: versao.id,
-        },
-      })
-      await registrarEvento(tx, ctx, {
-        acao: 'votacao.convocar',
-        entidade: 'votacao',
-        entidadeId: id,
-        dados: { depois: { assunto: e.assunto, efeito: efeito.tipo, n: eleitoresIds.length } },
-      })
-      return { votacaoId: id }
+      const r = await abrirVotacao(tx, ctx, ctx.ator.pessoaId, { ...e, efeito })
+      exigir(r.eleitoresIds.includes(ctx.ator.pessoaId), 'SEM_PERMISSAO')
+      return { votacaoId: r.votacaoId }
     })
   } catch (erro) {
     // CA-79 / CA-84: índice único (assunto, chaveObjeto) das abertas
@@ -91,6 +57,53 @@ export async function convocar(
     }
     throw erro
   }
+}
+
+/**
+ * RN-VOT-01/02: grava a votação com snapshot de eleitores, quórum e versão vigente. Também usada
+ * pelo aceite da cessão, que abre a CESSAO_VEZ com o cedente como convocante (RN-CES-03).
+ */
+export async function abrirVotacao(
+  tx: Tx,
+  ctx: Contexto,
+  convocadaPorId: string,
+  e: { assunto: AssuntoVotacao; proposicao: string; justificativa: string; efeito: Efeito },
+): Promise<{ votacaoId: string; eleitoresIds: string[] }> {
+  const versoes = await tx.versaoRegulamento.findMany({
+    select: { id: true, ordem: true, vigenteDesde: true, parametros: true, numero: true },
+  })
+  const versao = versaoVigente(versoes, ctx.agora)
+  if (!versao) throw new ErroDeNegocio('REGULAMENTO_NAO_VIGENTE') // CA-89
+  const p = parametrosSchema.parse(versao.parametros)
+  const eleitores = await tx.membro.findMany({ where: APTOS, select: { pessoaId: true } })
+  const eleitoresIds = eleitores.map((m) => m.pessoaId)
+  const impedidosIds = e.efeito.tipo === 'PERMANENCIA_ART30' ? [e.efeito.pessoaId] : []
+  const id = randomUUID()
+  await tx.votacao.create({
+    data: {
+      id,
+      assunto: e.assunto,
+      proposicao: e.proposicao,
+      justificativa: e.justificativa,
+      efeito: e.efeito,
+      chaveObjeto: chaveObjeto(e.efeito, id),
+      convocadaPorId,
+      abertaEm: ctx.agora,
+      encerraEm: somarHoras(ctx.agora, p.horasVotacao),
+      eleitoresIds,
+      impedidosIds,
+      n: eleitoresIds.length,
+      quorum: calcularQuorum(eleitoresIds.length),
+      versaoRegulamentoId: versao.id,
+    },
+  })
+  await registrarEvento(tx, ctx, {
+    acao: 'votacao.convocar',
+    entidade: 'votacao',
+    entidadeId: id,
+    dados: { depois: { assunto: e.assunto, efeito: e.efeito.tipo, n: eleitoresIds.length } },
+  })
+  return { votacaoId: id, eleitoresIds }
 }
 
 /** Pré-condições verificadas já na convocação (o efeito ainda revalida na aprovação). */
@@ -226,6 +239,13 @@ async function encerrarSeDecidida(tx: Tx, ctx: Contexto, votacaoId: string): Pro
     r.status === 'APROVADA'
       ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm, v)
       : 'nenhum (rejeitada)'
+  if (r.status === 'REJEITADA' && efeito.tipo === 'CESSAO_VEZ') {
+    // RN-CES-06: rejeitada, nada muda além do status da proposta (CA-49)
+    await tx.cessao.update({
+      where: { id: efeito.cessaoId },
+      data: { status: 'REJEITADA', encerradaEm: r.encerradaEm },
+    })
+  }
   if (r.status === 'APROVADA') {
     await tx.votacao.update({
       where: { id: v.id },
@@ -300,7 +320,8 @@ export async function cancelarVotacao(ctx: ContextoAcao, e: { votacaoId: string 
       v.status === 'ABERTA' &&
         v.convocadaPorId === ctx.ator.pessoaId &&
         !outros &&
-        v.assunto !== 'VETO_JOGO',
+        v.assunto !== 'VETO_JOGO' &&
+        v.assunto !== 'CESSAO_VEZ', // a cessão se retira pela própria proposta (RN-CES-03)
       'CANCELAMENTO_NEGADO',
     ) // CA-78
     await tx.votacao.update({

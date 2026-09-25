@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { type ContribuicaoFato, emAtraso, saldo, situacao, vencimentoEfetivo } from './financeiro'
+import {
+  type ContribuicaoFato,
+  emAtraso,
+  recebedores,
+  saldo,
+  situacao,
+  vencimentoEfetivo,
+} from './financeiro'
 import { fimDoDia, instanteLocal } from './tempo'
 
 const base: ContribuicaoFato = {
@@ -54,5 +61,31 @@ describe('financeiro (RN-FIN-03/08)', () => {
     const o = { ...base, devedorId: 'contemplado' }
     expect(saldo(o, [])).toBe(2500)
     expect(situacao(o, instanteLocal('2027-06-01'))).toBe('EM_ATRASO')
+  })
+})
+
+describe('recebedores (RN-FIN-04)', () => {
+  const t = (h: string) => instanteLocal('2026-10-03', h)
+  const contrib = { tipo: 'CONTRIBUICAO', devedorId: 'e', credorId: 'c', criadaEm: t('12:00') }
+  const cessoes = [
+    { cedenteId: 'b', encerradaEm: t('20:00') },
+    { cedenteId: 'a', encerradaEm: t('18:00') },
+  ]
+
+  it('default = credor vigente em pixEm (CA-157: Pix a A antes da 1ª aprovação)', () => {
+    expect(recebedores(contrib, cessoes, t('12:30'))).toEqual({
+      opcoes: ['a', 'b', 'c'],
+      padrao: 'a',
+    })
+    expect(recebedores(contrib, cessoes, t('19:00')).padrao).toBe('b')
+    expect(recebedores(contrib, cessoes, t('21:00')).padrao).toBe('c')
+  })
+
+  it('descarta o cedente que é o devedor; DEVOLUCAO só tem o credor', () => {
+    expect(recebedores({ ...contrib, devedorId: 'a' }, cessoes, t('12:30')).padrao).toBe('b')
+    expect(recebedores({ ...contrib, tipo: 'DEVOLUCAO' }, cessoes, t('12:30'))).toEqual({
+      opcoes: ['c'],
+      padrao: 'c',
+    })
   })
 })

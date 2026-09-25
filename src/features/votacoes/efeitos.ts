@@ -2,10 +2,13 @@ import 'server-only'
 
 import { aquisicaoAtiva } from '@/domain/compra'
 import type { Efeito } from '@/domain/efeitos'
+import { pagamentoConta } from '@/domain/financeiro'
 import { hashVersao } from '@/domain/hash'
 import { numeroDaVersao, vigenciaDeAlteracao } from '@/domain/regulamento'
 import { dataLocal, paraDb, prazoEmDias } from '@/domain/tempo'
+import { aplicarCessao } from '@/features/cessao/efeito'
 import { fecharRodada } from '@/features/compra/fechamento'
+import { aoInvalidar, aoPassarAContar } from '@/features/financeiro/derivadas'
 import { encerrarMembro, registrarSaidaDaFamilia } from '@/features/saidas/servico'
 import type { Contexto } from '@/server/auditoria'
 import { registrarEvento } from '@/server/auditoria'
@@ -16,6 +19,7 @@ export const EFEITOS_DISPONIVEIS = [
   'NENHUM',
   'EXCLUSAO_BLOQUEIO',
   'VALIDAR_PAGAMENTO',
+  'CESSAO_VEZ',
   'INVALIDAR_PAGAMENTO',
   'CANCELAR_OBRIGACAO',
   'CRIAR_DEVOLUCAO',
@@ -91,7 +95,9 @@ export async function aplicarEfeito(
           ? { status: 'CONFIRMADO', confirmadoEm: encerradaEm, ataNumero }
           : { status: 'INVALIDADO', invalidadoEm: encerradaEm, ataNumero },
       })
-      // ponytail: efeito recursivo sobre REPASSE/DEVOLUCAO (RN-FIN-05) entra no M8a
+      // RN-FIN-05: invalidação cancela as derivadas; validação pode fazer o pagamento passar a contar
+      if (!validar) await aoInvalidar(tx, ctx, p.id, ataNumero)
+      else if (!pagamentoConta(p)) await aoPassarAContar(tx, ctx, p.id)
       await auditar('pagamento', p.id, { status: validar ? 'CONFIRMADO' : 'INVALIDADO' })
       return `aplicado: pagamento ${validar ? 'validado' : 'invalidado'}`
     }
@@ -169,6 +175,9 @@ export async function aplicarEfeito(
       await auditar('versao_regulamento', v.id, { numero: v.numero, vigenteDesde })
       return `aplicado: versão ${v.numero} vigente a partir de 1º/${dataLocal(vigenteDesde).slice(5, 7)}`
     }
+
+    case 'CESSAO_VEZ':
+      return aplicarCessao(tx, ctx, efeito.cessaoId, ataNumero, encerradaEm) // RN-CES-05
 
     case 'VETO_JOGO': {
       // RN-COM-06 / RN-BLO-02: entra no Anexo I com número novo (lock 'ata' já tomado)
