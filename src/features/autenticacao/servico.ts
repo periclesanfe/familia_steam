@@ -8,7 +8,9 @@ import { db } from '@/server/db'
 import { log } from '@/server/log'
 
 export type ResultadoEntrada =
-  { tipo: 'OK'; token: string; perfil: Perfil } | { tipo: 'REPLAY' } | { tipo: 'NAO_AUTORIZADO' }
+  | { tipo: 'OK'; token: string; perfil: Perfil; pessoaId: string }
+  | { tipo: 'REPLAY' }
+  | { tipo: 'NAO_AUTORIZADO' }
 
 /**
  * Depois do OpenID validado (RN-STM-01 itens 1–9): anti-replay do nonce, lista de SteamIDs
@@ -53,5 +55,5 @@ export async function entrarComSteam(e: {
   const perfil = await perfilDe(pessoa.id)
   if (!perfil) return { tipo: 'NAO_AUTORIZADO' }
   const { token } = await criarSessao(pessoa.id, e.agora, e.userAgent)
-  return { tipo: 'OK', token, perfil: perfil.perfil }
+  return { tipo: 'OK', token, perfil: perfil.perfil, pessoaId: pessoa.id }
 }

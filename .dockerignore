@@ -21,6 +21,7 @@ docker-compose*.yml
 .dockerignore
 .DS_Store
 
-# configs de teste importam de tests/ (fora do contexto)
+# testes e configs de teste importam de tests/ (fora do contexto)
+**/*.test.ts
 playwright.config.ts
 vitest.config.ts

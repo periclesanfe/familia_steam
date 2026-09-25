@@ -1,0 +1,93 @@
+{
+  "413150": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Stardew Valley",
+      "steam_appid": 413150,
+      "required_age": "12",
+      "is_free": false,
+      "detailed_description": "Você está de mudança para o Vale...<br><br> <span class=\"bb_img_ctn\"><img class=\"bb_img\" src=\"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/extras/4aa7123b7bff518a6c3b640f5",
+      "short_description": "Você herdou a antiga fazenda do seu avô, em Stardew Valley. Com ferramentas de segunda-mão e algumas moedas, você parte para dar início a sua nova vida. Será que você vai aprender a viver da terra, a transformar esse matagal em um próspero lar?",
+      "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg?t=1786554168",
+      "price_overview": {
+        "currency": "BRL",
+        "initial": 2499,
+        "final": 2499,
+        "discount_percent": 0,
+        "initial_formatted": "",
+        "final_formatted": "R$ 24,99"
+      },
+      "categories": [
+        {
+          "id": 2,
+          "description": "Um jogador"
+        },
+        {
+          "id": 1,
+          "description": "Multijogador"
+        },
+        {
+          "id": 9,
+          "description": "Cooperativo"
+        },
+        {
+          "id": 38,
+          "description": "Cooperativo on-line"
+        },
+        {
+          "id": 48,
+          "description": "Coop. em rede local (LAN)"
+        },
+        {
+          "id": 39,
+          "description": "Coop. tela dividida/compart."
+        },
+        {
+          "id": 24,
+          "description": "Tela dividida/compartilhada"
+        },
+        {
+          "id": 22,
+          "description": "Conquistas Steam"
+        },
+        {
+          "id": 28,
+          "description": "Compat. total com controle"
+        },
+        {
+          "id": 29,
+          "description": "Cartas Colecionáveis Steam"
+        },
+        {
+          "id": 23,
+          "description": "Nuvem Steam"
+        },
+        {
+          "id": 41,
+          "description": "Remote Play no celular"
+        },
+        {
+          "id": 42,
+          "description": "Remote Play no tablet"
+        },
+        {
+          "id": 44,
+          "description": "Remote Play Together"
+        },
+        {
+          "id": 62,
+          "description": "Compartilhamento em família"
+        }
+      ],
+      "content_descriptors": {
+        "ids": [],
+        "notes": null
+      },
+      "release_date": {
+        "coming_soon": false,
+        "date": "26/fev./2016"
+      }
+    }
+  }
+}

@@ -1,7 +1,8 @@
-import { type NextRequest, NextResponse } from 'next/server'
+import { after, type NextRequest, NextResponse } from 'next/server'
 
 import { nomeCookieState, opcoesCookieState } from '@/features/autenticacao/cookies'
 import { entrarComSteam } from '@/features/autenticacao/servico'
+import { sincronizarSeVencido } from '@/features/steam/servico'
 import { validarRetorno, verificarNaSteam } from '@/server/auth/openid'
 import { nomeCookieSessao, opcoesCookieSessao } from '@/server/auth/sessao'
 import { env } from '@/server/env'
@@ -56,6 +57,8 @@ export async function GET(req: NextRequest) {
   if (entrada.tipo === 'REPLAY') return ir('/entrar?erro=falha')
   if (entrada.tipo === 'NAO_AUTORIZADO') return ir('/entrar?erro=nao_autorizado')
 
+  // RN-STM-04: sincroniza depois da resposta, sem atrasar o login (13 DP-13)
+  after(() => sincronizarSeVencido(entrada.pessoaId))
   const res = ir(entrada.perfil === 'PENDENTE' ? '/boas-vindas' : '/')
   res.cookies.set(nomeCookieSessao(), entrada.token, opcoesCookieSessao())
   return res

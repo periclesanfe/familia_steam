@@ -1,9 +1,11 @@
 import 'server-only'
 
 import { executarRodada } from '@/features/rodadas/servico'
+import { atualizarApps, pessoasVencidas, sincronizarPessoas } from '@/features/steam/sync'
 import { fecharVotacoesVencidas } from '@/features/votacoes/servico'
 
 import { db } from './db'
+import { env } from './env'
 import { log } from './log'
 import { agora } from './relogio'
 
@@ -52,7 +54,14 @@ export async function executarTick(): Promise<ResumoTick> {
         erros.push(`sorteio ${r.id}: ${e instanceof Error ? e.message : 'erro'}`)
       }
     }
-    // 3. fechamentos e 4. rede de segurança de SOBRA — M7; 5. Steam — M3
+    // 3. fechamentos e 4. rede de segurança de SOBRA — M7
+    // 5. Steam (RN-STM-04/10): perfis vencidos (> 24 h, precisa de key) e até 20 apps (sem key)
+    try {
+      if (env().STEAM_API_KEY) await sincronizarPessoas(await pessoasVencidas(agora()))
+      await atualizarApps(20)
+    } catch (e) {
+      erros.push(`steam: ${e instanceof Error ? e.message : 'erro'}`)
+    }
     // 6. limpeza
     const t = agora()
     const [nonces, sessoes] = await Promise.all([

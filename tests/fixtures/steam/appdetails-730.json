@@ -1,0 +1,101 @@
+{
+  "730": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Counter-Strike 2",
+      "steam_appid": 730,
+      "required_age": 0,
+      "is_free": true,
+      "detailed_description": "Há mais de duas décadas, o Counter-Strike oferece uma experiência competitiva de elite moldada por milhões de jogadores mundialmente. Agora, o próximo capítulo da história do CS vai começar. Isso é Co",
+      "short_description": "Há mais de duas décadas, o Counter-Strike oferece uma experiência competitiva de elite moldada por milhões de jogadores mundialmente. Agora, o próximo capítulo da história do CS vai começar. Isso é Counter-Strike 2.",
+      "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/162664aa5da85f418105350c5d67ca565f6c3713/header.jpg?t=1789251637",
+      "categories": [
+        {
+          "id": 1,
+          "description": "Multijogador"
+        },
+        {
+          "id": 27,
+          "description": "Multijogador multiplataforma"
+        },
+        {
+          "id": 29,
+          "description": "Cartas Colecionáveis Steam"
+        },
+        {
+          "id": 51,
+          "description": "Oficina Steam"
+        },
+        {
+          "id": 30,
+          "description": "Oficina Steam"
+        },
+        {
+          "id": 35,
+          "description": "Compras em aplicativo"
+        },
+        {
+          "id": 64,
+          "description": "Texto de tamanho ajustável"
+        },
+        {
+          "id": 67,
+          "description": "Conforto de câmera"
+        },
+        {
+          "id": 66,
+          "description": "Alternativas de cores"
+        },
+        {
+          "id": 68,
+          "description": "Controles de volume independentes"
+        },
+        {
+          "id": 74,
+          "description": "Jogável sem precisar de reação rápida"
+        },
+        {
+          "id": 69,
+          "description": "Som estéreo"
+        },
+        {
+          "id": 70,
+          "description": "Som surround"
+        },
+        {
+          "id": 8,
+          "description": "Usa Valve Antitrapaça"
+        },
+        {
+          "id": 15,
+          "description": "Estatísticas"
+        },
+        {
+          "id": 41,
+          "description": "Remote Play no celular"
+        },
+        {
+          "id": 42,
+          "description": "Remote Play no tablet"
+        },
+        {
+          "id": 43,
+          "description": "Remote Play na TV"
+        },
+        {
+          "id": 63,
+          "description": "Linha do Tempo do Steam"
+        }
+      ],
+      "content_descriptors": {
+        "ids": [2, 5],
+        "notes": "Inclui violência intensa e sangue."
+      },
+      "release_date": {
+        "coming_soon": false,
+        "date": "21/ago./2012"
+      }
+    }
+  }
+}
