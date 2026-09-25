@@ -56,9 +56,9 @@ describe('bootstrap (RN-ACE-10)', () => {
     })
     expect(kiko.membros).toHaveLength(0) // integrante não membro: sem login (RN-CAD-06)
     expect(kiko.integrantes[0]?.status).toBe('ATIVO')
-    const v = await dono.versaoRegulamento.findUniqueOrThrow({ where: { ordem: 0 } })
+    const v = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 0 } })
     expect([v.numero, v.vigenteDesde]).toEqual(['1.0', null])
-    expect(await dono.jogoBloqueado.findUnique({ where: { numero: 1 } })).toMatchObject({
+    expect(await dono.jogoBloqueado.findFirst({ where: { numero: 1 } })).toMatchObject({
       protegida: true,
       tipo: 'CATEGORIA',
     })
@@ -71,15 +71,15 @@ describe('bootstrap (RN-ACE-10)', () => {
 
   it('roda uma vez só', async () => {
     await executarBootstrap(arquivo(), texto, '{}', agora)
-    await expect(executarBootstrap(arquivo(), texto, '{}', agora)).rejects.toThrow(/uma vez só/)
+    await expect(executarBootstrap(arquivo(), texto, '{}', agora)).rejects.toThrow(/já existe/)
   })
 
   it('CA-90: texto alterado antes da vigência invalida as adesões anteriores', async () => {
     await executarBootstrap(arquivo(), texto, '{}', agora)
-    const antes = await dono.versaoRegulamento.findUniqueOrThrow({ where: { ordem: 0 } })
+    const antes = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 0 } })
     const adesao = { sha256Versao: antes.sha256, codigoAmigo: codigoAmigo('76561197960287930') }
     await corrigirBootstrap(arquivo(), `${texto}\nCorreção de redação.`, agora)
-    const depois = await dono.versaoRegulamento.findUniqueOrThrow({ where: { ordem: 0 } })
+    const depois = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 0 } })
     expect(depois.sha256).not.toBe(antes.sha256)
     expect(adesaoValida(adesao, depois, { steamId64: '76561197960287930' })).toBe(false)
   })
@@ -95,7 +95,7 @@ describe('bootstrap (RN-ACE-10)', () => {
         expiraEm: new Date('2030-01-01'),
       },
     })
-    const v = await dono.versaoRegulamento.findUniqueOrThrow({ where: { ordem: 0 } })
+    const v = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 0 } })
     const adesao = { sha256Versao: v.sha256, codigoAmigo: codigoAmigo('76561197960287930') }
 
     const r = await corrigirBootstrap(arquivo({ steamAna: '76561197960287940' }), texto, agora)
@@ -112,7 +112,7 @@ describe('bootstrap (RN-ACE-10)', () => {
 
   it('depois da vigência a CLI recusa escrever', async () => {
     await executarBootstrap(arquivo(), texto, '{}', agora)
-    await dono.versaoRegulamento.update({ where: { ordem: 0 }, data: { vigenteDesde: agora } })
+    await dono.versaoRegulamento.updateMany({ where: { ordem: 0 }, data: { vigenteDesde: agora } })
     await expect(corrigirBootstrap(arquivo({ nomeAna: 'Ana S.' }), texto, agora)).rejects.toThrow(
       /vigente/,
     )

@@ -169,7 +169,7 @@ describe('votações e ATAs (RN-VOT-01..07)', () => {
     for (const x of [a, b, c]) {
       await votar(ctxDe(x, agora()), { votacaoId, opcao: 'FAVOR' })
     }
-    const v11 = await dono.versaoRegulamento.findUniqueOrThrow({ where: { ordem: 1 } })
+    const v11 = await dono.versaoRegulamento.findFirstOrThrow({ where: { ordem: 1 } })
     expect(v11).toMatchObject({ numero: '1.1', ataNumero: 1 })
     expect(v11.vigenteDesde).toEqual(instanteLocal('2026-11-01'))
     // antes de 01/11, nova votação ainda dura 48 h (versão 1.0); depois, 72 h

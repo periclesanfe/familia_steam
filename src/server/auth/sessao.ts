@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { cache } from 'react'
 
 import { registrarEvento } from '../auditoria'
-import { db } from '../db'
+import { db, dbBase } from '../db'
 import { cookieSeguro } from '../env'
 import { agora } from '../relogio'
 
@@ -40,7 +40,7 @@ export async function criarSessao(
 ): Promise<{ token: string; expiraEm: Date }> {
   const token = randomBytes(32).toString('base64url')
   const expiraEm = new Date(t.getTime() + TRINTA_DIAS_S * 1000)
-  await db.$transaction(async (tx) => {
+  await dbBase.$transaction(async (tx) => {
     const s = await tx.sessao.create({
       data: {
         tokenHash: hashToken(token),
@@ -83,7 +83,7 @@ export async function revogarSessoes(
   ctx: { ator: { tipo: 'MEMBRO'; pessoaId: string }; agora: Date },
   alvo: { sessaoId: string } | { todasDe: string },
 ): Promise<number> {
-  return db.$transaction(async (tx) => {
+  return dbBase.$transaction(async (tx) => {
     const where =
       'sessaoId' in alvo
         ? { id: alvo.sessaoId, revogadaEm: null }

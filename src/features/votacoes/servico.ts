@@ -109,7 +109,7 @@ export async function abrirVotacao(
 /** Pré-condições verificadas já na convocação (o efeito ainda revalida na aprovação). */
 async function validarPreCondicao(tx: Tx, efeito: Efeito): Promise<void> {
   if (efeito.tipo === 'EXCLUSAO_BLOQUEIO') {
-    const b = await tx.jogoBloqueado.findUnique({ where: { numero: efeito.numero } })
+    const b = await tx.jogoBloqueado.findFirst({ where: { numero: efeito.numero } })
     exigir(b && !b.excluidoEm, 'NAO_ENCONTRADO', 'Entrada do Anexo I inexistente ou já excluída.')
     exigir(
       !b.protegida,
@@ -239,6 +239,13 @@ async function encerrarSeDecidida(tx: Tx, ctx: Contexto, votacaoId: string): Pro
     r.status === 'APROVADA'
       ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm, v)
       : 'nenhum (rejeitada)'
+  if (r.status === 'REJEITADA') {
+    // RN-FAM-05: indicação levada à votação e rejeitada
+    await tx.indicacao.updateMany({
+      where: { votacaoId: v.id, status: 'ABERTA' },
+      data: { status: 'RECUSADA', encerradaEm: r.encerradaEm },
+    })
+  }
   if (r.status === 'REJEITADA' && efeito.tipo === 'CESSAO_VEZ') {
     // RN-CES-06: rejeitada, nada muda além do status da proposta (CA-49)
     await tx.cessao.update({

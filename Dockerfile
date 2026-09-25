@@ -52,6 +52,8 @@ WORKDIR /app
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+# texto da 1.0 que toda família nova recebe (RN-FAM-02)
+COPY --from=builder --chown=node:node /app/docs/regulamento/regulamento-v1.0.md ./docs/regulamento/
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

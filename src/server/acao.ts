@@ -10,6 +10,7 @@ import type { EstadoAcao } from '@/lib/estado-acao'
 import type { Contexto } from './auditoria'
 import { type Perfil, type PerfilAtual, perfilDe } from './auth/perfil'
 import { obterSessao } from './auth/sessao'
+import { comFamilia } from './familia'
 import { log } from './log'
 import { agora } from './relogio'
 
@@ -92,7 +93,8 @@ export function acao<S extends z.ZodType, D>(
         sessaoId: sessao.sessaoId,
         perfil,
       }
-      const dados = await handler(lido.data, ctx)
+      // 15 §4: o serviço e as transações rodam na família da pessoa (RLS)
+      const dados = await comFamilia(perfil.familiaId, () => handler(lido.data, ctx))
       revalidatePath('/', 'layout') // 13 DP-11: nada é cacheado no servidor; custo só da rota atual
       return { ok: true, dados }
     } catch (e) {

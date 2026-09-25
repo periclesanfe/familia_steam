@@ -22,6 +22,7 @@ export default defineConfig({
           include: ['tests/integracao/**/*.test.ts'],
           environment: 'node',
           globalSetup: ['tests/integracao/setup-global.ts'],
+          setupFiles: ['tests/integracao/setup-familia.ts'],
           // Banco próprio dos testes (criado por docker/initdb): o app como app_rw, a limpeza como dono.
           env: {
             DATABASE_URL:

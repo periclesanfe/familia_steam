@@ -5,6 +5,7 @@ import { executarBootstrap } from '@/features/bootstrap/servico'
 import { dadosCadastroSchema } from '@/features/onboarding/schemas'
 import { assinarRegulamento, salvarDados } from '@/features/onboarding/servico'
 import type { ContextoAcao } from '@/server/acao'
+import { FAMILIA_PADRAO } from '@/server/familia'
 
 import { dono } from './banco'
 
@@ -23,7 +24,13 @@ export const ctxDe = (pessoaId: string, agora: Date) =>
     ator: { tipo: 'MEMBRO', pessoaId },
     agora,
     sessaoId: 's',
-    perfil: { pessoaId, perfil: 'MEMBRO', membroId: 'm', statusMembro: 'ATIVO' },
+    perfil: {
+      pessoaId,
+      perfil: 'MEMBRO',
+      familiaId: FAMILIA_PADRAO,
+      membroId: 'm',
+      statusMembro: 'ATIVO',
+    },
   }) as ContextoAcao
 
 /**

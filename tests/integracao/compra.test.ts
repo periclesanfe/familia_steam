@@ -12,7 +12,6 @@ import {
 import { executarRodada } from '@/features/rodadas/servico'
 import { convocar, votar } from '@/features/votacoes/servico'
 import { salvarAnexo } from '@/server/anexos'
-import { db } from '@/server/db'
 import { emTransacao } from '@/server/tx'
 
 import { dono, limpar } from './banco'
@@ -145,16 +144,16 @@ describe('jogo do mês (RN-COM, RN-FIN-13/14)', () => {
     for (const x of [a, b, d]) {
       await votar(ctxDe(x, agora()), { votacaoId, opcao: 'FAVOR' })
     }
-    const bloqueio = await dono.jogoBloqueado.findUniqueOrThrow({ where: { numero: 2 } })
+    const bloqueio = await dono.jogoBloqueado.findFirstOrThrow({ where: { numero: 2 } })
     expect(bloqueio).toMatchObject({
       nome: 'Hades II',
       appIds: [HADES],
       ataInclusaoNumero: 1,
       motivo: 'Já temos um roguelike recente',
     })
-    const antigo = await db.$transaction((tx) => fatosDoAviso(tx, avisoId, agora()))
+    const antigo = await emTransacao((tx) => fatosDoAviso(tx, avisoId, agora()))
     expect(antigo.status).toBe('VETADO')
-    const novo = await db.$transaction((tx) => fatosDoAviso(tx, segundo.avisoId, agora()))
+    const novo = await emTransacao((tx) => fatosDoAviso(tx, segundo.avisoId, agora()))
     expect(novo.status).toBe('JANELA_VETO')
     expect((await dono.rodada.findUniqueOrThrow({ where: { id: r1.id } })).prazoCompraAte).toEqual(
       r1.prazoCompraAte,

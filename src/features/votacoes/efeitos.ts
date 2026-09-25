@@ -14,6 +14,7 @@ import { dataLocal, instanteLocal, mesDe, paraDb, prazoEmDias } from '@/domain/t
 import { aplicarCessao } from '@/features/cessao/efeito'
 import { fecharRodada, ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { aplicarAdmissao, aplicarConvite, aplicarRemocao } from '@/features/familia/efeitos'
+import { aprovarIndicacaoDaVotacao } from '@/features/familias/convite'
 import { aoInvalidar, aoPassarAContar } from '@/features/financeiro/derivadas'
 import { anularRodada } from '@/features/rodadas/anulacao'
 import { semCicloSeguinte } from '@/features/rodadas/ciclo'
@@ -84,12 +85,12 @@ export async function aplicarEfeito(
 
     case 'EXCLUSAO_BLOQUEIO': {
       // RN-BLO-04: grava a exclusão e preserva o histórico; a protegida só por alteração do art. 17
-      const b = await tx.jogoBloqueado.findUnique({ where: { numero: efeito.numero } })
+      const b = await tx.jogoBloqueado.findFirst({ where: { numero: efeito.numero } })
       if (!b) return naoAplicavel(`entrada nº ${String(efeito.numero)} não existe`)
       if (b.protegida)
         return naoAplicavel('entrada protegida (art. 17): exige alteração do Regulamento')
       if (b.excluidoEm) return naoAplicavel('entrada já excluída')
-      await tx.jogoBloqueado.update({
+      await tx.jogoBloqueado.updateMany({
         where: { numero: b.numero },
         data: { excluidoEm: encerradaEm, ataExclusaoNumero: ataNumero },
       })
@@ -346,6 +347,10 @@ export async function aplicarEfeito(
       return anularRodada(tx, ctx, efeito.rodadaId, ataNumero, encerradaEm) // RN-SOR-13
 
     case 'ADMISSAO_MEMBRO':
+      // RN-FAM-05/06: a admissão que veio de uma indicação vira convite amarrado à conta Steam
+      if (await aprovarIndicacaoDaVotacao(tx, ctx, votacao.id)) {
+        return 'aplicado: convite gerado; a pessoa entra ao aceitar com a própria conta Steam'
+      }
       return aplicarAdmissao(tx, ctx, efeito, ataNumero) // RN-CAD-12
     case 'CONVITE_INTEGRANTE':
       return aplicarConvite(tx, ctx, efeito, ataNumero) // RN-CAD-08

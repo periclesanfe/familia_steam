@@ -27,7 +27,7 @@ export async function estadoDoOnboarding(pessoaId: string, agora: Date) {
     }),
     versaoAplicavel(agora),
     anexoI(),
-    db.ciclo.findUnique({ where: { numero: 1 }, select: { dataInicio: true } }),
+    db.ciclo.findFirst({ where: { numero: 1 }, select: { dataInicio: true } }),
     db.ciclo.findFirst({ where: { status: 'PLANEJADO' }, select: { dataInicio: true } }),
   ])
   const assinatura =

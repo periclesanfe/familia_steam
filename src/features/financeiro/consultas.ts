@@ -257,7 +257,7 @@ export async function extrato(pessoaId: string, agora: Date) {
 
 /** 07 §3.5: grade membros × rodadas do ciclo (a "planilha"). */
 export async function gradeDoCiclo(numero: number, agora: Date) {
-  const ciclo = await db.ciclo.findUnique({ where: { numero } })
+  const ciclo = await db.ciclo.findFirst({ where: { numero } })
   if (!ciclo) return null
   const [participacoes, rodadas, obrigacoes] = await Promise.all([
     db.participacaoCiclo.findMany({

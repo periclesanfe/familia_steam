@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { imagemSteamSegura, ordenarListaDesejos } from '@/domain/steam'
-import { db } from '@/server/db'
+import { db, dbBase } from '@/server/db'
 import { env } from '@/server/env'
 import { log } from '@/server/log'
 import { agora } from '@/server/relogio'
@@ -31,8 +31,8 @@ export type ResumoSync = { pessoas: number; privadas: number; pausou: boolean; f
 
 /**
  * RN-STM-04..07: perfil (em lote), biblioteca e lista de desejos. Chamadas externas fora de
- * transação; gravação curta por pessoa depois (13 DP-08/DP-13). Integrante que não é membro
- * sincroniza perfil e biblioteca, sem lista de desejos.
+ * transação; gravação curta por pessoa depois (13 DP-08/DP-13). Desde o M10 toda pessoa tem a
+ * lista de desejos (área pessoal e indicação, 15 §1).
  */
 export async function sincronizarPessoas(
   ids: readonly string[],
@@ -44,11 +44,7 @@ export async function sincronizarPessoas(
 
   const pessoas = await db.pessoa.findMany({
     where: { id: { in: [...ids] }, steamId64: { not: null } },
-    select: {
-      id: true,
-      steamId64: true,
-      membros: { where: { status: { not: 'ENCERRADO' } }, select: { id: true } },
-    },
+    select: { id: true, steamId64: true },
   })
   const comSteam = pessoas.flatMap((p) => (p.steamId64 ? [{ ...p, steamId64: p.steamId64 }] : []))
   if (comSteam.length === 0) return resumo
@@ -56,7 +52,7 @@ export async function sincronizarPessoas(
   try {
     // RN-STM-05: uma chamada para todos (até 100)
     const { response } = await api.resumos(comSteam.map((p) => p.steamId64))
-    await db.$transaction(
+    await dbBase.$transaction(
       response.players.flatMap((j) => {
         const p = comSteam.find((x) => x.steamId64 === j.steamid)
         return p
@@ -88,11 +84,10 @@ export async function sincronizarPessoas(
     try {
       // eslint-disable-next-line no-await-in-loop -- uma chamada por pessoa (a API não aceita lote); 5 pessoas
       const jogos = await api.jogos(p.steamId64)
-      const membro = p.membros.length > 0
       // eslint-disable-next-line no-await-in-loop -- idem
-      const desejos = membro ? await api.listaDesejos(p.steamId64) : null
+      const desejos = await api.listaDesejos(p.steamId64)
       // eslint-disable-next-line no-await-in-loop -- gravação curta por pessoa, depois das chamadas
-      await gravarPessoa(p.id, jogos.response.games, desejos?.response.items, membro, t)
+      await gravarPessoa(p.id, jogos.response.games, desejos.response.items, t)
       resumo.pessoas++
       if (!jogos.response.games) resumo.privadas++
     } catch (e) {
@@ -111,10 +106,9 @@ async function gravarPessoa(
   pessoaId: string,
   jogos: { appid: number; playtime_forever: number }[] | undefined,
   desejos: { appid: number; priority: number; date_added: number }[] | undefined,
-  membro: boolean,
   t: Date,
 ) {
-  await db.$transaction(async (tx) => {
+  await dbBase.$transaction(async (tx) => {
     if (jogos) {
       // RN-STM-06: cache — substitui o conjunto da pessoa
       await tx.jogoPossuido.deleteMany({ where: { pessoaId } })
@@ -133,7 +127,7 @@ async function gravarPessoa(
     }
     // RN-STM-07: {"response":{}} é "vazia" se a biblioteca é pública; se tudo é privado, mantém o
     // último snapshot. Substitui os itens STEAM e mantém os MANUAL, exibidos depois.
-    if (membro && (desejos || jogos)) {
+    if (desejos || jogos) {
       const ordenados = ordenarListaDesejos(desejos ?? [])
       await tx.itemListaDesejos.deleteMany({ where: { pessoaId, origem: 'STEAM' } })
       await tx.itemListaDesejos.createMany({
@@ -161,7 +155,7 @@ async function gravarPessoa(
         steamSincronizadoEm: t,
         steamJogosPublicos: jogos !== undefined,
         // lista vazia e lista privada respondem igual; só dá para afirmar "privada" com a biblioteca privada
-        steamDesejosPublicos: membro ? desejos !== undefined || jogos !== undefined : null,
+        steamDesejosPublicos: desejos !== undefined || jogos !== undefined,
       },
     })
   })
@@ -267,4 +261,46 @@ export async function pessoasVencidas(t: Date): Promise<string[]> {
     select: { id: true },
   })
   return pessoas.map((p) => p.id)
+}
+
+/**
+ * RN-FAM-04: amigos Steam (lista pública) com nick e avatar, para indicar e para a área
+ * pessoal. Lista privada ou falha mantém o último snapshot.
+ */
+export async function sincronizarAmigos(pessoaId: string, api: ApiSteam = apiPadrao()) {
+  const t = agora()
+  if (await steamEmPausa(t)) return
+  const p = await dbBase.pessoa.findUnique({ where: { id: pessoaId }, select: { steamId64: true } })
+  if (!p?.steamId64) return
+  try {
+    const { friendslist } = await api.amigos(p.steamId64)
+    const ids = friendslist.friends.map((f) => f.steamid)
+    const perfis = new Map<string, { nick: string; avatarUrl: string | null }>()
+    for (let i = 0; i < ids.length; i += 100) {
+      // eslint-disable-next-line no-await-in-loop -- lotes de 100 (RN-STM-05); poucos amigos
+      const { response } = await api.resumos(ids.slice(i, i + 100))
+      for (const j of response.players) {
+        perfis.set(j.steamid, {
+          nick: j.personaname.slice(0, 64),
+          avatarUrl: imagemSteamSegura(j.avatarfull),
+        })
+      }
+    }
+    await dbBase.$transaction([
+      dbBase.amizadeSteam.deleteMany({ where: { pessoaId } }),
+      dbBase.amizadeSteam.createMany({
+        data: friendslist.friends.map((f) => ({
+          pessoaId,
+          amigoSteamId64: f.steamid,
+          desde: f.friend_since ? new Date(f.friend_since * 1000) : null,
+          nick: perfis.get(f.steamid)?.nick ?? null,
+          avatarUrl: perfis.get(f.steamid)?.avatarUrl ?? null,
+          atualizadoEm: t,
+        })),
+      }),
+    ])
+  } catch (e) {
+    if (e instanceof LimiteSteam) await pausar(t)
+    // lista privada (401) ou falha: fica o que havia
+  }
 }

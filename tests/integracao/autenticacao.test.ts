@@ -37,14 +37,17 @@ describe('autenticação (RN-ACE-04/05, RN-STM-01)', () => {
     expect(await dono.eventoAuditoria.count({ where: { acao: 'sessao.criar' } })).toBe(1)
   })
 
-  it('CA-98: SteamID fora da lista (ou integrante sem vínculo de membro) → não autorizado + auditoria', async () => {
-    await criarPessoa('Kid', '76561197960287999') // integrante não membro
-    for (const steamId64 of ['76561197960287999', '76561198000000000']) {
-      const r = await entrarComSteam({ steamId64, nonce: `n-${steamId64}`, userAgent: null, agora })
-      expect(r).toEqual({ tipo: 'NAO_AUTORIZADO' })
-    }
-    expect(await dono.eventoAuditoria.count({ where: { acao: 'auth.nao_autorizado' } })).toBe(2)
-    expect(await dono.sessao.count()).toBe(0)
+  it('CA-180: conta Steam desconhecida entra como VISITANTE, com a pessoa criada', async () => {
+    const r = await entrarComSteam({
+      steamId64: '76561198000000000',
+      nonce: 'n-novo',
+      userAgent: null,
+      agora,
+    })
+    expect(r).toMatchObject({ tipo: 'OK', perfil: 'VISITANTE' })
+    const p = await dono.pessoa.findUniqueOrThrow({ where: { steamId64: '76561198000000000' } })
+    expect(p.familiaId).toBeNull()
+    expect(await dono.sessao.count({ where: { pessoaId: p.id } })).toBe(1)
   })
 
   it('CA-99: reuso do mesmo response_nonce é recusado', async () => {
@@ -55,15 +58,15 @@ describe('autenticação (RN-ACE-04/05, RN-STM-01)', () => {
     expect(await dono.sessao.count()).toBe(1)
   })
 
-  it('perfis derivados: PENDENTE, MEMBRO, EX_QUITADO e sem vínculo', async () => {
+  it('perfis derivados: PENDENTE, MEMBRO; ex-membro sem pendência e sem vínculo → VISITANTE', async () => {
     const pend = await criarMembro('AGUARDANDO_ADESAO', 'Bia', '76561197960287931')
     const ativo = await criarMembro('IMPOSSIBILITADO', 'Caio', '76561197960287932')
     const ex = await criarMembro('ENCERRADO', 'Duda', '76561197960287933')
     const sem = await criarPessoa('Kid', '76561197960287934')
     expect((await perfilDe(pend.pessoa.id))?.perfil).toBe('PENDENTE')
     expect((await perfilDe(ativo.pessoa.id))?.perfil).toBe('MEMBRO')
-    expect((await perfilDe(ex.pessoa.id))?.perfil).toBe('EX_QUITADO')
-    expect(await perfilDe(sem.id)).toBeNull()
+    expect((await perfilDe(ex.pessoa.id))?.perfil).toBe('VISITANTE') // RN-FAM-08
+    expect((await perfilDe(sem.id))?.perfil).toBe('VISITANTE') // RN-FAM-01
   })
 
   it('sair de todos revoga todas as sessões da pessoa', async () => {

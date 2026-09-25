@@ -12,6 +12,7 @@ import {
 import { ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import { db, type Tx } from '@/server/db'
+import { emTransacao } from '@/server/tx'
 
 const doisDigitos = (n: number) => String(n).padStart(2, '0')
 
@@ -306,7 +307,7 @@ export async function recalcularAgendamentos(ctx: Contexto): Promise<number> {
     return nova.getTime() === r.agendadaPara.getTime() ? [] : [{ id: r.id, nova }]
   })
   if (mudar.length === 0) return 0
-  await db.$transaction(async (tx) => {
+  await emTransacao(async (tx) => {
     await Promise.all(
       mudar.map((m) => tx.rodada.update({ where: { id: m.id }, data: { agendadaPara: m.nova } })),
     )

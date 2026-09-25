@@ -51,3 +51,17 @@ const dadosApp = z.object({
 export const appDetailsSchema = z
   .record(z.string(), z.object({ success: z.boolean(), data: dadosApp.optional() }))
   .transform((r) => Object.values(r)[0])
+
+/** ISteamUser/GetFriendList: lista privada responde 401 (tratado como lista vazia). */
+export const friendListSchema = z.object({
+  friendslist: z.object({
+    friends: z.array(
+      z.object({ steamid: z.string(), relationship: z.string(), friend_since: z.number() }),
+    ),
+  }),
+})
+
+/** ISteamUser/ResolveVanityURL: success 1 = achou; 42 = não existe. */
+export const vanitySchema = z.object({
+  response: z.object({ success: z.number(), steamid: z.string().optional() }),
+})

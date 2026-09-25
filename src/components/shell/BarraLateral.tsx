@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  House,
   Dices,
   LayoutDashboard,
   LogOut,
@@ -30,6 +31,7 @@ import { sairAcao } from '@/features/autenticacao/acoes'
 
 // 07 §2 / 12 UI-09: itens entram conforme as rotas existem (typedRoutes).
 const ITENS = [
+  { href: '/inicio', rotulo: 'Início', Icone: House },
   { href: '/', rotulo: 'Painel', Icone: LayoutDashboard },
   { href: '/rodadas', rotulo: 'Rodadas', Icone: Dices },
   { href: '/financeiro', rotulo: 'Financeiro', Icone: Wallet },

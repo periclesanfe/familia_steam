@@ -5,8 +5,10 @@ import type { z } from 'zod'
 import { log } from '../log'
 import {
   appDetailsSchema,
+  friendListSchema,
   ownedGamesSchema,
   playerSummariesSchema,
+  vanitySchema,
   wishlistSchema,
 } from './schemas'
 
@@ -85,6 +87,18 @@ export function criarApiSteam(chave: string | undefined, buscar: typeof fetch = 
         wishlistSchema,
         false,
       ),
+    /** RN-FAM-04: amigos (lista pública) */
+    amigos: (steamId64: string) =>
+      chamar(
+        WEB_API,
+        '/ISteamUser/GetFriendList/v1/',
+        { steamid: steamId64, relationship: 'friend' },
+        friendListSchema,
+        true,
+      ),
+    /** RN-FAM-04: /id/<nome> → SteamID64 */
+    resolverVanity: (nome: string) =>
+      chamar(WEB_API, '/ISteamUser/ResolveVanityURL/v1/', { vanityurl: nome }, vanitySchema, true),
     /** RN-STM-08: um appId por chamada, cc=br, l=brazilian (sem key, não oficial) */
     detalhes: (appId: number) =>
       chamar(

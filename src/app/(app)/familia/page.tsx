@@ -9,10 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { dataLocal } from '@/domain/tempo'
 import { registrarExecucaoAcao } from '@/features/familia/acoes'
+import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
+import { familiaDe, indicacoesDaFamilia } from '@/features/familias/consultas'
 import { bibliotecaDaFamilia, type Compartilhavel, familia } from '@/features/steam/consultas'
 import { formatarDataCivil } from '@/lib/formato'
 import type { Tom } from '@/lib/rotulos'
 import { paginaExige } from '@/server/auth/guardas'
+import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Família' }
@@ -30,12 +33,14 @@ const FILTROS = [
 
 // 07 §3.10: integrantes, vagas, biblioteca compartilhável (RN-STM-12) e regras da Steam (RN-STM-13).
 export default async function FamiliaPage({ searchParams }: PageProps<'/familia'>) {
-  await paginaExige(['MEMBRO'])
+  const { pessoaId } = await paginaExige(['MEMBRO'])
   const t = agora()
-  const [{ filtro, busca }, f, biblioteca] = await Promise.all([
+  const [{ filtro, busca }, f, biblioteca, indicacoes, nomeFamilia] = await Promise.all([
     searchParams,
     familia(t),
     bibliotecaDaFamilia(),
+    indicacoesDaFamilia(pessoaId, t),
+    familiaDe(pessoaId),
   ])
   const termo = typeof busca === 'string' ? busca.toLocaleLowerCase('pt-BR') : ''
   const jogos = biblioteca.filter(
@@ -61,6 +66,22 @@ export default async function FamiliaPage({ searchParams }: PageProps<'/familia'
           </nav>
         }
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Indicações e convites</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Link href="/inicio" className="w-fit text-sm font-medium underline underline-offset-4">
+            Indicar um amigo Steam
+          </Link>
+          <ListaIndicacoes
+            indicacoes={indicacoes}
+            appUrl={env().APP_URL}
+            familia={nomeFamilia ?? 'Família'}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

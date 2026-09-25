@@ -177,7 +177,8 @@ export async function assinarRegulamento(ctx: ContextoAcao) {
 }
 
 /** RN-REG-01 + RN-CIC-01: com a última adesão válida dos fundadores, a 1.0 entra em vigor. */
-async function talvezIniciarVigencia(
+/** RN-FAM-07: todos os membros abertos (fundadores) assinaram, e são pelo menos 2. */
+export async function talvezIniciarVigencia(
   tx: Tx,
   ctx: ContextoAcao,
   versao: { id: string; sha256: string; parametros: Parametros },
@@ -200,7 +201,7 @@ async function talvezIniciarVigencia(
   const todosAssinaram = fundadores.every((f) =>
     f.pessoa.adesoes.some((a) => adesaoValida(a, versao, { steamId64: f.pessoa.steamId64 ?? '' })),
   )
-  if (!todosAssinaram) return
+  if (!todosAssinaram || fundadores.length < 2) return // CA-187
 
   await tx.versaoRegulamento.update({ where: { id: versao.id }, data: { vigenteDesde: ctx.agora } })
   await tx.membro.updateMany({

@@ -106,7 +106,7 @@ describe('transcrição de atos do GRUPO (RN-GER-05)', () => {
       await executarRodada(r.id, null, () => 0)
       await pagarTudo(instanteLocal(dia, '18:00'))
     }
-    const c2 = await dono.ciclo.findUniqueOrThrow({ where: { numero: 2 } })
+    const c2 = await dono.ciclo.findFirstOrThrow({ where: { numero: 2 } })
     const [a = '', b = ''] = ids
     const confirma = { tipo: 'CONFIRMA_PROXIMO_CICLO' as const, cicloId: c2.id }
     hora('2027-03-03', '08:00')

@@ -6,6 +6,7 @@ import { apurarVotacao } from '@/domain/quorum'
 import { parametrosSchema, versaoAplicavelSync, vigenciaDeAlteracao } from '@/domain/regulamento'
 import { dataLocal, deDb, somarHoras } from '@/domain/tempo'
 import { db } from '@/server/db'
+import { emTransacao } from '@/server/tx'
 
 import { descreverEfeito } from './descricao'
 import { EFEITOS_DISPONIVEIS } from './efeitos'
@@ -67,7 +68,7 @@ export async function detalheVotacao(id: string, pessoaId: string, agora: Date) 
     assunto: v.assunto,
     proposicao: v.proposicao,
     justificativa: v.justificativa,
-    efeitoDescricao: await descreverEfeito(db, efeito),
+    efeitoDescricao: await emTransacao((tx) => descreverEfeito(tx, efeito)),
     status: derivado && derivado.status !== 'ABERTA' ? derivado.status : v.status,
     aguardandoMaterializacao: derivado !== null && derivado.status !== 'ABERTA',
     motivo: v.motivoEncerramento,
@@ -229,7 +230,7 @@ export const listarAtas = () =>
   })
 
 export async function ataPorNumero(numero: number) {
-  const a = await db.ata.findUnique({
+  const a = await db.ata.findFirst({
     where: { numero },
     select: {
       numero: true,

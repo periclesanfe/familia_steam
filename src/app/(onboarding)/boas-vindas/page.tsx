@@ -9,12 +9,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { declaracaoDeAdesao } from '@/domain/regulamento'
 import { sairAcao } from '@/features/autenticacao/acoes'
+import { ListaIndicacoes } from '@/features/familias/componentes/ListaIndicacoes'
+import { familiaDe } from '@/features/familias/consultas'
+import { indicacoesDaFamilia } from '@/features/familias/consultas'
 import { FormAssinatura } from '@/features/onboarding/componentes/FormAssinatura'
 import { FormDados } from '@/features/onboarding/componentes/FormDados'
 import { estadoDoOnboarding } from '@/features/onboarding/consultas'
 import { TabelaAnexoI } from '@/features/regulamento/componentes/TabelaAnexoI'
 import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
+import { env } from '@/server/env'
 import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Boas-vindas' }
@@ -23,7 +27,13 @@ export const metadata: Metadata = { title: 'Boas-vindas' }
 export default async function BoasVindasPage() {
   // MEMBRO também: a última assinatura ativa o fundador e esta tela mostra a conclusão
   const { pessoaId, perfil } = await paginaExige(['PENDENTE', 'MEMBRO'])
-  const e = await estadoDoOnboarding(pessoaId, agora())
+  const t = agora()
+  const [e, indicacoes, familia] = await Promise.all([
+    estadoDoOnboarding(pessoaId, t),
+    indicacoesDaFamilia(pessoaId, t),
+    familiaDe(pessoaId),
+  ])
+  const antesDaVigencia = !e.inicioDoCiclo1
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -55,6 +65,24 @@ export default async function BoasVindasPage() {
             </Link>
           )}
         </Alert>
+      )}
+
+      {antesDaVigencia && familia && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Formação da família {familia}</CardTitle>
+            <CardDescription>
+              O acordo entra em vigor quando todos da família assinarem (pelo menos 2). Para chamar
+              alguém, indique pela página Início: todos aprovam antes do convite sair.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Link href="/inicio" className="w-fit text-sm font-medium underline underline-offset-4">
+              Indicar amigos Steam
+            </Link>
+            <ListaIndicacoes indicacoes={indicacoes} appUrl={env().APP_URL} familia={familia} />
+          </CardContent>
+        </Card>
       )}
 
       <Card>

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { anexoParaDownload } from '@/features/financeiro/anexos'
 import { perfilDe } from '@/server/auth/perfil'
 import { obterSessao } from '@/server/auth/sessao'
+import { comFamilia } from '@/server/familia'
 
 // RN-ACE-09 / 14 SEG-07: download autenticado; o nome enviado pelo cliente nunca é usado.
 export async function GET(_: Request, { params }: RouteContext<'/api/anexos/[id]'>) {
@@ -13,7 +14,7 @@ export async function GET(_: Request, { params }: RouteContext<'/api/anexos/[id]
   if (!perfil) return naoEncontrado()
   const { id } = await params
   if (!/^[0-9a-f-]{36}$/i.test(id)) return naoEncontrado()
-  const a = await anexoParaDownload(id, perfil)
+  const a = await comFamilia(perfil.familiaId, () => anexoParaDownload(id, perfil)) // 15 §4
   if (!a) return naoEncontrado()
   const pdf = a.mime === 'application/pdf'
   return new NextResponse(Buffer.from(a.conteudo), {

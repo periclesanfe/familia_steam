@@ -3,6 +3,7 @@ import 'server-only'
 import { apurarSorteio, type LinhaSnapshot } from '@/domain/sorteio'
 import { deDb } from '@/domain/tempo'
 import { db } from '@/server/db'
+import { emTransacao } from '@/server/tx'
 
 import { carregarEntrada } from './servico'
 
@@ -15,7 +16,7 @@ const apelidosDe = async (ids: string[]) =>
 
 /** Ciclo corrente: o EM_ANDAMENTO, senão o PLANEJADO mais recente, senão o último. */
 async function cicloCorrente(numero?: number) {
-  if (numero) return db.ciclo.findUnique({ where: { numero } })
+  if (numero) return db.ciclo.findFirst({ where: { numero } })
   return (
     (await db.ciclo.findFirst({ where: { status: 'EM_ANDAMENTO' } })) ??
     (await db.ciclo.findFirst({ where: { status: 'PLANEJADO' }, orderBy: { numero: 'desc' } })) ??
@@ -98,7 +99,7 @@ export async function detalheRodada(rodadaId: string, pessoaId: string, agora: D
     const nomes = await apelidosDe(rodada.sorteio.elegiveisIds)
     concorreram = rodada.sorteio.elegiveisIds.map((id) => nomes.get(id) ?? id)
   } else if (rodada.status === 'AGENDADA' && rodada.ciclo.status === 'EM_ANDAMENTO') {
-    const entrada = await carregarEntrada(db, rodada.cicloId, rodada.id, agora)
+    const entrada = await emTransacao((tx) => carregarEntrada(tx, rodada.cicloId, rodada.id, agora))
     const naoConcorrem = await db.declaracao.findMany({
       where: { tipo: 'NAO_CONCORRER', rodadaId, revogadaEm: null },
       select: { pessoaId: true },

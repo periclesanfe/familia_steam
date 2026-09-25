@@ -25,7 +25,7 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 - **RN-FAM-05 — Aprovação da indicação.**
   - **Antes da vigência** do Regulamento da família: aprovação **unânime** dos membros não encerrados, cada um aprova ou recusa na própria tela. Uma recusa encerra a indicação. Sem resposta em 7 dias, a indicação caduca.
   - **Depois da vigência:** vale o Regulamento. A indicação abre a votação `ADMISSAO_MEMBRO` (art. 6º, com `incluirNaFamilia`) ou `CONVITE_INTEGRANTE` (art. 7º), com o quórum da versão vigente. Unanimidade depois da vigência só por alteração do Regulamento.
-- **RN-FAM-06 — Link de convite.** Aprovada a indicação, nasce um `Convite` com token aleatório (só o hash `sha256` é gravado), **amarrado ao `steamId64` do candidato**, de uso único e válido por 14 dias.
+- **RN-FAM-06 — Link de convite.** Aprovada a indicação, nasce um `Convite` com token aleatório, **amarrado ao `steamId64` do candidato** (o token fica gravado para qualquer membro reabrir o link; ele não serve a outra conta Steam), de uso único e válido por 14 dias.
   - O sistema não envia e-mail: a tela oferece o link para copiar e um `mailto:` pronto (assunto e corpo) para o e-mail informado. _ponytail:_ envio automático entra se houver provedor de e-mail.
   - Ao abrir o link, o candidato entra com a Steam. Se o `steamId64` for outro, o convite é recusado sem revelar a família.
   - Aceito: antes da vigência, vira `Membro` `FUNDADOR` `AGUARDANDO_ADESAO`; depois, segue a RN-CAD-12 (`AGUARDANDO_ADESAO` → assina → `AGUARDANDO_CICLO`). O `IntegranteFamilia` nasce `ATIVO` se ele declarar que já está na Família Steam (com a data), ou `CONVITE_AUTORIZADO` para registrar a execução depois (RN-CAD-08).
@@ -38,7 +38,7 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 - **Novas tabelas:**
   - `Familia(id, nome, criadaPorId, criadaEm)`.
   - `Indicacao(id, familiaId, candidatoSteamId64, indicadaPorId, email?, status: ABERTA|APROVADA|RECUSADA|CADUCOU|CANCELADA, criadaEm, encerradaEm, votacaoId?)` e `AprovacaoIndicacao(indicacaoId, pessoaId, aprova, em)`: aprovação unânime antes da vigência.
-  - `Convite(id, familiaId, indicacaoId, steamId64, tokenHash, expiraEm, usadoEm?, usadoPorId?)`.
+  - `Convite(id, familiaId, indicacaoId, steamId64, token, expiraEm, usadoEm?, usadoPorId?)`.
   - `AmizadeSteam(pessoaId, amigoSteamId64, desde)`: cache da lista de amigos (RN-STM-04, mesma validade de 24 h).
 - **`familiaId`** (obrigatório) em: `VersaoRegulamento`, `JogoBloqueado`, `Membro`, `IntegranteFamilia`, `Ciclo`, `Rodada`, `Obrigacao`, `Votacao`, `Ata`, `Declaracao`, `Cessao`, `AvisoCompra`, `Aquisicao`, `Anexo`, `EventoAuditoria` (nulo nos eventos pessoais: login, lista de desejos). As demais herdam pela relação (pagamento → obrigação; voto → votação; sorteio → rodada).
 - **Unicidade por família:** `VersaoRegulamento(familiaId, ordem)`, `(familiaId, numero)`; `Ata(familiaId, numero)`; `Ciclo(familiaId, numero)`; `JogoBloqueado(familiaId, numero)`; votação aberta única por `(familiaId, assunto, chaveObjeto)`.
@@ -52,6 +52,7 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 - Teste de isolamento por rota e por action: dois grupos de dados em famílias diferentes; toda página e toda action com id da outra família dá 404/`NAO_ENCONTRADO` (CA-181).
 - Anexos: o download confere a família do anexo.
 - O tick percorre as famílias; cada passo continua uma transação curta, agora por família.
+- **Implementação (defesa em profundidade):** Row-Level Security no Postgres. As tabelas do consórcio têm `familiaId` com default `current_setting('app.familia_id')` e a política `familiaId = app.familia_id`; o `app_rw` não tem `BYPASSRLS`. O app define a variável em toda transação (`emTransacao`) e em toda consulta avulsa (lote `[set_config, consulta]` na extensão do Prisma). A família vem de `comFamilia()` (actions, tick, rotas) ou do guard da página (cache da requisição). Sem família definida, as tabelas do consórcio aparecem vazias. `Convite`, `Familia` e os dados Steam são globais.
 
 ## 5. Informação de jogos e listas (M10b)
 
