@@ -122,6 +122,15 @@ export async function votar(
   ctx: ContextoAcao,
   e: { votacaoId: string; opcao: OpcaoVoto },
 ): Promise<void> {
+  const previa = await db.votacao.findUniqueOrThrow({
+    where: { id: e.votacaoId },
+    select: { status: true, encerraEm: true },
+  })
+  if (previa.status === 'ABERTA' && ctx.agora >= previa.encerraEm) {
+    // RN-VOT-13: materializa o encerramento por prazo na própria transação (sobrevive à recusa)
+    await fecharVotacao(e.votacaoId)
+    throw new ErroDeNegocio('VOTACAO_ENCERRADA')
+  }
   return emTransacao(async (tx) => {
     await travar(tx, 'fechamento') // ordem fixa (RN-GER-06): efeitos futuros podem fechar rodada
     await travar(tx, `votacao:${e.votacaoId}`)
@@ -129,9 +138,6 @@ export async function votar(
       where: { id: e.votacaoId },
       include: { votos: true },
     })
-    if (v.status === 'ABERTA' && ctx.agora >= v.encerraEm) {
-      await encerrarSeDecidida(tx, ctx, v.id) // RN-VOT-13: materializa o prazo antes de recusar
-    }
     exigir(v.status === 'ABERTA' && ctx.agora < v.encerraEm, 'VOTACAO_ENCERRADA')
     const eu = ctx.ator.pessoaId
     exigir(v.eleitoresIds.includes(eu) && !v.impedidosIds.includes(eu), 'ELEITOR_INVALIDO')
@@ -149,6 +155,14 @@ export async function votar(
     await encerrarSeDecidida(tx, ctx, v.id)
   })
 }
+
+/** Encerra uma votação decidida (prazo, quórum ou impossibilidade) na própria transação. */
+export const fecharVotacao = (votacaoId: string): Promise<boolean> =>
+  emTransacao(async (tx) => {
+    await travar(tx, 'fechamento')
+    await travar(tx, `votacao:${votacaoId}`)
+    return encerrarSeDecidida(tx, { ator: { tipo: 'SISTEMA' }, agora: agora() }, votacaoId)
+  })
 
 /** Apura e, se decidida, encerra: ATA numerada sem lacunas + efeito (RN-VOT-04/06/07). */
 async function encerrarSeDecidida(tx: Tx, ctx: Contexto, votacaoId: string): Promise<boolean> {
@@ -285,11 +299,7 @@ export async function fecharVotacoesVencidas(): Promise<{ encerradas: number; er
   for (const { id } of vencidas) {
     try {
       // eslint-disable-next-line no-await-in-loop -- ordem de encerramento define a numeração das ATAs
-      const ok = await emTransacao(async (tx) => {
-        await travar(tx, 'fechamento')
-        await travar(tx, `votacao:${id}`)
-        return encerrarSeDecidida(tx, { ator: { tipo: 'SISTEMA' }, agora: agora() }, id)
-      })
+      const ok = await fecharVotacao(id)
       if (ok) encerradas++
     } catch (e) {
       erros.push(`votação ${id}: ${e instanceof Error ? e.message : 'erro'}`)
