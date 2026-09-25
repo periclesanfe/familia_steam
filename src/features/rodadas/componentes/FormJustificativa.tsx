@@ -1,19 +1,17 @@
 'use client'
 
-import { useActionState } from 'react'
-
 import { BotaoEnviar } from '@/components/BotaoEnviar'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { justificarAntecipadamenteAcao } from '@/features/rodadas/acoes'
 
 // RN-FIN-03: justificativa antes do sorteio, copiada para a contribuição (+7 dias).
 export function FormJustificativa({ rodadaId }: { rodadaId: string }) {
-  const [estado, enviar] = useActionState(justificarAntecipadamenteAcao, null)
+  const [estado, enviar] = useAcao(justificarAntecipadamenteAcao, 'Justificativa registrada')
   return (
     <form action={enviar} className="flex flex-col gap-3">
-      <ResultadoAcao estado={estado} sucesso="Justificativa registrada" />
+      <ResultadoAcao estado={estado} />
       <input type="hidden" name="rodadaId" value={rodadaId} />
       <Field data-invalid={!!errosDo(estado, 'texto')}>
         <FieldLabel htmlFor="texto">Justificativa antecipada</FieldLabel>

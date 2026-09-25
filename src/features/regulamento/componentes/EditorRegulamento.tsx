@@ -1,10 +1,10 @@
 'use client'
 
-import { useActionState, useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 
 import { ConfirmarAcao } from '@/components/ConfirmarAcao'
 import { ListaDiff } from '@/components/ListaDiff'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -39,9 +39,11 @@ export function EditorRegulamento({
   parametrosBase: Parametros
   assinaturas: number
 }) {
-  const [estado, enviar] = useActionState(
+  const [estado, enviar] = useAcao(
     modo === 'rascunho' ? editarRascunhoAcao : proporAlteracaoAcao,
-    null,
+    modo === 'rascunho'
+      ? 'Rascunho salvo: todos precisam assinar o texto novo'
+      : 'Alteração enviada para votação',
   )
   const [texto, setTexto] = useState(textoBase)
   const adiado = useDeferredValue(texto)
@@ -51,14 +53,7 @@ export function EditorRegulamento({
 
   return (
     <form id="form-regulamento" action={enviar} className="flex flex-col gap-5">
-      <ResultadoAcao
-        estado={estado}
-        sucesso={
-          modo === 'rascunho'
-            ? 'Rascunho salvo: todos precisam assinar o texto novo'
-            : 'Alteração enviada para votação'
-        }
-      />
+      <ResultadoAcao estado={estado} />
       <Field data-invalid={!!errosDo(estado, 'texto')}>
         <FieldLabel htmlFor="texto" className="sr-only">
           Texto do Regulamento (Markdown)

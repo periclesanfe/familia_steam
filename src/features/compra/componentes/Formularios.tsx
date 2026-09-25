@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState } from 'react'
 
 import { BotaoEnviar } from '@/components/BotaoEnviar'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -24,13 +24,13 @@ const DECLARACOES = [
 // RN-COM-03/04: aviso prévio. As declarações só são exigidas quando a validação pede;
 // o servidor diz quais faltam.
 export function FormAviso({ rodadaId }: { rodadaId: string }) {
-  const [estado, enviar] = useActionState(avisarAcao, null)
+  const [estado, enviar] = useAcao(avisarAcao, 'Jogo avisado: janela de veto aberta')
   const [tipo, setTipo] = useState('JOGO')
   const [origem, setOrigem] = useState('LOJA_STEAM')
   const v = (c: string) => (estado && !estado.ok ? estado.valores[c] : undefined)
   return (
     <form action={enviar} className="flex flex-col gap-4">
-      <ResultadoAcao estado={estado} sucesso="Jogo avisado: janela de veto aberta" />
+      <ResultadoAcao estado={estado} />
       <input type="hidden" name="rodadaId" value={rodadaId} />
       <FieldGroup className="grid gap-3 sm:grid-cols-2">
         <Field data-invalid={!!errosDo(estado, 'app')}>
@@ -146,11 +146,11 @@ export function FormCompra({
   avisoId?: string | undefined
   steamContemplado: string | null
 }) {
-  const [estado, enviar] = useActionState(registrarCompraAcao, null)
+  const [estado, enviar] = useAcao(registrarCompraAcao, 'Compra registrada')
   const v = (c: string) => (estado && !estado.ok ? estado.valores[c] : undefined)
   return (
     <form action={enviar} className="flex flex-col gap-3">
-      <ResultadoAcao estado={estado} sucesso="Compra registrada" />
+      <ResultadoAcao estado={estado} />
       <input type="hidden" name="rodadaId" value={rodadaId} />
       {avisoId && <input type="hidden" name="avisoId" value={avisoId} />}
       <FieldGroup className="grid gap-3 sm:grid-cols-2">
@@ -238,7 +238,7 @@ export function FormCompra({
 
 // RN-COM-12: reembolso registrado pelo contemplado.
 export function FormReembolso({ aquisicaoId }: { aquisicaoId: string }) {
-  const [estado, enviar] = useActionState(registrarReembolsoAcao, null)
+  const [estado, enviar] = useAcao(registrarReembolsoAcao, 'Reembolso registrado')
   return (
     <form action={enviar} className="grid gap-3 sm:grid-cols-3 sm:items-end">
       <input type="hidden" name="aquisicaoId" value={aquisicaoId} />
@@ -270,7 +270,7 @@ export function FormReembolso({ aquisicaoId }: { aquisicaoId: string }) {
       </Field>
       <div className="sm:col-span-3">
         <BotaoEnviar variant="outline">Registrar reembolso</BotaoEnviar>
-        <ResultadoAcao estado={estado} sucesso="Reembolso registrado" />
+        <ResultadoAcao estado={estado} />
       </div>
     </form>
   )

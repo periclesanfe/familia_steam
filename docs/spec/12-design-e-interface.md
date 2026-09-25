@@ -219,7 +219,7 @@ Ajustes após o `shadcn add`:
 - Os formulários daqui são curtos, e validação instantânea no cliente não compensa duas dependências e um segundo caminho de dados.
 - Sem JavaScript, o formulário continua funcionando (_progressive enhancement_), o que também simplifica os testes E2E.
 
-Padrão único:
+Padrão único. No código, o `useActionState` vem pelo `useAcao(acao, sucesso)` de `ResultadoAcao.tsx`: ele dispara o toast de sucesso (ou de erro inesperado) assim que a ação responde. Um toast disparado depois da renderização se perdia quando o formulário sumia junto com o item que removeu (rev. M10).
 
 ```tsx
 'use client'

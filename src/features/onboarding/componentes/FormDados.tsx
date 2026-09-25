@@ -1,9 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
-
 import { BotaoEnviar } from '@/components/BotaoEnviar'
-import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { errosDo, ResultadoAcao, useAcao } from '@/components/ResultadoAcao'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -28,13 +26,13 @@ type Valores = {
 
 // RN-ACE-06 passos 1–3 e RN-CAD-05 (também usado em /perfil).
 export function FormDados({ valores }: { valores: Valores }) {
-  const [estado, enviar] = useActionState(salvarDadosAcao, null)
+  const [estado, enviar] = useAcao(salvarDadosAcao, 'Dados salvos')
   const v = (campo: keyof Valores) =>
     estado && !estado.ok ? estado.valores[campo] : ((valores[campo] as string | null) ?? undefined)
 
   return (
     <form action={enviar} className="flex flex-col gap-4">
-      <ResultadoAcao estado={estado} sucesso="Dados salvos" />
+      <ResultadoAcao estado={estado} />
       <FieldGroup>
         <Field data-invalid={!!errosDo(estado, 'nome')}>
           <FieldLabel htmlFor="nome">Nome completo</FieldLabel>
