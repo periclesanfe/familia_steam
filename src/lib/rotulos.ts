@@ -87,3 +87,35 @@ export const TIPO_OBRIGACAO: Record<string, string> = {
   RATEIO_SOBRA: 'Rateio da SOBRA',
   DEVOLUCAO: 'Devolução',
 }
+
+export const STATUS_AVISO: Record<string, Rotulo> = {
+  JANELA_VETO: { rotulo: 'Janela de veto', tom: 'neutro' },
+  EM_VOTACAO_VETO: { rotulo: 'Em votação de veto', tom: 'atencao' },
+  AGUARDANDO_16IV: { rotulo: 'Aguardando autorização (art. 16, IV)', tom: 'atencao' },
+  AUTORIZADO: { rotulo: 'Compra autorizada', tom: 'sucesso' },
+  UTILIZADO: { rotulo: 'Comprado', tom: 'sucesso' },
+  VETADO: { rotulo: 'Vetado', tom: 'perigo' },
+  NAO_AUTORIZADO_16IV: { rotulo: 'Não autorizado (art. 16, IV)', tom: 'perigo' },
+  SUBSTITUIDO: { rotulo: 'Substituído', tom: 'inativo' },
+  EXPIRADO: { rotulo: 'Expirado', tom: 'inativo' },
+}
+
+export const IRREGULARIDADE: Record<string, string> = {
+  SEM_AVISO: 'sem aviso prévio',
+  ANTES_DA_AUTORIZACAO: 'antes da autorização',
+  DURANTE_VOTACAO_VETO: 'durante votação de veto',
+  DURANTE_VOTACAO_CESSAO: 'durante votação de cessão',
+  APOS_PRAZO: 'depois do prazo',
+  JOGO_BLOQUEADO: 'jogo do Anexo I',
+  PRODUTO_DIFERENTE_DO_AVISO: 'produto diferente do aviso',
+  SEGUNDA_AQUISICAO: 'segunda aquisição',
+  SEM_AUTORIZACAO_16IV: 'sem autorização (art. 16, IV)',
+  CONTA_DIFERENTE_DO_CONTEMPLADO: 'conta Steam de outra pessoa',
+}
+
+export const VERIFICACAO: Record<string, string> = {
+  PENDENTE: 'verificação na biblioteca pendente',
+  VERIFICADO: 'encontrado na biblioteca',
+  NAO_ENCONTRADO: 'não encontrado na biblioteca',
+  NAO_VERIFICAVEL: 'não verificável (envie print)',
+}

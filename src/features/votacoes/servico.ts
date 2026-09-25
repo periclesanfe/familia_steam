@@ -3,6 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 
 import { gerarAta, nomeDoAssunto } from '@/domain/ata'
+import { podeConvocarVeto } from '@/domain/compra'
 import { chaveObjeto, type Efeito, efeitoCombina, efeitoSchema } from '@/domain/efeitos'
 import { ErroDeNegocio, exigir } from '@/domain/erros'
 import { sha256hex } from '@/domain/hash'
@@ -33,11 +34,6 @@ export async function convocar(
     'ENTRADA_INVALIDA',
     'A cessão nasce do aceite do beneficiário.',
     'art. 13',
-  )
-  exigir(
-    e.assunto !== 'VETO_JOGO',
-    'EFEITO_INDISPONIVEL',
-    'O veto é convocado pelo aviso do jogo (M7).',
   )
   const efeito = efeitoSchema.parse(e.efeito)
   exigir(
@@ -111,6 +107,31 @@ async function validarPreCondicao(tx: Tx, efeito: Efeito): Promise<void> {
   }
   if (efeito.tipo === 'VALIDAR_PAGAMENTO' || efeito.tipo === 'INVALIDAR_PAGAMENTO') {
     exigir(await tx.pagamento.findUnique({ where: { id: efeito.pagamentoId } }), 'NAO_ENCONTRADO')
+  }
+  if (efeito.tipo === 'VETO_JOGO' || efeito.tipo === 'JOGO_DE_OUTRO_MEMBRO') {
+    const aviso = await tx.avisoCompra.findUnique({
+      where: { id: efeito.avisoId },
+      select: { janelaVetoAte: true, substituidoEm: true },
+    })
+    exigir(aviso, 'NAO_ENCONTRADO', 'Aviso inexistente.')
+    if (efeito.tipo === 'VETO_JOGO') {
+      // RN-COM-06 (CA-54): só com a janela aberta e sobre o aviso ativo
+      exigir(
+        !aviso.substituidoEm && podeConvocarVeto(aviso.janelaVetoAte, agora()),
+        'ENTRADA_INVALIDA',
+        'A janela de veto deste aviso já fechou.',
+        'art. 23',
+      )
+    }
+  }
+  if (
+    efeito.tipo === 'CONVERTER_PREMIO_EM_SOBRA' ||
+    efeito.tipo === 'PERMITIR_MULTIPLAS_AQUISICOES'
+  ) {
+    exigir(await tx.rodada.findUnique({ where: { id: efeito.rodadaId } }), 'NAO_ENCONTRADO')
+  }
+  if (efeito.tipo === 'REGULARIZAR_AQUISICAO') {
+    exigir(await tx.aquisicao.findUnique({ where: { id: efeito.aquisicaoId } }), 'NAO_ENCONTRADO')
   }
   if (efeito.tipo === 'CANCELAR_OBRIGACAO') {
     exigir(await tx.obrigacao.findUnique({ where: { id: efeito.obrigacaoId } }), 'NAO_ENCONTRADO')
@@ -192,7 +213,7 @@ async function encerrarSeDecidida(tx: Tx, ctx: Contexto, votacaoId: string): Pro
   })
   const resultado =
     r.status === 'APROVADA'
-      ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm)
+      ? await aplicarEfeito(tx, ctx, efeito, numero, r.encerradaEm, v)
       : 'nenhum (rejeitada)'
   if (r.status === 'APROVADA') {
     await tx.votacao.update({

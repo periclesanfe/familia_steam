@@ -1,9 +1,11 @@
 import 'server-only'
 
+import { aquisicaoAtiva } from '@/domain/compra'
 import type { Efeito } from '@/domain/efeitos'
 import { hashVersao } from '@/domain/hash'
 import { numeroDaVersao, vigenciaDeAlteracao } from '@/domain/regulamento'
-import { dataLocal, prazoEmDias } from '@/domain/tempo'
+import { dataLocal, paraDb, prazoEmDias } from '@/domain/tempo'
+import { fecharRodada } from '@/features/compra/fechamento'
 import type { Contexto } from '@/server/auditoria'
 import { registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
@@ -18,6 +20,12 @@ export const EFEITOS_DISPONIVEIS = [
   'CRIAR_DEVOLUCAO',
   'SUSPENDER_CONTRIBUICOES',
   'ALTERACAO_REGULAMENTO',
+  'VETO_JOGO',
+  'JOGO_DE_OUTRO_MEMBRO',
+  'CONVERTER_PREMIO_EM_SOBRA',
+  'REGULARIZAR_AQUISICAO',
+  'PERMITIR_MULTIPLAS_AQUISICOES',
+  'DESBLOQUEAR_CONTEUDO_ADULTO',
 ] as const satisfies readonly Efeito['tipo'][]
 
 export const efeitoDisponivel = (t: Efeito['tipo']): boolean =>
@@ -35,6 +43,7 @@ export async function aplicarEfeito(
   efeito: Efeito,
   ataNumero: number,
   encerradaEm: Date,
+  votacao: { id: string; justificativa: string },
 ): Promise<string> {
   const auditar = (entidade: string, entidadeId: string, dados?: Record<string, unknown>) =>
     registrarEvento(tx, ctx, {
@@ -153,6 +162,65 @@ export async function aplicarEfeito(
       }
       await auditar('versao_regulamento', v.id, { numero: v.numero, vigenteDesde })
       return `aplicado: versão ${v.numero} vigente a partir de 1º/${dataLocal(vigenteDesde).slice(5, 7)}`
+    }
+
+    case 'VETO_JOGO': {
+      // RN-COM-06 / RN-BLO-02: entra no Anexo I com número novo (lock 'ata' já tomado)
+      const aviso = await tx.avisoCompra.findUnique({ where: { id: efeito.avisoId } })
+      if (!aviso) return naoAplicavel('aviso não existe')
+      const { _max } = await tx.jogoBloqueado.aggregate({ _max: { numero: true } })
+      const numero = (_max.numero ?? 0) + 1
+      await tx.jogoBloqueado.create({
+        data: {
+          numero,
+          tipo: 'JOGO',
+          nome: aviso.nome,
+          appIds: [...new Set([aviso.appId, ...aviso.appIdsIncluidos])],
+          dataVeto: paraDb(dataLocal(encerradaEm)),
+          motivo: votacao.justificativa,
+          ataInclusaoNumero: ataNumero,
+        },
+      })
+      await auditar('jogo_bloqueado', String(numero), { nome: aviso.nome })
+      return `aplicado: ${aviso.nome} entrou no Anexo I (nº ${String(numero).padStart(2, '0')})`
+    }
+
+    case 'JOGO_DE_OUTRO_MEMBRO':
+    case 'DESBLOQUEAR_CONTEUDO_ADULTO':
+      // o status do aviso e a V3 leem a votação aprovada (RN-COM-05/07; RN-COM-04 V3)
+      return 'aplicado: autorização registrada'
+
+    case 'CONVERTER_PREMIO_EM_SOBRA': {
+      // RN-FIN-13 (d): gasto 0 e só sem aquisição ativa; aguardando a anterior conta como aplicado
+      const aquisicoes = await tx.aquisicao.findMany({
+        where: { rodadaId: efeito.rodadaId },
+        select: { valorCentavos: true, reembolsoValorCentavos: true },
+      })
+      if (aquisicoes.some(aquisicaoAtiva)) return naoAplicavel('a rodada tem aquisição ativa')
+      const r = await fecharRodada(tx, ctx, efeito.rodadaId, 'CONVERTIDO_POR_ATA')
+      if (r === 'NAO_FECHA') return naoAplicavel('a rodada não está aberta')
+      return r === 'FECHADA'
+        ? 'aplicado: rodada fechada com o prêmio como SOBRA'
+        : 'aplicado: fecha quando a anterior fechar'
+    }
+
+    case 'REGULARIZAR_AQUISICAO': {
+      const { count } = await tx.aquisicao.updateMany({
+        where: { id: efeito.aquisicaoId, regularizadaAtaNumero: null },
+        data: { regularizadaAtaNumero: ataNumero },
+      })
+      if (count === 0) return naoAplicavel('aquisição inexistente ou já regularizada')
+      await auditar('aquisicao', efeito.aquisicaoId)
+      return 'aplicado: aquisição regularizada'
+    }
+
+    case 'PERMITIR_MULTIPLAS_AQUISICOES': {
+      await tx.rodada.update({
+        where: { id: efeito.rodadaId },
+        data: { multiplasAquisicoesAtaNumero: ataNumero },
+      })
+      await auditar('rodada', efeito.rodadaId)
+      return 'aplicado: a rodada aceita mais de uma aquisição'
     }
 
     default:

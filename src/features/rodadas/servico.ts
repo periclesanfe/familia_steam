@@ -8,6 +8,7 @@ import { hashSnapshot } from '@/domain/hash'
 import { parametrosSchema, versaoVigente } from '@/domain/regulamento'
 import { ALGORITMO_VERSAO, apurarSorteio } from '@/domain/sorteio'
 import { dataLocal, fimDoDia, paraDb, prazoEmDias } from '@/domain/tempo'
+import { ligarSobrasPendentes } from '@/features/compra/fechamento'
 import type { ContextoAcao } from '@/server/acao'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
@@ -124,7 +125,8 @@ export async function executarRodada(
         T,
       )
       await tx.rodada.update({ where: { id: rodadaId }, data: { pagantesNoCorte: pagantes } })
-      // RN-SOR-10.3: SOBRA pendente — ponytail: entra no M7 (ainda não há SOBRA sem destino)
+      // RN-SOR-10.3: SOBRAs pendentes (principal e complementares) passam a esta rodada
+      await ligarSobrasPendentes(tx, ctx, rodadaId)
 
       // RN-SOR-10.4
       const ncDepois = new Set(
