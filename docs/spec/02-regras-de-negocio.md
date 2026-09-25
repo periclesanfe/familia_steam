@@ -6,16 +6,16 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 
 ## 0. Convenções de cálculo
 
-| Id | Convenção |
-|---|---|
-| **C-TEMPO** | Instantes são `timestamptz` (UTC). O relógio é **o do servidor Node** (`agora()`), nunca o do banco nem o do cliente. SQL de negócio não usa `now()`: o serviço passa todo instante de negócio de forma explícita. Datas de negócio (dia do sorteio, data de ATA, vencimentos) são calculadas no fuso IANA `America/Sao_Paulo`, nunca com *offset* fixo. **Fim do dia D** = `D+1 00:00:00` local, como limite **exclusivo** (`instante < limite`). |
-| **C-DATA** | `type DataCivil = string // 'AAAA-MM-DD'`. Um campo `@db.Date` só recebe `paraDb(dataLocal(instante))`, com `paraDb(d) = new Date(d + 'T00:00:00Z')`. É lido com `deDb(x) = x.toISOString().slice(0, 10)` e **nunca** é formatado com fuso. `fimDoDia`, `somarDiasCorridos` e `somarAnos` recebem `DataCivil`. |
-| **C-DIAS** | "N dias corridos contados de D" vence no **fim do dia D+N**, sem contar o dia inicial (D-22). Ex.: sorteio 03/10/2026 → +7 = 10/10 e +30 = 02/11/2026; 03/02/2027 → +30 = 05/03/2027. |
-| **C-HORAS** | "N horas contadas de t" = `t + N×3600 s` exatos. |
-| **C-DINHEIRO** | Centavos inteiros (`Int`), sem ponto flutuante. A única divisão é o rateio (RN-FIN-17), com regra de resto explícita. |
-| **C-HASH** | `jsonCanonico(v)` = JSON sem espaços, com chaves ordenadas recursivamente por *code point*, e strings e números como no `JSON.stringify`. `VersaoRegulamento.sha256 = sha256hex(utf8(textoMarkdown com LF e sem BOM) + "\n" + jsonCanonico(parametros))`. `Sorteio.snapshotSha256 = sha256hex(utf8(jsonCanonico(snapshot)))`. `Ata.sha256 = sha256hex(utf8(markdown))`. O diretório `docs/regulamento/` fica fora do Prettier, para não mudar o hash. |
-| **C-DERIVADO** | Estados temporais (atraso, "em dia", postergação, status do aviso, votação vencida) são **funções puras** `f(fatos, agora)` em `src/domain`. O banco guarda fatos: atos e instantes. O `tick` só **materializa** o que precisa de efeito: sorteio, ATA de votação vencida, fechamento por prazo e SOBRA/rateio. |
-| **C-PARAM** | Números do Regulamento (R$ 25, dia 3, 48 h, 7 e 30 dias) vêm dos `parametros` da versão (RN-REG-06), nunca de constantes. Prazos e prorrogação de uma obrigação usam a versão gravada em `rodada.versaoRegulamentoId`. |
+| Id             | Convenção                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C-TEMPO**    | Instantes são `timestamptz` (UTC). O relógio é **o do servidor Node** (`agora()`), nunca o do banco nem o do cliente. SQL de negócio não usa `now()`: o serviço passa todo instante de negócio de forma explícita. Datas de negócio (dia do sorteio, data de ATA, vencimentos) são calculadas no fuso IANA `America/Sao_Paulo`, nunca com _offset_ fixo. **Fim do dia D** = `D+1 00:00:00` local, como limite **exclusivo** (`instante < limite`).    |
+| **C-DATA**     | `type DataCivil = string // 'AAAA-MM-DD'`. Um campo `@db.Date` só recebe `paraDb(dataLocal(instante))`, com `paraDb(d) = new Date(d + 'T00:00:00Z')`. É lido com `deDb(x) = x.toISOString().slice(0, 10)` e **nunca** é formatado com fuso. `fimDoDia`, `somarDiasCorridos` e `somarAnos` recebem `DataCivil`.                                                                                                                                        |
+| **C-DIAS**     | "N dias corridos contados de D" vence no **fim do dia D+N**, sem contar o dia inicial (D-22). Ex.: sorteio 03/10/2026 → +7 = 10/10 e +30 = 02/11/2026; 03/02/2027 → +30 = 05/03/2027.                                                                                                                                                                                                                                                                 |
+| **C-HORAS**    | "N horas contadas de t" = `t + N×3600 s` exatos.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **C-DINHEIRO** | Centavos inteiros (`Int`), sem ponto flutuante. A única divisão é o rateio (RN-FIN-17), com regra de resto explícita.                                                                                                                                                                                                                                                                                                                                 |
+| **C-HASH**     | `jsonCanonico(v)` = JSON sem espaços, com chaves ordenadas recursivamente por _code point_, e strings e números como no `JSON.stringify`. `VersaoRegulamento.sha256 = sha256hex(utf8(textoMarkdown com LF e sem BOM) + "\n" + jsonCanonico(parametros))`. `Sorteio.snapshotSha256 = sha256hex(utf8(jsonCanonico(snapshot)))`. `Ata.sha256 = sha256hex(utf8(markdown))`. O diretório `docs/regulamento/` fica fora do Prettier, para não mudar o hash. |
+| **C-DERIVADO** | Estados temporais (atraso, "em dia", postergação, status do aviso, votação vencida) são **funções puras** `f(fatos, agora)` em `src/domain`. O banco guarda fatos: atos e instantes. O `tick` só **materializa** o que precisa de efeito: sorteio, ATA de votação vencida, fechamento por prazo e SOBRA/rateio.                                                                                                                                       |
+| **C-PARAM**    | Números do Regulamento (R$ 25, dia 3, 48 h, 7 e 30 dias) vêm dos `parametros` da versão (RN-REG-06), nunca de constantes. Prazos e prorrogação de uma obrigação usam a versão gravada em `rodada.versaoRegulamentoId`.                                                                                                                                                                                                                                |
 
 ---
 
@@ -27,17 +27,18 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 - **RN-GER-04 — Auditoria.** Toda mutação grava um `EventoAuditoria` na **mesma transação**: ator (`MEMBRO`, `SISTEMA` ou `OPERADOR`), ação, entidade, antes/depois e ATA quando houver. `registrarEvento` **mascara** todo campo `chavePix*` (4 últimos caracteres) e **descarta** `conteudo` e `tokenHash` antes de gravar. Todos os membros leem a trilha (arts. 39 e 40).
 - **RN-GER-05 — Transcrição de ato praticado no GRUPO** (D-01). Enquanto o GRUPO for canal válido, qualquer membro pode registrar em nome de outro **só** estes atos, anexando print obrigatório e o horário da mensagem (`efetivaEm`):
 
-  | Ato | Limite para transcrever |
-  |---|---|
-  | `NAO_CONCORRER` | `registradaEm < corte` da rodada (RN-SOR-03) |
+  | Ato                                               | Limite para transcrever                                                                                                               |
+  | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+  | `NAO_CONCORRER`                                   | `registradaEm < corte` da rodada (RN-SOR-03)                                                                                          |
   | `CONFIRMA_PROXIMO_CICLO` / `RECUSA_PROXIMO_CICLO` | `efetivaEm` e `registradaEm` < `prazoConfirmacao(dataInicio)`. O sujeito pode revogar até o corte da 1ª rodada, mesmo depois do prazo |
-  | `JUSTIFICATIVA_PRORROGACAO` | com `efetivaEm < vencimentoEm`, aceita até 48 h depois do `vencimentoEm` |
+  | `JUSTIFICATIVA_PRORROGACAO`                       | com `efetivaEm < vencimentoEm`, aceita até 48 h depois do `vencimentoEm`                                                              |
 
   O registro fica marcado "transcrito por <nome>" e aparece nas pendências do sujeito. A transcrição **nunca altera um corte já executado**; divergências vão para caso omisso (ex.: `ANULAR_RODADA`).
 
   **Nunca são transcritos**, porque exigem o próprio titular autenticado: impossibilidade de pagamento, saída do consórcio, saída da família, voto, aceite de Regulamento, aviso de compra, registro de compra e aceite de cessão. O próprio titular pode registrar impossibilidade ou saída informando como `efetivaEm` o horário da mensagem no GRUPO, com print, até 48 h depois. Mesmo assim, o efeito começa em `registradaEm`: sorteios e contribuições já gerados ficam como estão. Se o titular não registra, cabe ATA de caso omisso (`RECONHECER_IMPOSSIBILIDADE`, `RECONHECER_SAIDA`).
+
 - **RN-GER-06 — Concorrência.** `travar(tx, chave)` = `pg_advisory_xact_lock(hashtextextended(chave, 0))`. Chaves:
-  - `'fechamento'` (global, **sempre o primeiro lock** da transação): `fecharRodada` (inclusive a cascata), reembolso e reabertura, SOBRA complementar (RN-FIN-16) e toda criação de SOBRA e rateio (RN-SOR-10.3, tick). Evita *write skew* entre rodadas vizinhas. *ponytail:* serializa esses fluxos, o que com 5 pessoas não custa nada.
+  - `'fechamento'` (global, **sempre o primeiro lock** da transação): `fecharRodada` (inclusive a cascata), reembolso e reabertura, SOBRA complementar (RN-FIN-16) e toda criação de SOBRA e rateio (RN-SOR-10.3, tick). Evita _write skew_ entre rodadas vizinhas. _ponytail:_ serializa esses fluxos, o que com 5 pessoas não custa nada.
   - `'rodada:'+id`: execução do sorteio × declaração de não concorrer; operações da rodada.
   - `'votacao:'+id`: voto × voto × encerramento.
   - `'ata'`: numeração de ATA e de entrada do Anexo I.
@@ -154,6 +155,7 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 
   - Um normal que optou por não concorrer **continua na camada dos normais** e bloqueia os postergados (D-08).
   - Motivos exibidos por pessoa: `JA_CONTEMPLADO`, `IMPOSSIBILITADO`, `POSTERGADO_AGUARDANDO_DEMAIS`, `NAO_EM_DIA`, `OPTOU_NAO_CONCORRER`.
+
 - **RN-SOR-06 — Em dia** (art. 10, II). `emDia(m, T)` é verdadeiro se, e só se, **não** existe `CONTRIBUICAO` de `m` (qualquer ciclo), não cancelada e não autoquitada, com `vencimentoEfetivo ≤ T` e saldo > 0 pelos pagamentos que contam (RN-FIN-06). SOBRA, repasse, rateio e devolução **não** entram (D-19).
 - **RN-SOR-07 — Postergação** (art. 29; D-08). `postergado(m, C, T)` é verdadeiro se:
   - (a) existe `CONTRIBUICAO` de `m`, de rodada de `C`, com `emAtraso(o, T)` (RN-FIN-08), isto é, `vencimentoEfetivo ≤ T` sem quitação até o vencimento; ou
@@ -164,7 +166,7 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
   - `corteEm`, `disparadoPorId` (nulo = SISTEMA), `algoritmoVersao`;
   - o snapshot canônico com, por participante: pessoa, nome, contemplado, impossibilitado, postergado (e a obrigação que postergou), emDia (e as obrigações vencidas em aberto), declaração, camada, elegível e motivos;
   - `snapshotSha256` (C-HASH), `elegiveisIds`, `indice` e `contempladoId`.
-  - *ponytail:* a semente vem do servidor, o que deixa confiança residual no operador. Upgrade: usar um round futuro do drand e publicar o hash antes.
+  - _ponytail:_ a semente vem do servidor, o que deixa confiança residual no operador. Upgrade: usar um round futuro do drand e publicar o hash antes.
 - **RN-SOR-09 — Publicidade** (arts. 9º e 40). Resultado visível na hora: elegíveis, motivos, hash e índice. Texto pronto para o GRUPO. Qualquer membro anexa evidências (print ou link https de gravação), que só se acumulam. Sem nenhuma evidência, fica a pendência coletiva "anexar captura do sorteio", exceto se for adotada a redação do 03 §3.2 (D-03), que faz da página o registro do sorteio.
 - **RN-SOR-10 — Efeitos da contemplação** (mesma transação), em ordem:
   1. a rodada vai a `CONTEMPLADA`, com `tipoContemplacao`, `sorteadoOriginalId = contempladoId`, `executadaEm`, `dataSorteio`, `contribuicaoCentavos`, `versaoRegulamentoId` e `prazoCompraAte = fim do dia (dataSorteio + diasPrazoCompra)`;
@@ -239,7 +241,7 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 - **RN-FIN-11 — PRÊMIO nominal** (art. 2º, V; art. 5º, §2º; D-07). `premio(r) = contribuicaoCentavos(r) × pagantesNoCorte(r) + Σ valor das SOBRAS não canceladas destinadas a r`. Com 5 pagantes e sem sobra: 12500. A tela mostra também o "recebido até agora", informativo. Se alguém não paga, o contemplado adianta a parte dele e fica credor do inadimplente.
 - **RN-FIN-12 — Gasto, complementação e sobra** (arts. 2º, VI, 24 e 25). `gasto(r) = Σ (valorCentavos − (reembolsoValorCentavos ?? 0))` das aquisições da rodada; `complementacao(r) = max(0, gasto − premio)` (só exibida); `sobra(r) = max(0, premio − gasto)`. Compra irregular **entra** no gasto (D-10).
 - **RN-FIN-13 — Fechamento da rodada** (sob `travar(tx,'fechamento')` e `travar(tx,'rodada:'+id)`).
-  - **Definições.** *Rodada contemplada anterior/próxima* de `r` = a imediatamente anterior/posterior na ordem `(ciclo.numero, sequencia)`, atravessando ciclos, considerando só as de status `CONTEMPLADA` ou `FECHADA`. *Aquisição ativa* = RN-COM-09.
+  - **Definições.** _Rodada contemplada anterior/próxima_ de `r` = a imediatamente anterior/posterior na ordem `(ciclo.numero, sequencia)`, atravessando ciclos, considerando só as de status `CONTEMPLADA` ou `FECHADA`. _Aquisição ativa_ = RN-COM-09.
   - **Casos de fechamento:**
     - (a) o contemplado marca "aquisição concluída" (ao menos uma aquisição ativa, sem cessão em andamento);
     - (b) o tick encontra `agora ≥ prazoCompraAte`, sem cessão em andamento e com ao menos uma `Aquisicao` registrada (ativa ou reembolsada, inclusive `APOS_PRAZO`), e fecha pelo gasto remanescente, que pode ser 0;
@@ -267,10 +269,10 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 - **RN-FIN-16 — Reembolso sem reabertura** (art. 26; D-27). É todo reembolso de rodada `FECHADA` que não reabre pela RN-FIN-13. No registro do reembolso da aquisição `a`, sob os locks, grava-se:
   - `complementarCentavos(a) = max(0, max(0, premio − gastoNovo) − sobraCentavos − Σ complementarCentavos das outras aquisições de r)`.
   - Se for > 0, vira **SOBRA complementar** (`aquisicaoReembolsoId = a`) do contemplado de `r`:
-    - para o contemplado da **rodada contemplada mais recente ainda não fechada**; se não houver, fica **pendente**: *complementar pendente de `a`* = `complementarCentavos > 0` sem `SOBRA`/`RATEIO_SOBRA` não cancelada com `aquisicaoReembolsoId = a`, que nasce na próxima contemplação;
+    - para o contemplado da **rodada contemplada mais recente ainda não fechada**; se não houver, fica **pendente**: _complementar pendente de `a`_ = `complementarCentavos > 0` sem `SOBRA`/`RATEIO_SOBRA` não cancelada com `aquisicaoReembolsoId = a`, que nasce na próxima contemplação;
     - se o ciclo de `r` estiver `ENCERRADO` com `semCicloSeguinte`, a diferença é **rateada** pela RN-FIN-17 (mesmo `k`, com `aquisicaoReembolsoId`);
     - vence no fim do dia do mais tardio entre o `dataSorteio` da destino e a criação (+7).
-  - Não há recálculo em cascata. *ponytail:* é raro com 5 pessoas; se virar confusão, tratar por caso omisso.
+  - Não há recálculo em cascata. _ponytail:_ é raro com 5 pessoas; se virar confusão, tratar por caso omisso.
 - **RN-FIN-17 — Rateio sem ciclo seguinte** (art. 25, §3º; D-18). Quando o ciclo fica `ENCERRADO` com `semCicloSeguinte`, toda SOBRA pendente `S` das rodadas do ciclo (em geral a da última) é dividida entre `k`:
   - `k` = pessoas com `ParticipacaoCiclo` no ciclo encerrado e `saiuEm` nulo ou ≥ `concluidoEm` (≥ `encerradoEm` no encerramento imediato), qualquer que seja o status de `Membro` depois da RN-CIC-06 (entram impossibilitados e quem não confirmou o ciclo seguinte);
   - `q = floor(S/k)`, `resto = S mod k`. Os `resto` primeiros recebem +1 centavo, na ordem de contemplação do ciclo e, depois, os não contemplados por `pessoaId`;
@@ -327,22 +329,23 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
   - **Um aviso ativo por rodada:** um novo aviso substitui o anterior (`substituidoEm`), e a votação de veto do anterior continua.
 - **RN-COM-04 — Validações do produto** (arts. 16 a 19). Cada regra retorna `OK`, `ALERTA` (exige declaração), `BLOQUEIO` ou `DESCONHECIDO` (exige declaração **e** evidência). Falha ou pausa da API da Steam nunca bloqueia sozinha: vira `DESCONHECIDO`. **"Outro membro"** = `Membro.status ∈ {ATIVO, IMPOSSIBILITADO}`, exceto o contemplado.
 
-  | # | Regra | Fonte | Resultado |
-  |---|---|---|---|
-  | V1 | `appId` ou algum incluído está em entrada `JOGO` vigente do Anexo I (art. 16, III) | local | **BLOQUEIO** |
-  | V2 | DLC cujo jogo base está no Anexo I | local + `fullgame` | ALERTA |
-  | V3 | `content_descriptors.ids` contém 3 (art. 17), em qualquer app do produto | appdetails | **BLOQUEIO**, salvo votação APROVADA com `DESBLOQUEAR_CONTEUDO_ADULTO` para o appId |
-  | V4 | `content_descriptors.ids` contém 1 ou 4 | appdetails | ALERTA + declaração "não é pornográfico" |
-  | V5 | Entrada 01 (categoria pornográfica) | — | declaração obrigatória em todo aviso |
-  | V6 | Categoria 62 *Family Sharing* em cada app do produto (art. 16, I; art. 18; D-31) | appdetails | `OK`; ausente → ALERTA com declaração **e** evidência; sem dados → DESCONHECIDO |
-  | V7 | `type` do app principal ∉ {game, dlc, music} (art. 1º, "jogos eletrônicos") ou `is_free` (F2P não é compartilhável, art. 16, I) | appdetails | **BLOQUEIO**; `type = music` → ALERTA + declaração (D-24) |
-  | V8 | DLC com termos de moeda, skin ou itens, ou jogo base F2P (art. 19, III; D-24) | appdetails | ALERTA + declaração |
-  | V9 | O contemplado já possui (art. 16, II; art. 19, IV) | cache `JogoPossuido` | **BLOQUEIO**; em PACOTE, BLOQUEIO se possui todos e ALERTA se possui parte; DLC → DESCONHECIDO (a API não lista DLC); perfil privado → DESCONHECIDO |
-  | V10 | Outro membro possui (art. 16, IV) | cache `JogoPossuido` + autodeclaração | exige autorização 16 IV (RN-COM-07); em PACOTE, se possui qualquer incluído; DLC ou perfil privado de alguém → ALERTA "não verificável para X" |
-  | V11 | `janelaVetoAte ≥ prazoCompraAte` (art. 20) | local | ALERTA "a autorização só sai depois do prazo"; faltando < 96 h → ALERTA |
-  | V12 | `release_date.coming_soon` | appdetails | ALERTA "pré-venda" |
+  | #   | Regra                                                                                                                           | Fonte                                 | Resultado                                                                                                                                           |
+  | --- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | V1  | `appId` ou algum incluído está em entrada `JOGO` vigente do Anexo I (art. 16, III)                                              | local                                 | **BLOQUEIO**                                                                                                                                        |
+  | V2  | DLC cujo jogo base está no Anexo I                                                                                              | local + `fullgame`                    | ALERTA                                                                                                                                              |
+  | V3  | `content_descriptors.ids` contém 3 (art. 17), em qualquer app do produto                                                        | appdetails                            | **BLOQUEIO**, salvo votação APROVADA com `DESBLOQUEAR_CONTEUDO_ADULTO` para o appId                                                                 |
+  | V4  | `content_descriptors.ids` contém 1 ou 4                                                                                         | appdetails                            | ALERTA + declaração "não é pornográfico"                                                                                                            |
+  | V5  | Entrada 01 (categoria pornográfica)                                                                                             | —                                     | declaração obrigatória em todo aviso                                                                                                                |
+  | V6  | Categoria 62 _Family Sharing_ em cada app do produto (art. 16, I; art. 18; D-31)                                                | appdetails                            | `OK`; ausente → ALERTA com declaração **e** evidência; sem dados → DESCONHECIDO                                                                     |
+  | V7  | `type` do app principal ∉ {game, dlc, music} (art. 1º, "jogos eletrônicos") ou `is_free` (F2P não é compartilhável, art. 16, I) | appdetails                            | **BLOQUEIO**; `type = music` → ALERTA + declaração (D-24)                                                                                           |
+  | V8  | DLC com termos de moeda, skin ou itens, ou jogo base F2P (art. 19, III; D-24)                                                   | appdetails                            | ALERTA + declaração                                                                                                                                 |
+  | V9  | O contemplado já possui (art. 16, II; art. 19, IV)                                                                              | cache `JogoPossuido`                  | **BLOQUEIO**; em PACOTE, BLOQUEIO se possui todos e ALERTA se possui parte; DLC → DESCONHECIDO (a API não lista DLC); perfil privado → DESCONHECIDO |
+  | V10 | Outro membro possui (art. 16, IV)                                                                                               | cache `JogoPossuido` + autodeclaração | exige autorização 16 IV (RN-COM-07); em PACOTE, se possui qualquer incluído; DLC ou perfil privado de alguém → ALERTA "não verificável para X"      |
+  | V11 | `janelaVetoAte ≥ prazoCompraAte` (art. 20)                                                                                      | local                                 | ALERTA "a autorização só sai depois do prazo"; faltando < 96 h → ALERTA                                                                             |
+  | V12 | `release_date.coming_soon`                                                                                                      | appdetails                            | ALERTA "pré-venda"                                                                                                                                  |
 
   V9 e V10 usam o cache e exibem `steamSincronizadoEm`. O snapshot de quem está com `steamJogosPublicos = false` **não** é usado.
+
 - **RN-COM-05 — Status do aviso (derivado).** Avaliado nesta ordem de precedência:
   1. `UTILIZADO` (tem aquisição **ativa** vinculada)
   2. `VETADO` (veto aprovado)
@@ -355,6 +358,7 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
   9. `AUTORIZADO`
 
   Um aviso cujas aquisições foram todas reembolsadas integralmente volta ao status que teria sem elas. `autorizadoEm` = mais tardio entre (`janelaVetoAte`, se não houve veto, ou `encerradaEm` do veto rejeitado) e a aprovação da 16 IV, se exigida.
+
 - **RN-COM-06 — Veto** (art. 23; D-15). Qualquer membro, **inclusive o próprio sorteado**, convoca `VETO_JOGO {avisoId}` sobre aviso ativo com `agora < janelaVetoAte`. A justificativa é obrigatória e vira o "Motivo" do Anexo I.
   - **Uma votação de veto por aviso** (`veto_unico_por_aviso`), e ela **não pode ser cancelada nem fica prejudicada** (RN-VOT-05).
   - Com o veto aberto, a compra não está autorizada (§2º). Se for registrada, leva `DURANTE_VOTACAO_VETO` (RN-COM-09).
@@ -393,18 +397,19 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
   - Campos: assunto; **proposição** (o que significa votar FAVOR, sempre como mudança; D-14); justificativa; **efeito tipado** (zod); `chaveObjeto`.
   - Não pode haver duas votações abertas com o mesmo (assunto, `chaveObjeto`):
 
-  | Assunto | `chaveObjeto` |
-  |---|---|
-  | `VETO_JOGO`, `JOGO_DE_OUTRO_MEMBRO` | `aviso:<avisoId>` |
-  | `CESSAO_VEZ` | `rodada:<rodadaId>` |
-  | `ADMISSAO_MEMBRO` | `steam:<steamId64>` |
-  | `CONVITE_INTEGRANTE` | `pessoa:<id>` ou `steam:<steamId64>` (pessoa nova) |
-  | `REMOCAO_INTEGRANTE`, `PERMANENCIA_ART30` | `pessoa:<id>` |
-  | `EXCLUSAO_BLOQUEIO` | `bloqueio:<numero>` |
-  | `CONTINUIDADE_CONSORCIO` | `consorcio` |
-  | `ALTERACAO_REGULAMENTO` | `regulamento` (uma por vez) |
-  | `CASO_OMISSO`, `CONTROVERSIA` com efeito | `<EFEITO>:<primeiro parâmetro do efeito>` |
-  | efeito `NENHUM`, `OUTRO` | `votacao:<id da própria votação>`, gerado na aplicação antes do insert (sem restrição na prática) |
+  | Assunto                                   | `chaveObjeto`                                                                                     |
+  | ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
+  | `VETO_JOGO`, `JOGO_DE_OUTRO_MEMBRO`       | `aviso:<avisoId>`                                                                                 |
+  | `CESSAO_VEZ`                              | `rodada:<rodadaId>`                                                                               |
+  | `ADMISSAO_MEMBRO`                         | `steam:<steamId64>`                                                                               |
+  | `CONVITE_INTEGRANTE`                      | `pessoa:<id>` ou `steam:<steamId64>` (pessoa nova)                                                |
+  | `REMOCAO_INTEGRANTE`, `PERMANENCIA_ART30` | `pessoa:<id>`                                                                                     |
+  | `EXCLUSAO_BLOQUEIO`                       | `bloqueio:<numero>`                                                                               |
+  | `CONTINUIDADE_CONSORCIO`                  | `consorcio`                                                                                       |
+  | `ALTERACAO_REGULAMENTO`                   | `regulamento` (uma por vez)                                                                       |
+  | `CASO_OMISSO`, `CONTROVERSIA` com efeito  | `<EFEITO>:<primeiro parâmetro do efeito>`                                                         |
+  | efeito `NENHUM`, `OUTRO`                  | `votacao:<id da própria votação>`, gerado na aplicação antes do insert (sem restrição na prática) |
+
 - **RN-VOT-02 — Snapshot na convocação** (art. 2º, IX; D-13, D-14).
   - `eleitores` = membros `ATIVO`/`IMPOSSIBILITADO` no instante da convocação. `AGUARDANDO_CICLO` não é MEMBRO para voto nem quórum (art. 6º).
   - `impedidos` = alvo de `PERMANENCIA_ART30`.
@@ -430,40 +435,42 @@ Cada regra traz o artigo de origem. **(D-nn)** indica que parte da regra vem de 
 - **RN-VOT-07 — Efeitos.** Aplicados na mesma transação da aprovação. Se a pré-condição não vale mais, a ATA registra "efeito não aplicável: <motivo>" e a votação continua APROVADA. Efeitos que dependem de ato na Steam deixam o vínculo aguardando o registro da execução (RN-CAD-08/09).
 - **RN-VOT-08 — Catálogo de assuntos:**
 
-  | Assunto | Art. | Checkbox Anexo II | Proposição (FAVOR = …) | Efeito ao aprovar |
-  |---|---|---|---|---|
-  | `VETO_JOGO {avisoId}` | 23 | Veto de jogo | vetar o jogo do aviso | cria `JogoBloqueado`; aviso VETADO |
-  | `JOGO_DE_OUTRO_MEMBRO {avisoId}` | 16, IV | Outro | autorizar jogo que outro membro tem | aviso ganha a autorização 16 IV |
-  | `EXCLUSAO_BLOQUEIO {numero}` | 23, §6º | Outro | excluir a entrada nº N do Anexo I | `excluidoEm` + ATA (recusa se protegida) |
-  | `CESSAO_VEZ {cessaoId}` | 13 | Cessão da vez | ceder a contemplação da rodada R a B | RN-CES-05 |
-  | `ADMISSAO_MEMBRO {nome, steamId64, incluirNaFamilia}` | 6º (+7º) | Outro (+ Inclusão) | admitir X no próximo ciclo | RN-CAD-12 |
-  | `CONVITE_INTEGRANTE {apelido, steamId64?}` | 7º | Inclusão ou remoção | convidar X à família | integrante `CONVITE_AUTORIZADO` |
-  | `REMOCAO_INTEGRANTE {integranteId}` | 7º, 35 | Inclusão ou remoção | remover X da família | `REMOCAO_AUTORIZADA`; encerra membro (RN-CAD-09) |
-  | `PERMANENCIA_ART30 {pessoaId, escopo}` | 30 | Permanência | excluir X do consórcio [e da família] | RN-SAI-06; rejeitada = permanece |
-  | `CONTINUIDADE_CONSORCIO {acao}` | 38, p.u. | Outro | encerrar o consórcio (ao fim do ciclo / já) | RN-CIC-10 |
-  | `ALTERACAO_REGULAMENTO {texto, resumo, parametros, excluirEntradas?}` | 42 | Alteração | aprovar a versão 1.x | nova `VersaoRegulamento` (RN-REG-03); cada entrada de `excluirEntradas`, inclusive protegida, recebe `excluidoEm` = `vigenteDesde` da versão e `ataExclusaoNumero` |
-  | `CASO_OMISSO` | 43 | Caso omisso | proposição + efeito do catálogo RN-VOT-09 | efeito escolhido |
-  | `CONTROVERSIA` | 47 | Outro | idem | idem |
-  | `OUTRO` | 41 | Outro | texto livre | nenhum (só registro) |
+  | Assunto                                                               | Art.     | Checkbox Anexo II   | Proposição (FAVOR = …)                      | Efeito ao aprovar                                                                                                                                                  |
+  | --------------------------------------------------------------------- | -------- | ------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | `VETO_JOGO {avisoId}`                                                 | 23       | Veto de jogo        | vetar o jogo do aviso                       | cria `JogoBloqueado`; aviso VETADO                                                                                                                                 |
+  | `JOGO_DE_OUTRO_MEMBRO {avisoId}`                                      | 16, IV   | Outro               | autorizar jogo que outro membro tem         | aviso ganha a autorização 16 IV                                                                                                                                    |
+  | `EXCLUSAO_BLOQUEIO {numero}`                                          | 23, §6º  | Outro               | excluir a entrada nº N do Anexo I           | `excluidoEm` + ATA (recusa se protegida)                                                                                                                           |
+  | `CESSAO_VEZ {cessaoId}`                                               | 13       | Cessão da vez       | ceder a contemplação da rodada R a B        | RN-CES-05                                                                                                                                                          |
+  | `ADMISSAO_MEMBRO {nome, steamId64, incluirNaFamilia}`                 | 6º (+7º) | Outro (+ Inclusão)  | admitir X no próximo ciclo                  | RN-CAD-12                                                                                                                                                          |
+  | `CONVITE_INTEGRANTE {apelido, steamId64?}`                            | 7º       | Inclusão ou remoção | convidar X à família                        | integrante `CONVITE_AUTORIZADO`                                                                                                                                    |
+  | `REMOCAO_INTEGRANTE {integranteId}`                                   | 7º, 35   | Inclusão ou remoção | remover X da família                        | `REMOCAO_AUTORIZADA`; encerra membro (RN-CAD-09)                                                                                                                   |
+  | `PERMANENCIA_ART30 {pessoaId, escopo}`                                | 30       | Permanência         | excluir X do consórcio [e da família]       | RN-SAI-06; rejeitada = permanece                                                                                                                                   |
+  | `CONTINUIDADE_CONSORCIO {acao}`                                       | 38, p.u. | Outro               | encerrar o consórcio (ao fim do ciclo / já) | RN-CIC-10                                                                                                                                                          |
+  | `ALTERACAO_REGULAMENTO {texto, resumo, parametros, excluirEntradas?}` | 42       | Alteração           | aprovar a versão 1.x                        | nova `VersaoRegulamento` (RN-REG-03); cada entrada de `excluirEntradas`, inclusive protegida, recebe `excluidoEm` = `vigenteDesde` da versão e `ataExclusaoNumero` |
+  | `CASO_OMISSO`                                                         | 43       | Caso omisso         | proposição + efeito do catálogo RN-VOT-09   | efeito escolhido                                                                                                                                                   |
+  | `CONTROVERSIA`                                                        | 47       | Outro               | idem                                        | idem                                                                                                                                                               |
+  | `OUTRO`                                                               | 41       | Outro               | texto livre                                 | nenhum (só registro)                                                                                                                                               |
+
 - **RN-VOT-09 — Efeitos de caso omisso e controvérsia** (catálogo fechado):
 
-  | Efeito | Parâmetros | Uso típico |
-  |---|---|---|
-  | `NENHUM` | — | registrar decisão sem efeito no sistema |
-  | `ANULAR_RODADA` | rodadaId | RN-SOR-13 |
-  | `RECONHECER_IMPOSSIBILIDADE` | pessoaId | art. 30, "demonstrar", ou declaração feita só no GRUPO |
-  | `RECONHECER_SAIDA` | pessoaId, tipo (`SAIDA_CONSORCIO` \| `SAIDA_FAMILIA`), efetivaEm | saída declarada só no GRUPO |
-  | `RETORNO_SORTEIOS` | pessoaId | fim da exclusão do art. 30 |
-  | `SUSPENDER_CONTRIBUICOES` | pessoaId, cicloId | impossibilitado mantido, falecimento |
-  | `CANCELAR_OBRIGACAO` | obrigacaoId | remissão, erro |
-  | `CRIAR_DEVOLUCAO` | devedorId, credorId, valorCentavos, rodadaId | restituições (RN-FIN-20, RN-CIC-10) |
-  | `VALIDAR_PAGAMENTO` / `INVALIDAR_PAGAMENTO` | pagamentoId | contestação |
-  | `REGULARIZAR_AQUISICAO` | aquisicaoId | tira a marca de irregular (a aquisição já conta no gasto) |
-  | `CONVERTER_PREMIO_EM_SOBRA` | rodadaId | art. 20 vencido sem aquisição; sorteado fora da família (RN-FIN-13 d; com a anterior aberta, grava `fechamentoSolicitado`) |
-  | `PERMITIR_MULTIPLAS_AQUISICOES` | rodadaId | D-11 |
-  | `DESBLOQUEAR_CONTEUDO_ADULTO` | appId | falso positivo da V3 |
-  | `REVINCULAR_STEAM` | pessoaId, novoSteamId64, incluirNaFamilia | conta perdida, banida ou invadida. **Revoga todas as sessões da pessoa** na mesma transação. A adesão anterior deixa de ser válida (`adesaoValida` compara o código de amigo): no próximo login a pessoa assina a versão vigente e, até lá, continua `ATIVO`, votando e contando no quórum. Com `incluirNaFamilia`, o integrante atual vai a `REMOCAO_AUTORIZADA` e nasce outro `CONVITE_AUTORIZADO` para a nova conta (a ATA marca também "Inclusão ou remoção") |
-  | `ADIAR_CICLO` | cicloId, novaDataInicio | RN-CIC-11 |
+  | Efeito                                      | Parâmetros                                                       | Uso típico                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+  | ------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `NENHUM`                                    | —                                                                | registrar decisão sem efeito no sistema                                                                                                                                                                                                                                                                                                                                                                                                                           |
+  | `ANULAR_RODADA`                             | rodadaId                                                         | RN-SOR-13                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+  | `RECONHECER_IMPOSSIBILIDADE`                | pessoaId                                                         | art. 30, "demonstrar", ou declaração feita só no GRUPO                                                                                                                                                                                                                                                                                                                                                                                                            |
+  | `RECONHECER_SAIDA`                          | pessoaId, tipo (`SAIDA_CONSORCIO` \| `SAIDA_FAMILIA`), efetivaEm | saída declarada só no GRUPO                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+  | `RETORNO_SORTEIOS`                          | pessoaId                                                         | fim da exclusão do art. 30                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+  | `SUSPENDER_CONTRIBUICOES`                   | pessoaId, cicloId                                                | impossibilitado mantido, falecimento                                                                                                                                                                                                                                                                                                                                                                                                                              |
+  | `CANCELAR_OBRIGACAO`                        | obrigacaoId                                                      | remissão, erro                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+  | `CRIAR_DEVOLUCAO`                           | devedorId, credorId, valorCentavos, rodadaId                     | restituições (RN-FIN-20, RN-CIC-10)                                                                                                                                                                                                                                                                                                                                                                                                                               |
+  | `VALIDAR_PAGAMENTO` / `INVALIDAR_PAGAMENTO` | pagamentoId                                                      | contestação                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+  | `REGULARIZAR_AQUISICAO`                     | aquisicaoId                                                      | tira a marca de irregular (a aquisição já conta no gasto)                                                                                                                                                                                                                                                                                                                                                                                                         |
+  | `CONVERTER_PREMIO_EM_SOBRA`                 | rodadaId                                                         | art. 20 vencido sem aquisição; sorteado fora da família (RN-FIN-13 d; com a anterior aberta, grava `fechamentoSolicitado`)                                                                                                                                                                                                                                                                                                                                        |
+  | `PERMITIR_MULTIPLAS_AQUISICOES`             | rodadaId                                                         | D-11                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+  | `DESBLOQUEAR_CONTEUDO_ADULTO`               | appId                                                            | falso positivo da V3                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+  | `REVINCULAR_STEAM`                          | pessoaId, novoSteamId64, incluirNaFamilia                        | conta perdida, banida ou invadida. **Revoga todas as sessões da pessoa** na mesma transação. A adesão anterior deixa de ser válida (`adesaoValida` compara o código de amigo): no próximo login a pessoa assina a versão vigente e, até lá, continua `ATIVO`, votando e contando no quórum. Com `incluirNaFamilia`, o integrante atual vai a `REMOCAO_AUTORIZADA` e nasce outro `CONVITE_AUTORIZADO` para a nova conta (a ATA marca também "Inclusão ou remoção") |
+  | `ADIAR_CICLO`                               | cicloId, novaDataInicio                                          | RN-CIC-11                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+
 - **RN-VOT-10 — Voto do interessado** (D-14). Permitido (sorteado no veto, cedente e beneficiário, alvo do art. 35, dono do jogo no art. 16, IV), **exceto** o alvo da `PERMANENCIA_ART30`.
 - **RN-VOT-11 — O sistema nunca convoca sozinho** (art. 41). Ele cria pendências com o botão "Convocar" já preenchido.
 - **RN-VOT-12 — Votação não suspende nada**, exceto: veto aberto torna irregular a compra daquele aviso (RN-COM-09); cessão em andamento bloqueia o aviso da rodada, e a compra registrada com a cessão `EM_VOTACAO` é irregular (RN-CES-04).
@@ -633,17 +640,17 @@ stateDiagram-v2
 
 São funções puras, sem I/O e com `agora` injetado, cobertas por testes unitários (doc 09). Importam enums só de `@/generated/prisma/enums`.
 
-| Módulo | Funções |
-|---|---|
-| `tempo.ts` | `dataLocal`, `paraDb`, `deDb`, `fimDoDia`, `somarDiasCorridos`, `somarHoras`, `somarAnos` (29/02 → 28/02), `agendamentoDaRodada`, `inicioDoMesSeguinte`, `primeiroDia3Apos`, `primeiroDia3Em`, `prazoConfirmacao` |
-| `hash.ts` | `jsonCanonico`, `sha256hex`, `hashVersao`, `hashSnapshot` |
-| `dinheiro.ts` | `formatarBRL`, `ratear(S, ordem[])` |
-| `quorum.ts` | `calcularQuorum(n)`, `apurarVotacao(votacao, votos, agora, membrosAtuais)` → `{status, motivo, encerradaEm}` |
-| `financeiro.ts` | `vencimentoEfetivo`, `pagosAte`, `saldo`, `quitada`, `emAtraso`, `emDia`, `postergado`, `pagantes`, `premio`, `gasto`, `sobra`, `complementacao`, `conservacao`, `recebedorPadrao(obrigacao, cessoes, pixEm)`, `sobrasPendentes(r)`, `complementar(a, r)`, `efeitosDaInvalidacao(p, obrigacoes, pagamentos)` |
-| `sorteio.ts` | `apurarSorteio(entrada, T)` → `{resultado, snapshot, elegiveis, motivos}`, `escolher(elegiveis, rng)` |
-| `cessao.ts` | `efeitosDaCessao(rodada, obrigacoes, pagamentos, dataAta)` → operações na ordem da RN-CES-05 (autoquitar beneficiário + devoluções → cancelar/recriar autoquitadas do cedente → redirecionar → repasses) |
-| `compra.ts` | `validarProduto(entrada)` → `Validacao[]`, `statusAviso(…)`, `exige16IV(aviso)`, `aquisicaoAtiva(a)`, `classificarAquisicao(…)` → `irregularidades[]`, `origemNaLista(…)` |
-| `ciclo.ts` | `participantesPrevistos`, `contempladosDoCiclo`, `concluido`, `anteriorContemplada`, `proximaContemplada`, `destinoDaSobra`, `pendenciasDaRodada`, `vagasLivres`, `dataInicioProximoCiclo(concluidoEm)` |
-| `regulamento.ts` | `versaoVigente(versoes, t)`, `parametrosSchema` (zod), `vigenciaDeAlteracao(encerradaEm)`, `adesaoValida(a, versao, pessoa)` |
-| `efeitos.ts` | `efeitoSchema` (união discriminada zod de RN-VOT-08/09), `chaveObjeto(assunto, efeito)` |
-| `erros.ts` | catálogo de `ErroDeNegocio` (`codigo`, mensagem pt-BR, artigo) |
+| Módulo           | Funções                                                                                                                                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tempo.ts`       | `dataLocal`, `paraDb`, `deDb`, `fimDoDia`, `somarDiasCorridos`, `somarHoras`, `somarAnos` (29/02 → 28/02), `agendamentoDaRodada`, `inicioDoMesSeguinte`, `primeiroDia3Apos`, `primeiroDia3Em`, `prazoConfirmacao`                                                                                            |
+| `hash.ts`        | `jsonCanonico`, `sha256hex`, `hashVersao`, `hashSnapshot`                                                                                                                                                                                                                                                    |
+| `dinheiro.ts`    | `formatarBRL`, `ratear(S, ordem[])`                                                                                                                                                                                                                                                                          |
+| `quorum.ts`      | `calcularQuorum(n)`, `apurarVotacao(votacao, votos, agora, membrosAtuais)` → `{status, motivo, encerradaEm}`                                                                                                                                                                                                 |
+| `financeiro.ts`  | `vencimentoEfetivo`, `pagosAte`, `saldo`, `quitada`, `emAtraso`, `emDia`, `postergado`, `pagantes`, `premio`, `gasto`, `sobra`, `complementacao`, `conservacao`, `recebedorPadrao(obrigacao, cessoes, pixEm)`, `sobrasPendentes(r)`, `complementar(a, r)`, `efeitosDaInvalidacao(p, obrigacoes, pagamentos)` |
+| `sorteio.ts`     | `apurarSorteio(entrada, T)` → `{resultado, snapshot, elegiveis, motivos}`, `escolher(elegiveis, rng)`                                                                                                                                                                                                        |
+| `cessao.ts`      | `efeitosDaCessao(rodada, obrigacoes, pagamentos, dataAta)` → operações na ordem da RN-CES-05 (autoquitar beneficiário + devoluções → cancelar/recriar autoquitadas do cedente → redirecionar → repasses)                                                                                                     |
+| `compra.ts`      | `validarProduto(entrada)` → `Validacao[]`, `statusAviso(…)`, `exige16IV(aviso)`, `aquisicaoAtiva(a)`, `classificarAquisicao(…)` → `irregularidades[]`, `origemNaLista(…)`                                                                                                                                    |
+| `ciclo.ts`       | `participantesPrevistos`, `contempladosDoCiclo`, `concluido`, `anteriorContemplada`, `proximaContemplada`, `destinoDaSobra`, `pendenciasDaRodada`, `vagasLivres`, `dataInicioProximoCiclo(concluidoEm)`                                                                                                      |
+| `regulamento.ts` | `versaoVigente(versoes, t)`, `parametrosSchema` (zod), `vigenciaDeAlteracao(encerradaEm)`, `adesaoValida(a, versao, pessoa)`                                                                                                                                                                                 |
+| `efeitos.ts`     | `efeitoSchema` (união discriminada zod de RN-VOT-08/09), `chaveObjeto(assunto, efeito)`                                                                                                                                                                                                                      |
+| `erros.ts`       | catálogo de `ErroDeNegocio` (`codigo`, mensagem pt-BR, artigo)                                                                                                                                                                                                                                               |

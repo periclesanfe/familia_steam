@@ -1,0 +1,22 @@
+# Só o necessário para o build: mantém o contexto pequeno e o cache estável.
+.git
+.github
+.husky
+.next
+node_modules
+src/generated
+coverage
+playwright-report
+test-results
+blob-report
+tests
+docs
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose*.yml
+.dockerignore
+.DS_Store

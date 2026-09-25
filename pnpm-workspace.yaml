@@ -1,0 +1,12 @@
+# pnpm 11: configuração do projeto (não há workspace de múltiplos pacotes).
+# Scripts de build de dependências precisam ser aprovados explicitamente.
+allowBuilds:
+  prisma: true
+  '@prisma/engines': true
+  esbuild: true
+  unrs-resolver: false
+
+# O Next traz o sharp como dependência opcional (otimização de imagem). Usamos images.unoptimized
+# (capas e avatares já vêm otimizados do CDN da Steam), então ele fica fora: −18 MB na imagem.
+ignoredOptionalDependencies:
+  - sharp

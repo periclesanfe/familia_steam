@@ -2,24 +2,24 @@
 
 ## 1. Stack (versões conferidas em 24/09/2026)
 
-| Camada | Escolha | Versão | Observação |
-|---|---|---|---|
-| Runtime | Node.js | **24 LTS** | Node 20 está em EOL; Vitest 5 exige ≥ 22.12 |
-| Gerenciador | pnpm | **≥ 11** (fixar em `packageManager`) | aprovar scripts de build em `pnpm-workspace.yaml` (`allowBuilds: { prisma: true, "@prisma/engines": true, esbuild: true, unrs-resolver: true }`); sem isso, `install` falha |
-| Framework | **Next.js (App Router)** | **16.3.x**; subir para **16.3.7** assim que sair (30/09/2026, correção crítica) | Turbopack padrão; `proxy.ts` no lugar de `middleware.ts`; `params`/`cookies()` são async |
-| UI runtime | React | 19.x (embutido no Next) | React Compiler desligado na v1 |
-| Linguagem | TypeScript | **~5.9** | **não usar TS 7.x**: o typescript-eslint 8.x declara peer `<6.1` |
-| Estilo | Tailwind CSS | 4.x | via `@tailwindcss/postcss` |
-| Componentes | shadcn/ui (CLI v4, base Radix) | 4.x | componentes copiados para `src/components/ui` |
-| Formulários | react-hook-form + @hookform/resolvers + zod | 7.x / 5.x / **4.x** | o mesmo schema no cliente e na action |
-| Markdown | react-markdown + remark-gfm | atuais | sem `rehype-raw` (RN-ACE-15) |
-| Datas | date-fns + @date-fns/tz | 4.x / 1.x | `{ in: tz('America/Sao_Paulo') }` |
-| Banco | PostgreSQL | 17 | `docker compose` em dev |
-| ORM | **Prisma ORM** | **7.10.0 exato** (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) + `dotenv` (dev) | ⚠ `pnpm add prisma` puxa a **8.0.0-rc**; fixe a versão |
-| Testes | Vitest / Playwright | 5.x / 1.63.x | fixtures JSON para a Steam, sem MSW |
-| Lint | ESLint 9.39.x + eslint-config-next 16 + typescript-eslint + eslint-config-prettier | — | o ESLint 10 quebra o eslint-plugin-react do config do Next (PR aberto); migrar depois |
-| Formatação | Prettier 3.x + prettier-plugin-tailwindcss 0.8.x | — | o plugin exige `tailwindStylesheet` |
-| Git hooks | husky + lint-staged | — | só no pre-commit |
+| Camada      | Escolha                                                                            | Versão                                                                               | Observação                                                                                                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime     | Node.js                                                                            | **24 LTS**                                                                           | Node 20 está em EOL; Vitest 5 exige ≥ 22.12                                                                                                                                 |
+| Gerenciador | pnpm                                                                               | **≥ 11** (fixar em `packageManager`)                                                 | aprovar scripts de build em `pnpm-workspace.yaml` (`allowBuilds: { prisma: true, "@prisma/engines": true, esbuild: true, unrs-resolver: true }`); sem isso, `install` falha |
+| Framework   | **Next.js (App Router)**                                                           | **16.3.x**; subir para **16.3.7** assim que sair (30/09/2026, correção crítica)      | Turbopack padrão; `proxy.ts` no lugar de `middleware.ts`; `params`/`cookies()` são async                                                                                    |
+| UI runtime  | React                                                                              | 19.x (embutido no Next)                                                              | React Compiler desligado na v1                                                                                                                                              |
+| Linguagem   | TypeScript                                                                         | **~5.9**                                                                             | **não usar TS 7.x**: o typescript-eslint 8.x declara peer `<6.1`                                                                                                            |
+| Estilo      | Tailwind CSS                                                                       | 4.x                                                                                  | via `@tailwindcss/postcss`                                                                                                                                                  |
+| Componentes | shadcn/ui (CLI v4, base Radix)                                                     | 4.x                                                                                  | componentes copiados para `src/components/ui`                                                                                                                               |
+| Formulários | react-hook-form + @hookform/resolvers + zod                                        | 7.x / 5.x / **4.x**                                                                  | o mesmo schema no cliente e na action                                                                                                                                       |
+| Markdown    | react-markdown + remark-gfm                                                        | atuais                                                                               | sem `rehype-raw` (RN-ACE-15)                                                                                                                                                |
+| Datas       | date-fns + @date-fns/tz                                                            | 4.x / 1.x                                                                            | `{ in: tz('America/Sao_Paulo') }`                                                                                                                                           |
+| Banco       | PostgreSQL                                                                         | 17                                                                                   | `docker compose` em dev                                                                                                                                                     |
+| ORM         | **Prisma ORM**                                                                     | **7.10.0 exato** (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) + `dotenv` (dev) | ⚠ `pnpm add prisma` puxa a **8.0.0-rc**; fixe a versão                                                                                                                      |
+| Testes      | Vitest / Playwright                                                                | 5.x / 1.63.x                                                                         | fixtures JSON para a Steam, sem MSW                                                                                                                                         |
+| Lint        | ESLint 9.39.x + eslint-config-next 16 + typescript-eslint + eslint-config-prettier | —                                                                                    | o ESLint 10 quebra o eslint-plugin-react do config do Next (PR aberto); migrar depois                                                                                       |
+| Formatação  | Prettier 3.x + prettier-plugin-tailwindcss 0.8.x                                   | —                                                                                    | o plugin exige `tailwindStylesheet`                                                                                                                                         |
+| Git hooks   | husky + lint-staged                                                                | —                                                                                    | só no pre-commit                                                                                                                                                            |
 
 ## 2. Decisões de arquitetura (ADRs)
 
@@ -27,7 +27,7 @@
 - **ADR-002 — Estados temporais derivados e um job idempotente** (C-DERIVADO). Sem fila (pg-boss) e sem cron por tarefa. `GET /api/cron/tick`, chamado a cada 5 min, faz só o que exige efeito (§7). A correção não depende do cron: telas e mutações calculam pelo relógio.
 - **ADR-003 — Login Steam feito à mão** (06 §2). O Auth.js v5 é beta e recusa OpenID 2.0; os plugins comunitários são frágeis. Sessão própria em tabela.
 - **ADR-004 — Linguagem ubíqua em português.** Entidades, campos, funções de domínio e rotas usam os termos do Regulamento (`Rodada`, `Sobra`, `apurarSorteio`, `/votacoes`), sem acento. Termos técnicos ficam em inglês (`page.tsx`, `schema`, `props`). Isso reduz o erro de tradução nas regras, que são a parte difícil.
-- **ADR-005 — Anexos em `bytea` no Postgres.** Menos de 200 MB por ano: um banco, um backup e nenhuma infra extra. *ponytail:* migrar para S3/R2 se passar de ~1 GB.
+- **ADR-005 — Anexos em `bytea` no Postgres.** Menos de 200 MB por ano: um banco, um backup e nenhuma infra extra. _ponytail:_ migrar para S3/R2 se passar de ~1 GB.
 - **ADR-006 — Sem papel de admin** (art. 3º). Os poderes coletivos são efeitos tipados de votação (RN-VOT-07/09).
 - **ADR-007 — Sorteio com `crypto.randomInt` e snapshot com hash** (RN-SOR-08). O beacon drand é melhoria opcional.
 - **ADR-008 — Sem notificações externas na v1.** Painel de pendências + textos para o GRUPO. Webhook do Discord ou Telegram depende da D-26.
@@ -129,6 +129,7 @@ export const registrarPagamentoAcao = acao(registrarPagamentoSchema, (entrada, c
 ```
 
 `acao(schema, handler)` (em `src/server/acao.ts`):
+
 1. resolve a sessão e o perfil (ou devolve `NAO_AUTENTICADO`);
 2. valida com zod, com erros por campo;
 3. chama o handler;
@@ -189,36 +190,78 @@ import tseslint from 'typescript-eslint'
 const semEnumTs = { selector: 'TSEnumDeclaration', message: 'Use enums do Prisma ou "as const".' }
 
 export default defineConfig([
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'src/generated/**', 'coverage/**']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'src/generated/**',
+    'coverage/**',
+  ]),
   ...nextVitals,
   ...nextTs,
   {
     files: ['**/*.ts', '**/*.tsx'],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
-    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
     rules: {
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
-      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
-      'import/order': ['error', { 'newlines-between': 'always', alphabetize: { order: 'asc' },
-        groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']] }],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: { attributes: false } },
+      ],
+      'import/order': [
+        'error',
+        {
+          'newlines-between': 'always',
+          alphabetize: { order: 'asc' },
+          groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
+        },
+      ],
       'no-restricted-syntax': ['error', semEnumTs],
     },
   },
-  { // domínio puro (no flat config a regra é substituída, não mesclada: repetir semEnumTs)
+  {
+    // domínio puro (no flat config a regra é substituída, não mesclada: repetir semEnumTs)
     files: ['src/domain/**'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [
-        { group: ['next/*', 'react', '@/server/*', '@/features/*', '@prisma/*'] },
-        { regex: '^@/generated/(?!prisma/enums$)', message: 'O domínio só importa @/generated/prisma/enums.' },
-      ] }],
-      'no-restricted-syntax': ['error', semEnumTs,
-        { selector: "NewExpression[callee.name='Date'][arguments.length=0]", message: 'Injete "agora".' },
-        { selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']", message: 'Injete "agora".' }],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['next/*', 'react', '@/server/*', '@/features/*', '@prisma/*'] },
+            {
+              regex: '^@/generated/(?!prisma/enums$)',
+              message: 'O domínio só importa @/generated/prisma/enums.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        semEnumTs,
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'Injete "agora".',
+        },
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: 'Injete "agora".',
+        },
+      ],
     },
   },
-  { // cliente não acessa servidor
+  {
+    // cliente não acessa servidor
     files: ['src/components/**', 'src/lib/**'],
-    rules: { 'no-restricted-imports': ['error', { patterns: [{ group: ['@/server/*', '@/features/*/servico', '@/generated/*'] }] }] },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['@/server/*', '@/features/*/servico', '@/generated/*'] }] },
+      ],
+    },
   },
   prettier,
 ])
@@ -237,6 +280,7 @@ export default defineConfig([
   "tailwindFunctions": ["cn", "cva"]
 }
 ```
+
 `.prettierignore`: `src/generated`, `.next`, `pnpm-lock.yaml`, `prisma/migrations`, **`docs/regulamento`** (o hash do texto normativo não pode mudar). `.editorconfig`: utf-8, lf, 2 espaços.
 
 ### 5.3 TypeScript (`tsconfig.json`, além do template do Next)
@@ -277,6 +321,7 @@ export default defineConfig([
 ### 5.5 CI (GitHub Actions, `.github/workflows/ci.yml`)
 
 Um job, com `services: postgres:17`:
+
 1. checkout, pnpm e Node 24 (com cache);
 2. `pnpm install --frozen-lockfile` (os `allowBuilds` já aprovados);
 3. `pnpm lint`, `pnpm format:check` e `pnpm typecheck`;
@@ -288,12 +333,12 @@ A branch `main` é protegida: todo PR precisa do CI verde.
 
 ## 6. Testes
 
-| Nível | Ferramenta | O quê | Meta |
-|---|---|---|---|
-| **Unitário** | Vitest (projeto `unit`) | funções de `src/domain` + parsers puros de `src/server/steam` e `src/server/auth/openid.ts`; **todo cenário [U] do [09](09-cenarios-de-aceitacao.md)** | 100% das regras com teste; cobertura de linhas do domínio ≥ 95% |
-| **Integração** | Vitest (projeto `integracao`) + Postgres real | serviços com transação, locks, constraints e triggers: sorteio concorrente, voto concorrente, numeração de ATA, efeitos de votação, cessão ponta a ponta, fechamento concorrente, tick idempotente | cenários [I] |
-| **E2E** | Playwright + login dev | onboarding e assinatura; sorteio → pagamento → confirmação; aviso → veto → nova escolha → compra → sobra; votação até a ATA | cenários [E] |
-| **Propriedade** | Vitest (`fast-check` opcional) | conservação (RN-FIN-18) em sequências aleatórias de pagamentos, reembolsos e cessões | 1 teste |
+| Nível           | Ferramenta                                    | O quê                                                                                                                                                                                              | Meta                                                            |
+| --------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Unitário**    | Vitest (projeto `unit`)                       | funções de `src/domain` + parsers puros de `src/server/steam` e `src/server/auth/openid.ts`; **todo cenário [U] do [09](09-cenarios-de-aceitacao.md)**                                             | 100% das regras com teste; cobertura de linhas do domínio ≥ 95% |
+| **Integração**  | Vitest (projeto `integracao`) + Postgres real | serviços com transação, locks, constraints e triggers: sorteio concorrente, voto concorrente, numeração de ATA, efeitos de votação, cessão ponta a ponta, fechamento concorrente, tick idempotente | cenários [I]                                                    |
+| **E2E**         | Playwright + login dev                        | onboarding e assinatura; sorteio → pagamento → confirmação; aviso → veto → nova escolha → compra → sobra; votação até a ATA                                                                        | cenários [E]                                                    |
+| **Propriedade** | Vitest (`fast-check` opcional)                | conservação (RN-FIN-18) em sequências aleatórias de pagamentos, reembolsos e cessões                                                                                                               | 1 teste                                                         |
 
 - **Relógio:** o domínio recebe `agora`. Na integração, `vi.setSystemTime` controla `agora()` (`src/server/relogio.ts`); nenhum SQL de negócio usa `now()`, e nunca se usa `sleep`.
 - **Banco de teste:** um `prisma migrate reset --force` no `globalSetup` do projeto `integracao` e `TRUNCATE <tabelas> RESTART IDENTITY CASCADE` no `beforeEach` (não dispara os triggers de linha). Os arquivos rodam em série. Os dados vêm das fábricas de `tests/fabricas.ts`.
@@ -308,6 +353,7 @@ A branch `main` é protegida: todo PR precisa do CI verde.
 - Cada passo é uma transação curta e **trava o próprio objeto** (RN-GER-06). Uma falha num passo não impede os outros. A resposta traz o resumo. `maxDuration` de 60 s, abaixo do intervalo de 5 min.
 
 Passos, em ordem:
+
 1. **Votações vencidas:** `ABERTA ∧ encerraEm ≤ agora` → REJEITADA (PRAZO) + ATA (RN-VOT-04/06).
 2. **Sorteios:** recalcular `agendadaPara` das `AGENDADA` pela versão vigente no dia, exceto substitutas de anulação (RN-SOR-01). Depois, as rodadas `AGENDADA` com `agendadaPara ≤ agora`, em ordem (ciclo, sequência), vão para `executarRodada(SISTEMA)` (RN-SOR-02..10). Isso inclui a abertura do ciclo (RN-CIC-02/03/06/07), a ativação e a caducidade de admissões (RN-CAD-12).
 3. **Fechamentos**, em ordem `(ciclo.numero, sequencia)`, sob `travar('fechamento')`: rodadas `CONTEMPLADA` sem cessão em andamento, com prazo vencido e aquisição registrada, ou com `fechamentoSolicitado` → `fecharRodada` (RN-FIN-13), que cria a SOBRA ou o rateio e tenta fechar a próxima.
@@ -316,6 +362,7 @@ Passos, em ordem:
 6. **Limpeza:** `NonceOpenId` com mais de 1 dia e sessões expiradas.
 
 Agendamento a cada 5 min (D-29):
+
 - **VPS/Docker:** serviço `cron` (alpine) com `*/5 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://app:3000/api/cron/tick`.
 - **PaaS:** o cron do provedor, desde que aceite `*/5`. O Vercel Hobby só roda 1x/dia e não serve; o Pro serve.
 
@@ -323,31 +370,32 @@ Agendamento a cada 5 min (D-29):
 
 ### 8.1 Variáveis (`src/server/env.ts`, validadas por zod no boot)
 
-| Variável | Uso |
-|---|---|
-| `DATABASE_URL` | Postgres |
-| `APP_URL` | URL pública (`realm` e `return_to` do OpenID, links do GRUPO) |
-| `STEAM_API_KEY` | GetPlayerSummaries, GetOwnedGames, ResolveVanityURL |
-| `CRON_SECRET` | proteção do tick (**≥ 32 caracteres**) |
-| `DEV_LOGIN` | `1` habilita `/api/auth/dev` fora de produção. **Com `NODE_ENV=production`, o boot é recusado** |
-| `TZ` | `UTC` no container (o fuso de negócio é aplicado no código) |
+| Variável        | Uso                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`  | Postgres                                                                                        |
+| `APP_URL`       | URL pública (`realm` e `return_to` do OpenID, links do GRUPO)                                   |
+| `STEAM_API_KEY` | GetPlayerSummaries, GetOwnedGames, ResolveVanityURL                                             |
+| `CRON_SECRET`   | proteção do tick (**≥ 32 caracteres**)                                                          |
+| `DEV_LOGIN`     | `1` habilita `/api/auth/dev` fora de produção. **Com `NODE_ENV=production`, o boot é recusado** |
+| `TZ`            | `UTC` no container (o fuso de negócio é aplicado no código)                                     |
 
 ### 8.2 Execução
 
-- **Dev:** `docker compose up -d db` → `pnpm i` → `pnpm db:migrate` → `pnpm db:seed:dev` → `pnpm dev` (com `DEV_LOGIN=1`).
+- **Dev:** `docker compose up -d db` (Postgres na porta **5433** do host) → `pnpm i` → `pnpm db:migrate` → `pnpm db:seed:dev` → `pnpm dev` (app na porta **3100**, com `DEV_LOGIN=1`). As portas fogem das padrões para não colidir com outros projetos locais (ajustáveis por `DB_PORTA`/`APP_PORTA`).
 - **Produção (padrão, D-29):** `docker-compose.prod.yml` com:
   - `db`: postgres:17 com volume e healthcheck;
-  - `migrate`: imagem do stage `builder`, com node_modules completos e `corepack enable`; `command: ["pnpm","db:deploy"]`, `depends_on: { db: { condition: service_healthy } }`;
-  - `app`: Next `output: 'standalone'`, Node 24 alpine, usuário não root, `depends_on: { migrate: { condition: service_completed_successfully } }`. A imagem leva só o standalone;
+  - `migrate`: alvo `migrate` do Dockerfile (node_modules completos), executando **a CLI do Prisma direto** (`./node_modules/.bin/prisma migrate deploy`), sem pnpm em runtime (o pnpm 11 revalida dependências antes de scripts e o corepack baixaria o pnpm); `depends_on: { db: { condition: service_healthy } }`;
+  - `app`: alvo `runner`: **`alpine:3.24` + só o binário do Node** copiado de `node:24-alpine3.24` (mesma musl), sem npm/yarn/corepack, `tini` como PID 1, usuário `node` (uid 1000), `HEALTHCHECK` em `/api/saude` e Next `output: 'standalone'`. O `sharp` fica fora (`ignoredOptionalDependencies`, com `images.unoptimized`). Medido em 25/09/2026: **160 MB em disco / 56 MB comprimida**, cerca de 150 MB de RAM em repouso e parada limpa em menos de 1 s. `depends_on: { migrate: { condition: service_completed_successfully } }`;
   - `cron`: curl a cada 5 min;
   - `backup`: `pg_dump` diário, retenção de 30 dias, cópia para fora do servidor;
   - HTTPS via Caddy (proxy reverso, que grava `X-Forwarded-For`).
-- **Bootstrap** (uma vez, com o texto final da 1.0): `docker compose run --rm -v ./bootstrap.json:/bootstrap.json:ro migrate pnpm cli bootstrap /bootstrap.json` (RN-ACE-10). Depois, divulgar no GRUPO o hash impresso.
+- **Bootstrap** (uma vez, com o texto final da 1.0): `docker compose run --rm -v ./bootstrap.json:/bootstrap.json:ro migrate node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/cli.ts bootstrap /bootstrap.json` (o alvo `migrate` passa a levar `scripts/` no M2) (RN-ACE-10). Depois, divulgar no GRUPO o hash impresso.
 
 ### 8.3 Observabilidade (mínima)
+
 - Logs em JSON (wrapper `log.info/erro`), sem PII e sem URLs com `key=`.
 - `GET /api/saude` → `{ ok, db, ultimoTick }` (`ultimoTick` = `Controle('ultimo_tick').atualizadoEm`), para um monitor externo, com alerta se o tick passar de 30 min sem rodar.
-- *ponytail:* sem Sentry nem APM; adicionar se surgirem erros não reproduzíveis.
+- _ponytail:_ sem Sentry nem APM; adicionar se surgirem erros não reproduzíveis.
 
 ## 9. Segurança (checklist)
 
@@ -360,4 +408,4 @@ Agendamento a cada 5 min (D-29):
 - [ ] Segredos só no servidor; `server-only` nos módulos sensíveis; Bearer do tick com `timingSafeEqual`.
 - [ ] Sem PII em logs; `chavePix*` mascarada na auditoria e nos snapshots.
 - [ ] `/api/auth/dev` devolve 404 em produção (teste) e o boot recusa `DEV_LOGIN=1` em produção.
-- [ ] Rate limit de login em memória por IP (`X-Forwarded-For` do Caddy). *ponytail:* passar para o Postgres se houver mais de uma instância.
+- [ ] Rate limit de login em memória por IP (`X-Forwarded-For` do Caddy). _ponytail:_ passar para o Postgres se houver mais de uma instância.
