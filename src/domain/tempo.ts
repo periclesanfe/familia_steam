@@ -145,3 +145,14 @@ export function primeiroDiaApos(d: DataCivil, dia: number): DataCivil {
 
 /** "AAAA-MM" da data civil (Rodada.mesReferencia). */
 export const mesDe = (d: DataCivil): string => d.slice(0, 7)
+
+/** 12 UI-08: valor de <input type="datetime-local"> ("AAAA-MM-DDTHH:mm"), sempre no fuso de negócio. */
+export function instanteDeCampoLocal(v: string): Date | null {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2})?$/.exec(v)
+  if (!m?.[1] || !m[2]) return null
+  try {
+    return instanteLocal(m[1], m[2])
+  } catch {
+    return null
+  }
+}

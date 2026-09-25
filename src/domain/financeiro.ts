@@ -64,3 +64,22 @@ export const vencidaEmAberto = (o: ContribuicaoFato, t: Date): boolean =>
   !o.autoquitada &&
   vencimentoEfetivo(o, o.diasProrrogacao) <= t &&
   saldo(o, o.pagamentos) > 0
+
+export type Situacao =
+  | 'CANCELADA'
+  | 'AUTOQUITADA'
+  | 'QUITADA'
+  | 'QUITADA_EM_ATRASO'
+  | 'EM_ATRASO'
+  | 'PRORROGADA'
+  | 'NO_PRAZO'
+
+/** 07 §3.4/§3.5: situação exibida na aba Pagamentos e na grade do ciclo (RN-FIN-08). */
+export function situacao(o: ContribuicaoFato, t: Date): Situacao {
+  if (o.canceladaEm) return 'CANCELADA'
+  if (o.autoquitada) return 'AUTOQUITADA'
+  const atrasou = emAtraso(o, t)
+  if (saldo(o, o.pagamentos) <= 0) return atrasou ? 'QUITADA_EM_ATRASO' : 'QUITADA'
+  if (atrasou) return 'EM_ATRASO'
+  return vencimentoEfetivo(o, o.diasProrrogacao) > o.vencimentoEm ? 'PRORROGADA' : 'NO_PRAZO'
+}
