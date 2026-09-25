@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  CalendarDays,
   Dices,
   FileSignature,
   Heart,
@@ -41,6 +42,7 @@ function grupos(perfil: Perfil): Grupo[] {
     itens: [
       { href: '/inicio', rotulo: 'Início', Icone: House },
       { href: '/lista-de-desejos', rotulo: 'Lista de desejos', Icone: Heart },
+      { href: '/promocoes', rotulo: 'Promoções', Icone: CalendarDays },
     ],
   }
   if (perfil === 'VISITANTE') return [pessoal]

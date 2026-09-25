@@ -9,6 +9,8 @@ import {
 } from '@/features/familias/servico'
 import { dadosCadastroSchema } from '@/features/onboarding/schemas'
 import { assinarRegulamento, salvarDados } from '@/features/onboarding/servico'
+import { calendarioDePromocoes } from '@/features/promocoes/consultas'
+import { adicionarEvento, removerEvento } from '@/features/promocoes/servico'
 import { sairDaFamilia } from '@/features/saidas/servico'
 import { votar } from '@/features/votacoes/servico'
 import { db } from '@/server/db'
@@ -208,5 +210,29 @@ describe('famílias (15 RN-FAM, SEG-13)', () => {
     await expect(
       comFamilia(familiaId, () => excluirAntesDaVigencia(ctxDe(a, agora()), { pessoaId: b })),
     ).rejects.toMatchObject({ codigo: 'SEM_PERMISSAO' })
+  })
+
+  it('CA-192: promoção cadastrada na família X aparece na família padrão; auditada; só o autor remove', async () => {
+    const { a, familiaId } = await familiaX()
+    const outro = await visitante(STEAM.b, 'Bruno')
+    const t = agora()
+    const eventoId = await comFamilia(familiaId, () =>
+      adicionarEvento(ctxDe(a, t), {
+        nome: 'Promoção de Inverno',
+        inicio: '2099-12-17',
+        fim: '2100-01-05',
+        fonteUrl: 'https://store.steampowered.com/news/',
+      }),
+    )
+    const c = await comFamilia(FAMILIA_PADRAO, () => calendarioDePromocoes(t))
+    expect(c.eventos.map((e) => e.nome)).toEqual(['Promoção de Inverno'])
+    expect(
+      await dono.eventoAuditoria.findFirst({ where: { acao: 'promocao.adicionar', familiaId } }),
+    ).toMatchObject({ entidadeId: eventoId, atorPessoaId: a })
+    await expect(removerEvento(ctxDe(outro.id, t), { eventoId })).rejects.toMatchObject({
+      codigo: 'SEM_PERMISSAO',
+    })
+    await comFamilia(familiaId, () => removerEvento(ctxDe(a, t), { eventoId }))
+    expect(await dono.eventoPromocao.count()).toBe(0)
   })
 })

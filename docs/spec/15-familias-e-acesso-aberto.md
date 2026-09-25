@@ -75,7 +75,8 @@ Decisão do usuário em 25/09/2026 (D-33 a D-36, doc 03). Este documento **subst
 
 ## 6. Calendário de promoções (M10c)
 
-- `EventoPromocao(id, familiaId?, nome, inicio, fim, fonteUrl, criadoPorId)`. Com `familiaId` nulo, é um evento global (as grandes promoções da Steam). Qualquer membro de qualquer família cadastra ou corrige um evento global, com auditoria. A Steam não publica esse calendário por API; a Valve anuncia as datas com antecedência, e a tela pede o link da fonte.
+- `EventoPromocao(id, nome, inicio, fim, fonteUrl, criadoPorId)`: tabela **global**, sem `familiaId` (as grandes promoções da Steam valem para todas as famílias). Quem está numa família (MEMBRO ou PENDENTE) cadastra, com auditoria na própria família; só quem cadastrou remove (para corrigir, remove e cadastra de novo). A Steam não publica esse calendário por API; a Valve anuncia as datas na documentação do Steamworks, a tela aponta para lá e pede o link `https` da fonte.
+- **Janelas de compra:** os próximos 6 sorteios são projetados pelo `diaSorteio` da versão aplicável, e cada janela vai do sorteio até `diasPrazoCompra` dias depois (art. 20). Um evento que cruza a janela marca o sorteio como "bom momento"; se já estiver acontecendo no dia do sorteio, a tela diz isso.
 - **Em promoção agora:** itens das listas de desejos da família com desconto > 0 no último preço observado, ordenados por desconto.
 - A tela do calendário mostra, na mesma linha do tempo, os próximos sorteios da família e os eventos de promoção. Mudar o dia do sorteio continua sendo alteração do Regulamento (`diaSorteio`, RN-REG-06).
 

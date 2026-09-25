@@ -938,3 +938,18 @@ model PrecoApp {
   @@id([appId, em])
   @@map("preco_app")
 }
+
+/// 15 §6 (M10c): grandes promoções da Steam, cadastradas pelos membros com a fonte (a Steam não
+/// publica o calendário por API). Global: vale para todas as famílias; edições vão à auditoria.
+model EventoPromocao {
+  id          String   @id @default(uuid()) @db.Uuid
+  nome        String
+  inicio      DateTime @db.Date
+  fim         DateTime @db.Date
+  fonteUrl    String
+  criadoPorId String   @db.Uuid
+  criadoEm    DateTime @db.Timestamptz(3)
+
+  @@index([fim])
+  @@map("evento_promocao")
+}
