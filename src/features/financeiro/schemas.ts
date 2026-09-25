@@ -58,3 +58,23 @@ export const enviarAnexoSchema = z.object({
     'EVIDENCIA_SORTEIO',
   ]),
 })
+
+/**
+ * "Paguei" da tela: envia o comprovante (se houver) e registra o pagamento. Arquivo vazio do
+ * <input type="file"> conta como ausente.
+ */
+export const pagarSchema = z
+  .object({
+    obrigacaoId: z.uuid(),
+    valor: centavos,
+    pixEm: instante,
+    arquivo: z
+      .instanceof(File)
+      .optional()
+      .transform((f) => (f && f.size > 0 ? f : undefined)),
+    formaDiversa: z.literal('on').optional(),
+  })
+  .refine((d) => d.formaDiversa === 'on' || d.arquivo !== undefined, {
+    path: ['arquivo'],
+    message: 'Anexe o comprovante (obrigatório, salvo forma diversa)',
+  })

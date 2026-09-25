@@ -40,7 +40,17 @@ export default async function RodadasPage({ searchParams }: PageProps<'/rodadas'
       <CabecalhoPagina
         titulo={`Rodadas do ciclo ${String(c.numero)}`}
         descricao={`Início em ${formatarDataCivil(c.dataInicio)}.`}
-        acoes={<StatusBadge {...STATUS_CICLO[c.status]} />}
+        acoes={
+          <>
+            <StatusBadge {...STATUS_CICLO[c.status]} />
+            <Link
+              href={`/ciclos/${String(c.numero)}`}
+              className="text-sm underline underline-offset-4"
+            >
+              Grade do ciclo
+            </Link>
+          </>
+        }
       />
       {ciclos.length > 1 && (
         <nav aria-label="Ciclos" className="flex flex-wrap gap-2 text-sm">

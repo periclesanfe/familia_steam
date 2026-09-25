@@ -84,10 +84,11 @@ describe('pagamentos (RN-FIN-03..06, RN-ACE-09)', () => {
   })
 
   it('CA-38: 3000 numa obrigação com saldo 2500 é recusado; parcial é aceito', async () => {
-    const { devedores, obrigacaoDe } = await comRodada1()
+    const { credor, devedores, obrigacaoDe } = await comRodada1()
     const [a = ''] = devedores
     const o = await obrigacaoDe(a)
     const ctx = ctxDe(a, agora())
+    // forma diversa só conta CONFIRMADA (RN-FIN-06): o parcial é registrado pelo credor
     await expect(
       registrarPagamento(ctx, {
         obrigacaoId: o.id,
@@ -96,7 +97,7 @@ describe('pagamentos (RN-FIN-03..06, RN-ACE-09)', () => {
         formaDiversa: 'on',
       }),
     ).rejects.toMatchObject({ codigo: 'VALOR_ACIMA_DO_SALDO' })
-    await registrarPagamento(ctx, {
+    await registrarPagamento(ctxDe(credor, agora()), {
       obrigacaoId: o.id,
       valor: 1000,
       pixEm: agora(),

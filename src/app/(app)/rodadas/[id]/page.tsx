@@ -5,10 +5,13 @@ import { AbasNaUrl } from '@/components/AbasNaUrl'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { ConfirmarAcao } from '@/components/ConfirmarAcao'
 import { CopiarTexto } from '@/components/CopiarTexto'
+import { Dinheiro } from '@/components/Dinheiro'
 import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ListaObrigacoes } from '@/features/financeiro/componentes/ListaObrigacoes'
+import { pagamentosDaRodada } from '@/features/financeiro/consultas'
 import { nomeDoMes, textoDoSorteio } from '@/features/grupo/textos'
 import {
   naoConcorrerAcao,
@@ -30,14 +33,20 @@ import { agora } from '@/server/relogio'
 
 export const metadata: Metadata = { title: 'Rodada' }
 
-const ABAS = [{ id: 'sorteio', rotulo: 'Sorteio' }]
-
 // 07 §3.4: detalhe da rodada. Aba Sorteio no M4; Pagamentos (M5), Jogo (M7) e Cessão (M8a) depois.
-export default async function RodadaPage({ params }: PageProps<'/rodadas/[id]'>) {
+export default async function RodadaPage({ params, searchParams }: PageProps<'/rodadas/[id]'>) {
   const { pessoaId } = await paginaExige(['MEMBRO'])
-  const { id } = await params
-  const d = await detalheRodada(id, pessoaId, agora())
+  const [{ id }, { aba: abaPedida }] = await Promise.all([params, searchParams])
+  const t = agora()
+  const d = await detalheRodada(id, pessoaId, t)
   if (!d) notFound()
+  const temPagamentos = d.rodada.status === 'CONTEMPLADA' || d.rodada.status === 'FECHADA'
+  const abas = [
+    { id: 'sorteio', rotulo: 'Sorteio' },
+    ...(temPagamentos ? [{ id: 'pagamentos', rotulo: 'Pagamentos' }] : []),
+  ]
+  const aba = abas.some((a) => a.id === abaPedida) ? (abaPedida as string) : 'sorteio'
+  const pagamentos = aba === 'pagamentos' ? await pagamentosDaRodada(id, t) : null
   const { rodada: r, sorteio } = d
   const eu = d.participantes.find((p) => p.eu)
   const link = `${env().APP_URL}/rodadas/${r.id}`
@@ -49,9 +58,22 @@ export default async function RodadaPage({ params }: PageProps<'/rodadas/[id]'>)
         descricao={`Ciclo ${String(d.ciclo.numero)}${r.contemplado ? ` · contemplado: ${r.contemplado}` : ''}`}
         acoes={<StatusBadge {...STATUS_RODADA[r.status]} />}
       />
-      <AbasNaUrl abas={ABAS} ativa="sorteio" base={`/rodadas/${r.id}`} />
+      <AbasNaUrl abas={abas} ativa={aba} base={`/rodadas/${r.id}`} />
 
-      {r.status === 'AGENDADA' ? (
+      {pagamentos ? (
+        <section aria-labelledby="pagamentos" className="flex flex-col gap-4">
+          <h2 id="pagamentos" className="sr-only">
+            Pagamentos
+          </h2>
+          <p className="text-sm">
+            PRÊMIO nominal <Dinheiro centavos={pagamentos.premioCentavos} className="font-medium" />{' '}
+            · recebido até agora{' '}
+            <Dinheiro centavos={pagamentos.recebidoCentavos} className="font-medium" /> (art. 5º,
+            §2º)
+          </p>
+          <ListaObrigacoes obrigacoes={pagamentos.obrigacoes} eu={pessoaId} agora={t} />
+        </section>
+      ) : r.status === 'AGENDADA' ? (
         <Card>
           <CardHeader>
             <CardTitle>Sorteio em {formatarDataHora(r.agendadaPara)}</CardTitle>
@@ -148,7 +170,7 @@ export default async function RodadaPage({ params }: PageProps<'/rodadas/[id]'>)
         </Card>
       ) : null}
 
-      {d.participantes.length > 0 && (
+      {!pagamentos && d.participantes.length > 0 && (
         <section aria-labelledby="participantes" className="flex flex-col gap-3">
           <h2 id="participantes" className="text-lg font-semibold">
             {sorteio ? 'Participantes no corte' : 'Situação prevista'}

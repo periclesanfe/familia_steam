@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Dices, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { BookOpen, Dices, LayoutDashboard, LogOut, UserRound, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -22,6 +22,7 @@ import { sairAcao } from '@/features/autenticacao/acoes'
 const ITENS = [
   { href: '/', rotulo: 'Painel', Icone: LayoutDashboard },
   { href: '/rodadas', rotulo: 'Rodadas', Icone: Dices },
+  { href: '/financeiro', rotulo: 'Financeiro', Icone: Wallet },
   { href: '/regulamento', rotulo: 'Regulamento', Icone: BookOpen },
   { href: '/perfil', rotulo: 'Perfil', Icone: UserRound },
 ] as const
