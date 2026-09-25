@@ -124,6 +124,7 @@ export async function iniciarCiclo(
   tx: Tx,
   ctx: Contexto,
   ciclo: { id: string; numero: number },
+  p: Parametros,
 ): Promise<boolean> {
   const T = ctx.agora
   const aptos = { status: { in: ['ATIVO' as const, 'IMPOSSIBILITADO' as const] } }
@@ -158,7 +159,7 @@ export async function iniciarCiclo(
         data: { status: 'ENCERRADO', encerradoEm: T, motivoEncerramento: 'NAO_CONFIRMOU_ART44' },
       })
     }
-    // ponytail: admitidos AGUARDANDO_CICLO (RN-CAD-12.4) entram no M8b
+    previstos = [...previstos, ...(await ativarAdmitidos(tx, T, previstos.length, p))]
   }
 
   const anterior = await tx.ciclo.findFirst({
@@ -237,4 +238,49 @@ export async function semCicloSeguinte(
     dados: { motivo },
     ...(ataNumero ? { ataNumero } : {}),
   })
+}
+
+/**
+ * RN-CAD-12.4/5/6 e RN-CAD-13, no corte da 1ª rodada: admitido que assinou e já está na família
+ * fica ATIVO, até `membrosPrevistos` (os demais ficam para o ciclo seguinte); quem não assinou
+ * caduca, com o convite da mesma ATA. Devolve os ativados, que viram participantes.
+ */
+async function ativarAdmitidos(tx: Tx, T: Date, confirmados: number, p: Parametros) {
+  const admitidos = await tx.membro.findMany({
+    where: { origem: 'ADMISSAO', status: { in: ['AGUARDANDO_ADESAO', 'AGUARDANDO_CICLO'] } },
+    orderBy: [{ ataAdmissaoNumero: 'asc' }, { criadoEm: 'asc' }],
+    select: {
+      id: true,
+      pessoaId: true,
+      status: true,
+      ataAdmissaoNumero: true,
+      pessoa: { select: { integrantes: { where: { status: 'ATIVO' }, select: { id: true } } } },
+    },
+  })
+  const caducos = admitidos.filter((a) => a.status === 'AGUARDANDO_ADESAO')
+  if (caducos.length > 0) {
+    await tx.membro.updateMany({
+      where: { id: { in: caducos.map((a) => a.id) } },
+      data: { status: 'ENCERRADO', encerradoEm: T, motivoEncerramento: 'ADMISSAO_CADUCOU' },
+    })
+    await tx.integranteFamilia.updateMany({
+      where: {
+        status: 'CONVITE_AUTORIZADO',
+        OR: caducos.map((a) => ({ pessoaId: a.pessoaId, ataConviteNumero: a.ataAdmissaoNumero })),
+      },
+      data: { status: 'CONVITE_CADUCOU' },
+    })
+  }
+  // RN-CAD-12.6: sem o convite executado na Steam, fica para o ciclo seguinte (pendência)
+  const prontos = admitidos.filter(
+    (a) => a.status === 'AGUARDANDO_CICLO' && a.pessoa.integrantes.length > 0,
+  )
+  const ativados = prontos.slice(0, Math.max(0, p.membrosPrevistos - confirmados)) // CA-94
+  if (ativados.length > 0) {
+    await tx.membro.updateMany({
+      where: { id: { in: ativados.map((a) => a.id) } },
+      data: { status: 'ATIVO', ativadoEm: T },
+    })
+  }
+  return ativados.map((a) => ({ id: a.id, pessoaId: a.pessoaId }))
 }

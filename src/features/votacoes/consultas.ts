@@ -105,7 +105,7 @@ export async function detalheVotacao(id: string, pessoaId: string, agora: Date) 
 
 /** Opções do formulário "Nova votação" (07 §3.7), filtradas pelos efeitos já disponíveis. */
 export async function opcoesDeConvocacao(agora: Date) {
-  const [bloqueados, contestados, obrigacoes, pessoas, ciclos, rodadas, versoes] =
+  const [bloqueados, contestados, obrigacoes, pessoas, ciclos, rodadas, versoes, integrantes] =
     await Promise.all([
       db.jogoBloqueado.findMany({
         where: { protegida: false, excluidoEm: null },
@@ -158,6 +158,10 @@ export async function opcoesDeConvocacao(agora: Date) {
           numero: true,
         },
       }),
+      db.integranteFamilia.findMany({
+        where: { status: 'ATIVO' },
+        select: { id: true, pessoaId: true, pessoa: { select: { apelido: true } } },
+      }),
     ])
   const vigente = versaoAplicavelSync(versoes, agora)
   return {
@@ -168,6 +172,11 @@ export async function opcoesDeConvocacao(agora: Date) {
     pessoas,
     ciclos,
     rodadas,
+    integrantes: integrantes.map((i) => ({
+      id: i.id,
+      pessoaId: i.pessoaId,
+      apelido: i.pessoa.apelido,
+    })),
     regulamento: vigente
       ? {
           numero: vigente.numero,

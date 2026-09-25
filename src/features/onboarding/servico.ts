@@ -12,7 +12,15 @@ import {
   parametrosSchema,
   versaoVigente,
 } from '@/domain/regulamento'
-import { dataLocal, instanteLocal, mesDe, paraDb, primeiroDiaApos } from '@/domain/tempo'
+import {
+  dataLocal,
+  deDb,
+  instanteLocal,
+  mesDe,
+  paraDb,
+  prazoConfirmacao,
+  primeiroDiaApos,
+} from '@/domain/tempo'
 import type { ContextoAcao } from '@/server/acao'
 import { registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
@@ -95,8 +103,19 @@ export async function assinarRegulamento(ctx: ContextoAcao) {
       'Complete nome, chave Pix e a declaração de maioridade antes de assinar.',
       'art. 2º, II',
     )
-    // ponytail: admissão (AGUARDANDO_CICLO, RN-CAD-12) entra no M8b; aqui só fundadores
-    exigir(membro.origem === 'FUNDADOR', 'SEM_PERMISSAO', 'A adesão de admitidos entra no M8b.')
+    if (membro.origem === 'ADMISSAO') {
+      // RN-CAD-12.3 (CA-145): depois do prazo de confirmação do ciclo planejado, não assina mais
+      const planejado = await tx.ciclo.findFirst({
+        where: { status: 'PLANEJADO' },
+        select: { dataInicio: true },
+      })
+      exigir(
+        !planejado || ctx.agora < prazoConfirmacao(deDb(planejado.dataInicio)),
+        'ENTRADA_INVALIDA',
+        'O prazo para assinar antes do próximo ciclo acabou; a admissão caduca no 1º sorteio.',
+        'art. 6º',
+      )
+    }
 
     const versoes = await tx.versaoRegulamento.findMany({
       select: {
@@ -145,6 +164,9 @@ export async function assinarRegulamento(ctx: ContextoAcao) {
       dados: { depois: { versao: alvo.numero, sha256: alvo.sha256 } },
     })
 
+    if (membro.origem === 'ADMISSAO') {
+      await tx.membro.update({ where: { id: membro.id }, data: { status: 'AGUARDANDO_CICLO' } })
+    }
     if (alvo.ordem === 0 && !alvo.vigenteDesde) {
       await talvezIniciarVigencia(tx, ctx, {
         ...alvo,

@@ -13,6 +13,7 @@ import {
 import { dataLocal, instanteLocal, mesDe, paraDb, prazoEmDias } from '@/domain/tempo'
 import { aplicarCessao } from '@/features/cessao/efeito'
 import { fecharRodada, ratearPendentesDoCiclo } from '@/features/compra/fechamento'
+import { aplicarAdmissao, aplicarConvite, aplicarRemocao } from '@/features/familia/efeitos'
 import { aoInvalidar, aoPassarAContar } from '@/features/financeiro/derivadas'
 import { semCicloSeguinte } from '@/features/rodadas/ciclo'
 import { encerrarMembro, registrarSaidaDaFamilia } from '@/features/saidas/servico'
@@ -44,6 +45,9 @@ export const EFEITOS_DISPONIVEIS = [
   'REVINCULAR_STEAM',
   'CONTINUIDADE_CONSORCIO',
   'ADIAR_CICLO',
+  'ADMISSAO_MEMBRO',
+  'CONVITE_INTEGRANTE',
+  'REMOCAO_INTEGRANTE',
 ] as const satisfies readonly Efeito['tipo'][]
 
 export const efeitoDisponivel = (t: Efeito['tipo']): boolean =>
@@ -335,6 +339,13 @@ export async function aplicarEfeito(
       await auditar('pessoa', efeito.pessoaId, { steamId64: efeito.novoSteamId64 })
       return 'aplicado: conta Steam trocada e sessões revogadas; a pessoa assina de novo no próximo login'
     }
+
+    case 'ADMISSAO_MEMBRO':
+      return aplicarAdmissao(tx, ctx, efeito, ataNumero) // RN-CAD-12
+    case 'CONVITE_INTEGRANTE':
+      return aplicarConvite(tx, ctx, efeito, ataNumero) // RN-CAD-08
+    case 'REMOCAO_INTEGRANTE':
+      return aplicarRemocao(tx, ctx, efeito, ataNumero, encerradaEm) // RN-CAD-09
 
     case 'CONTINUIDADE_CONSORCIO': {
       // RN-CIC-10 (art. 38, p.u.)

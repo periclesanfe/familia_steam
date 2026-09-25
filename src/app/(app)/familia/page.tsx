@@ -1,9 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { BotaoEnviar } from '@/components/BotaoEnviar'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
+import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { dataLocal } from '@/domain/tempo'
+import { registrarExecucaoAcao } from '@/features/familia/acoes'
 import { bibliotecaDaFamilia, type Compartilhavel, familia } from '@/features/steam/consultas'
 import { formatarDataCivil } from '@/lib/formato'
 import type { Tom } from '@/lib/rotulos'
@@ -83,8 +88,31 @@ export default async function FamiliaPage({ searchParams }: PageProps<'/familia'
                       {i.entrouEm && ` · desde ${formatarDataCivil(i.entrouEm)}`}
                     </span>
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
                     {i.status.toLowerCase().replaceAll('_', ' ')}
+                    {(i.status === 'CONVITE_AUTORIZADO' || i.status === 'REMOCAO_AUTORIZADA') && (
+                      <FormAcao
+                        acao={registrarExecucaoAcao}
+                        sucesso="Execução registrada"
+                        className="flex items-center gap-2"
+                      >
+                        <input type="hidden" name="integranteId" value={i.id} />
+                        <label className="sr-only" htmlFor={`executadaEm-${i.id}`}>
+                          Data em que foi feito na Steam
+                        </label>
+                        <Input
+                          id={`executadaEm-${i.id}`}
+                          name="executadaEm"
+                          type="date"
+                          required
+                          max={dataLocal(t)}
+                          className="h-8 w-36"
+                        />
+                        <BotaoEnviar size="sm" variant="outline">
+                          {i.status === 'CONVITE_AUTORIZADO' ? 'Convite feito' : 'Remoção feita'}
+                        </BotaoEnviar>
+                      </FormAcao>
+                    )}
                   </span>
                 </li>
               ))}
