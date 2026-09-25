@@ -159,6 +159,56 @@ export async function ratearSobra(
   })
 }
 
+/**
+ * RN-FIN-17: ao encerrar o ciclo sem ciclo seguinte, rateia as SOBRAs (principais e
+ * complementares) das rodadas já fechadas que ainda não tinham destino. As que fecharem depois
+ * rateiam no próprio fechamento. Idempotente.
+ */
+export async function ratearPendentesDoCiclo(tx: Tx, ctx: Contexto, cicloId: string) {
+  const [fechadas, existentes, complementares] = await Promise.all([
+    tx.rodada.findMany({
+      where: { cicloId, status: 'FECHADA', sobraCentavos: { gt: 0 }, contempladoId: { not: null } },
+      select: { id: true, contempladoId: true, sobraCentavos: true },
+    }),
+    tx.obrigacao.findMany({
+      where: {
+        tipo: { in: ['SOBRA', 'RATEIO_SOBRA'] },
+        rodadaOrigem: { cicloId },
+        canceladaEm: null,
+      },
+      select: { rodadaOrigemId: true, aquisicaoReembolsoId: true },
+    }),
+    tx.aquisicao.findMany({
+      where: { rodada: { cicloId, status: 'FECHADA' }, complementarCentavos: { gt: 0 } },
+      select: {
+        id: true,
+        rodadaId: true,
+        complementarCentavos: true,
+        rodada: { select: { contempladoId: true } },
+      },
+    }),
+  ])
+  const tem = new Set(
+    existentes.map((o) => `${o.rodadaOrigemId ?? ''}:${o.aquisicaoReembolsoId ?? ''}`),
+  )
+  const pendentes = [
+    ...fechadas.map((f) => ({
+      origem: { id: f.id, cicloId, contempladoId: f.contempladoId ?? '' },
+      valor: f.sobraCentavos ?? 0,
+      aquisicaoId: null,
+    })),
+    ...complementares.map((a) => ({
+      origem: { id: a.rodadaId, cicloId, contempladoId: a.rodada.contempladoId ?? '' },
+      valor: a.complementarCentavos ?? 0,
+      aquisicaoId: a.id,
+    })),
+  ].filter((p) => p.origem.contempladoId && !tem.has(`${p.origem.id}:${p.aquisicaoId ?? ''}`))
+  for (const p of pendentes) {
+    // eslint-disable-next-line no-await-in-loop -- poucas rodadas por ciclo; cada rateio audita
+    await ratearSobra(tx, ctx, p.origem, p.valor, p.aquisicaoId)
+  }
+}
+
 /** Prêmio da rodada com as SOBRAs destinadas a ela (RN-FIN-11). */
 export async function premioDaRodada(tx: Tx, rodadaId: string) {
   const [r, sobras] = await Promise.all([

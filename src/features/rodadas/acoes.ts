@@ -1,7 +1,10 @@
 'use server'
 
+import { z } from 'zod'
+
 import { acao } from '@/server/acao'
 
+import { responderProximoCiclo } from './janela'
 import { justificativaSchema, rodadaSchema } from './schemas'
 import {
   declararNaoConcorrer,
@@ -21,4 +24,11 @@ export const voltarAConcorrerAcao = acao(rodadaSchema, (e, ctx) => revogarNaoCon
 
 export const justificarAntecipadamenteAcao = acao(justificativaSchema, (e, ctx) =>
   justificarAntecipadamente(ctx, e),
+)
+
+// RN-CIC-05 (art. 44): confirmar ou recusar o próximo ciclo na janela de revisão.
+export const responderProximoCicloAcao = acao(
+  z.object({ cicloId: z.uuid(), resposta: z.enum(['confirmo', 'recuso']) }),
+  (e, ctx) =>
+    responderProximoCiclo(ctx, { cicloId: e.cicloId, confirma: e.resposta === 'confirmo' }),
 )

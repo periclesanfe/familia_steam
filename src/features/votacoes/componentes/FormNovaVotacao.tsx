@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 
 import { ConfirmarAcao } from '@/components/ConfirmarAcao'
 import { errosDo, ResultadoAcao } from '@/components/ResultadoAcao'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -11,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatarBRL } from '@/domain/dinheiro'
 import type { Parametros } from '@/domain/regulamento'
 import { convocarAcao } from '@/features/votacoes/acoes'
+import { formatarDataCivil } from '@/lib/formato'
 
 type Opcoes = {
   efeitos: readonly string[]
@@ -29,9 +31,15 @@ type Opcoes = {
     credor: { apelido: string }
   }[]
   pessoas: { id: string; apelido: string }[]
+  integrantes: { id: string; pessoaId: string; apelido: string }[]
   ciclos: { id: string; numero: number }[]
   rodadas: { id: string; sequencia: number; mesReferencia: string; ciclo: { numero: number } }[]
-  regulamento: { numero: string; texto: string; parametros: Parametros } | null
+  regulamento: {
+    numero: string
+    texto: string
+    parametros: Parametros
+    vigencia: readonly [string, string]
+  } | null
 }
 
 const ASSUNTOS = [
@@ -39,6 +47,10 @@ const ASSUNTOS = [
   ['CONTROVERSIA', 'Controvérsia (art. 47)'],
   ['EXCLUSAO_BLOQUEIO', 'Exclusão de entrada do Anexo I (art. 23, §6º)'],
   ['ALTERACAO_REGULAMENTO', 'Alteração do Regulamento (art. 42)'],
+  ['ADMISSAO_MEMBRO', 'Admissão de membro (art. 6º)'],
+  ['CONVITE_INTEGRANTE', 'Convite de integrante da família (art. 7º)'],
+  ['REMOCAO_INTEGRANTE', 'Remoção de integrante da família (arts. 7º e 35)'],
+  ['CONTINUIDADE_CONSORCIO', 'Continuidade do consórcio (art. 38)'],
   ['OUTRO', 'Outro: só registro (art. 41)'],
 ] as const
 
@@ -49,6 +61,8 @@ const EFEITOS: Record<string, string> = {
   CANCELAR_OBRIGACAO: 'Cancelar obrigação',
   CRIAR_DEVOLUCAO: 'Criar devolução',
   SUSPENDER_CONTRIBUICOES: 'Suspender contribuições de alguém no ciclo',
+  ADIAR_CICLO: 'Adiar o início de um ciclo planejado',
+  ANULAR_RODADA: 'Anular uma rodada (novo sorteio no dia seguinte)',
 }
 
 const ROTULO_PARAMETRO: Record<keyof Parametros, string> = {
@@ -125,7 +139,7 @@ export function FormNovaVotacao({
             ))}
           </NativeSelect>
           <FieldDescription>
-            Veto de jogo, cessão e admissão têm fluxos próprios (aviso do jogo, aba Cessão e ciclo).
+            Veto de jogo e cessão têm fluxos próprios (aviso do jogo e aba Cessão).
           </FieldDescription>
         </Field>
 
@@ -209,6 +223,103 @@ export function FormNovaVotacao({
             </>
           )}
 
+        {(assunto === 'CASO_OMISSO' || assunto === 'CONTROVERSIA') &&
+          efeito === 'ANULAR_RODADA' && (
+            <Selecao
+              nome="efeito.rodadaId"
+              rotulo="Rodada a anular"
+              itens={opcoes.rodadas.map((r) => [
+                r.id,
+                `Ciclo ${String(r.ciclo.numero)}, rodada ${String(r.sequencia)} (${r.mesReferencia})`,
+              ])}
+            />
+          )}
+        {(assunto === 'CASO_OMISSO' || assunto === 'CONTROVERSIA') && efeito === 'ADIAR_CICLO' && (
+          <>
+            <Selecao
+              nome="efeito.cicloId"
+              rotulo="Ciclo"
+              itens={opcoes.ciclos.map((c) => [c.id, `Ciclo ${String(c.numero)}`])}
+            />
+            <Field>
+              <FieldLabel htmlFor="efeito.novaDataInicio">Nova data de início</FieldLabel>
+              <Input id="efeito.novaDataInicio" name="efeito.novaDataInicio" type="date" required />
+              <FieldDescription>Sempre um dia 3 (RN-CIC-11).</FieldDescription>
+            </Field>
+          </>
+        )}
+
+        {assunto === 'ADMISSAO_MEMBRO' && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="efeito.nome">Nome completo</FieldLabel>
+              <Input id="efeito.nome" name="efeito.nome" required minLength={3} />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="efeito.steamId64">SteamID64</FieldLabel>
+              <Input
+                id="efeito.steamId64"
+                name="efeito.steamId64"
+                required
+                inputMode="numeric"
+                pattern="7656119[0-9]{10}"
+                className="font-mono"
+              />
+            </Field>
+            <Field orientation="horizontal">
+              <Checkbox id="efeito.incluirNaFamilia" name="efeito.incluirNaFamilia" />
+              <FieldLabel htmlFor="efeito.incluirNaFamilia" className="font-normal">
+                Ainda não é da família: esta ATA também autoriza o convite (art. 7º)
+              </FieldLabel>
+            </Field>
+            <FieldDescription>
+              Aprovada, a pessoa entra com a Steam, assina o Regulamento e participa a partir do
+              próximo ciclo (RN-CAD-12).
+            </FieldDescription>
+          </>
+        )}
+
+        {assunto === 'CONVITE_INTEGRANTE' && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="efeito.apelido">Apelido</FieldLabel>
+              <Input id="efeito.apelido" name="efeito.apelido" required />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="efeito.steamId64">SteamID64 (opcional)</FieldLabel>
+              <Input
+                id="efeito.steamId64"
+                name="efeito.steamId64"
+                inputMode="numeric"
+                pattern="7656119[0-9]{10}"
+                className="font-mono"
+              />
+            </Field>
+          </>
+        )}
+
+        {assunto === 'REMOCAO_INTEGRANTE' && (
+          <Selecao
+            nome="efeito.integrante"
+            rotulo="Integrante"
+            itens={opcoes.integrantes.map((i) => [`${i.id}:${i.pessoaId}`, i.apelido])}
+          />
+        )}
+
+        {assunto === 'CONTINUIDADE_CONSORCIO' && (
+          <Selecao
+            nome="efeito.acao"
+            rotulo="O que acontece se aprovada"
+            itens={[
+              ['ENCERRAR_AO_FIM_DO_CICLO', 'Encerrar ao fim do ciclo em andamento'],
+              [
+                'ENCERRAR_IMEDIATAMENTE',
+                'Encerrar agora (restituições decididas na ATA, por devoluções)',
+              ],
+            ]}
+          />
+        )}
+
         {assunto === 'EXCLUSAO_BLOQUEIO' && (
           <Selecao
             nome="efeito.numero"
@@ -235,6 +346,12 @@ export function FormNovaVotacao({
                 defaultValue={opcoes.regulamento.texto}
               />
             </Field>
+            <p className="text-sm text-warning">
+              {opcoes.regulamento.vigencia[0] === opcoes.regulamento.vigencia[1]
+                ? `Se aprovada, vale a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[0])}.`
+                : `Aprovada ainda este mês, vale a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[0])}; se só no fim do prazo, a partir de ${formatarDataCivil(opcoes.regulamento.vigencia[1])}.`}{' '}
+              O diff contra a versão vigente aparece na página da votação.
+            </p>
             <Field>
               <FieldLabel htmlFor="efeito.resumo">Resumo das mudanças</FieldLabel>
               <Input id="efeito.resumo" name="efeito.resumo" required minLength={10} />

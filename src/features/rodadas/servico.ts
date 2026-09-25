@@ -9,6 +9,7 @@ import { parametrosSchema, versaoVigente } from '@/domain/regulamento'
 import { ALGORITMO_VERSAO, apurarSorteio } from '@/domain/sorteio'
 import { dataLocal, fimDoDia, paraDb, prazoEmDias } from '@/domain/tempo'
 import { ligarSobrasPendentes } from '@/features/compra/fechamento'
+import { autoria, type Transcricao } from '@/features/transcricao/ato'
 import type { ContextoAcao } from '@/server/acao'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
@@ -59,7 +60,7 @@ export async function executarRodada(
     const p = parametrosSchema.parse(versao.parametros)
 
     if (rodada.ciclo.status === 'PLANEJADO') {
-      const iniciou = await iniciarCiclo(tx, ctx, rodada.ciclo, rodada.id)
+      const iniciou = await iniciarCiclo(tx, ctx, rodada.ciclo, p)
       if (!iniciou) return { rodadaId, executada: false, status: 'CANCELADA' }
     }
     if (rodada.ciclo.status !== 'PLANEJADO' && rodada.ciclo.status !== 'EM_ANDAMENTO') {
@@ -299,13 +300,26 @@ async function exigirRodadaDeclaravel(tx: Tx, rodadaId: string, pessoaId: string
     },
   })
   exigir(rodada.status === 'AGENDADA', 'RODADA_ENCERRADA') // CA-06: depois do corte, recusada
+  // CA-144: no ciclo PLANEJADO seguinte, só quem confirmou participar (RN-CIC-03)
   const participa =
     rodada.ciclo.status === 'PLANEJADO'
       ? await tx.membro.count({
           where: {
             pessoaId,
             status: { in: ['ATIVO', 'IMPOSSIBILITADO'] },
-            ...(rodada.ciclo.numero === 1 ? { origem: 'FUNDADOR' as const } : {}),
+            ...(rodada.ciclo.numero === 1
+              ? { origem: 'FUNDADOR' as const }
+              : {
+                  pessoa: {
+                    declaracoes: {
+                      some: {
+                        tipo: 'CONFIRMA_PROXIMO_CICLO',
+                        cicloId: rodada.cicloId,
+                        revogadaEm: null,
+                      },
+                    },
+                  },
+                }),
           },
         })
       : await tx.participacaoCiclo.count({
@@ -316,14 +330,19 @@ async function exigirRodadaDeclaravel(tx: Tx, rodadaId: string, pessoaId: string
 }
 
 /** RN-SOR-12 (art. 12): não concorrer nesta rodada; revogável até o corte. */
-export async function declararNaoConcorrer(ctx: ContextoAcao, e: { rodadaId: string }) {
+export async function declararNaoConcorrer(
+  ctx: ContextoAcao,
+  e: { rodadaId: string },
+  transcricao?: Transcricao, // RN-GER-05: só antes do corte (a rodada ainda AGENDADA)
+) {
+  const a = autoria(ctx, transcricao)
   return emTransacao(async (tx) => {
-    const rodada = await exigirRodadaDeclaravel(tx, e.rodadaId, ctx.ator.pessoaId)
+    const rodada = await exigirRodadaDeclaravel(tx, e.rodadaId, a.pessoaId)
     const [contemplado, participantes, contemplados, jaDeclarou] = await Promise.all([
       tx.rodada.count({
         where: {
           cicloId: rodada.cicloId,
-          contempladoId: ctx.ator.pessoaId,
+          contempladoId: a.pessoaId,
           status: { notIn: ['ANULADA', 'CANCELADA'] },
         },
       }),
@@ -339,7 +358,7 @@ export async function declararNaoConcorrer(ctx: ContextoAcao, e: { rodadaId: str
         where: {
           tipo: 'NAO_CONCORRER',
           rodadaId: rodada.id,
-          pessoaId: ctx.ator.pessoaId,
+          pessoaId: a.pessoaId,
           revogadaEm: null,
         },
         select: { id: true },
@@ -355,12 +374,9 @@ export async function declararNaoConcorrer(ctx: ContextoAcao, e: { rodadaId: str
     exigir(!jaDeclarou, 'ENTRADA_INVALIDA', 'Você já declarou que não vai concorrer.')
     const d = await tx.declaracao.create({
       data: {
+        ...a,
         tipo: 'NAO_CONCORRER',
-        pessoaId: ctx.ator.pessoaId,
         rodadaId: rodada.id,
-        efetivaEm: ctx.agora,
-        registradaEm: ctx.agora,
-        registradaPorId: ctx.ator.pessoaId,
       },
       select: { id: true },
     })

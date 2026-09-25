@@ -3,6 +3,8 @@ import 'server-only'
 import { ErroDeNegocio, exigir } from '@/domain/erros'
 import { pagamentoConta, pagosAte, recebedores } from '@/domain/financeiro'
 import { mascararPix } from '@/domain/mascara'
+import { somarHoras } from '@/domain/tempo'
+import { autoria, type Transcricao } from '@/features/transcricao/ato'
 import type { MotivoContestacao } from '@/generated/prisma/enums'
 import type { ContextoAcao } from '@/server/acao'
 import { registrarEvento } from '@/server/auditoria'
@@ -213,35 +215,32 @@ export async function mudarPagamento(
 export async function justificarObrigacao(
   ctx: ContextoAcao,
   e: { obrigacaoId: string; texto: string },
+  transcricao?: Transcricao, // RN-GER-05: mensagem antes do vencimento, transcrita até +48 h
 ) {
+  const a = autoria(ctx, transcricao)
   return emTransacao(async (tx) => {
     const o = await tx.obrigacao.findUniqueOrThrow({ where: { id: e.obrigacaoId } })
     await travar(tx, `rodada:${o.rodadaId}`)
-    exigir(o.devedorId === ctx.ator.pessoaId, 'SEM_PERMISSAO', 'Só o devedor justifica.')
+    exigir(o.devedorId === a.pessoaId, 'SEM_PERMISSAO', 'Só o devedor justifica.')
     exigir(!o.autoquitada && !o.canceladaEm, 'ENTRADA_INVALIDA')
     exigir(!o.justificadaEm, 'ENTRADA_INVALIDA', 'Esta obrigação já foi justificada.')
-    if (ctx.agora >= o.vencimentoEm) throw new ErroDeNegocio('JUSTIFICATIVA_FORA_DO_PRAZO') // CA-16
+    const limite = transcricao ? somarHoras(o.vencimentoEm, 48) : o.vencimentoEm
+    if (a.efetivaEm >= o.vencimentoEm || ctx.agora >= limite) {
+      throw new ErroDeNegocio('JUSTIFICATIVA_FORA_DO_PRAZO') // CA-16
+    }
     const d = await tx.declaracao.create({
-      data: {
-        tipo: 'JUSTIFICATIVA_PRORROGACAO',
-        pessoaId: ctx.ator.pessoaId,
-        obrigacaoId: o.id,
-        texto: e.texto,
-        efetivaEm: ctx.agora,
-        registradaEm: ctx.agora,
-        registradaPorId: ctx.ator.pessoaId,
-      },
+      data: { ...a, tipo: 'JUSTIFICATIVA_PRORROGACAO', obrigacaoId: o.id, texto: e.texto },
       select: { id: true },
     })
     await tx.obrigacao.update({
       where: { id: o.id },
-      data: { justificativa: e.texto, justificadaEm: ctx.agora },
+      data: { justificativa: e.texto, justificadaEm: a.efetivaEm },
     })
     await registrarEvento(tx, ctx, {
       acao: 'obrigacao.justificar',
       entidade: 'obrigacao',
       entidadeId: o.id,
-      dados: { depois: { declaracaoId: d.id, justificadaEm: ctx.agora } },
+      dados: { depois: { declaracaoId: d.id, justificadaEm: a.efetivaEm } },
     })
   })
 }

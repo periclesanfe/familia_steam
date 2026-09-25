@@ -7,7 +7,7 @@ import { db } from '@/server/db'
 
 /** Tudo que a tela /boas-vindas mostra, em número fixo de consultas (13 DP-02). */
 export async function estadoDoOnboarding(pessoaId: string, agora: Date) {
-  const [pessoa, versao, bloqueados, ciclo1] = await Promise.all([
+  const [pessoa, versao, bloqueados, ciclo1, planejado] = await Promise.all([
     db.pessoa.findUniqueOrThrow({
       where: { id: pessoaId },
       select: {
@@ -22,11 +22,13 @@ export async function estadoDoOnboarding(pessoaId: string, agora: Date) {
         adesoes: {
           select: { versaoId: true, sha256Versao: true, codigoAmigo: true, assinadaEm: true },
         },
+        membros: { where: { status: { not: 'ENCERRADO' } }, select: { origem: true } },
       },
     }),
     versaoAplicavel(agora),
     anexoI(),
     db.ciclo.findUnique({ where: { numero: 1 }, select: { dataInicio: true } }),
+    db.ciclo.findFirst({ where: { status: 'PLANEJADO' }, select: { dataInicio: true } }),
   ])
   const assinatura =
     versao &&
@@ -53,5 +55,8 @@ export async function estadoDoOnboarding(pessoaId: string, agora: Date) {
     assinadaEm: assinatura ? assinatura.assinadaEm : null,
     progresso,
     inicioDoCiclo1: ciclo1 ? deDb(ciclo1.dataInicio) : null,
+    // RN-CAD-12.4: o admitido entra no 1º sorteio do próximo ciclo
+    admitido: pessoa.membros.some((m) => m.origem === 'ADMISSAO'),
+    proximoCiclo: planejado ? deDb(planejado.dataInicio) : null,
   }
 }

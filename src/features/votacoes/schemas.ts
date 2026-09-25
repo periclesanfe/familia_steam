@@ -31,6 +31,12 @@ export function efeitoDoFormulario(
       else if (INTEIROS.has(nome)) e[nome] = Number(v)
       else if (nome === 'excluirEntradas') e[nome] = [v].flat().map(Number)
       else if (nome === 'incluirNaFamilia') e[nome] = v === 'on'
+      else if (nome === 'integrante') {
+        // REMOCAO_INTEGRANTE: "integranteId:pessoaId" num select só
+        const [integranteId, pessoaId] = String(v).split(':')
+        Object.assign(e, { integranteId, pessoaId })
+      } else if (v === '')
+        continue // campo opcional vazio (ex.: SteamID do convite)
       else e[nome] = v
     }
   }

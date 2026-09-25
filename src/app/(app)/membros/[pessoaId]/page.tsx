@@ -9,8 +9,12 @@ import { PessoaAvatar } from '@/components/PessoaAvatar'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatarBRL } from '@/domain/dinheiro'
+import { nomeDoMes } from '@/features/grupo/textos'
 import { sincronizarAgoraAcao } from '@/features/steam/acoes'
 import { perfilDoMembro } from '@/features/steam/consultas'
+import { FormTranscricao } from '@/features/transcricao/componentes/FormTranscricao'
+import { opcoesDeTranscricao } from '@/features/transcricao/servico'
 import { formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
 
@@ -22,7 +26,11 @@ const sim = (v: boolean | null) => (v === null ? '—' : v ? 'público' : 'priva
 export default async function MembroPage({ params }: PageProps<'/membros/[pessoaId]'>) {
   const eu = await paginaExige(['MEMBRO'])
   const { pessoaId } = await params
-  const m = await perfilDoMembro(pessoaId)
+  const souEu = eu.pessoaId === pessoaId
+  const [m, opcoes] = await Promise.all([
+    perfilDoMembro(pessoaId),
+    souEu ? null : opcoesDeTranscricao(pessoaId),
+  ])
   if (!m) notFound()
   const p = m.pessoa
   const privado = p.steamJogosPublicos === false
@@ -143,6 +151,33 @@ export default async function MembroPage({ params }: PageProps<'/membros/[pessoa
           </ul>
         </section>
       </div>
+      {opcoes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Transcrever ato do GRUPO</CardTitle>
+            <CardDescription>
+              Registre em nome de {p.apelido} um ato que ele fez no GRUPO. Fica marcado como
+              transcrito por você, e {p.apelido} pode revogar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormTranscricao
+              pessoaId={pessoaId}
+              rodadas={opcoes.rodadas.map((r) => [
+                r.id,
+                `Ciclo ${String(r.ciclo.numero)}, rodada ${String(r.sequencia)} (${nomeDoMes(r.mesReferencia)})`,
+              ])}
+              ciclo={
+                opcoes.ciclo ? [opcoes.ciclo.id, `Ciclo ${String(opcoes.ciclo.numero)}`] : null
+              }
+              obrigacoes={opcoes.obrigacoes.map((o) => [
+                o.id,
+                `${formatarBRL(o.valorCentavos)} a ${o.credor.apelido} (vence ${formatarDataHora(new Date(o.vencimentoEm.getTime() - 60_000))})`,
+              ])}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

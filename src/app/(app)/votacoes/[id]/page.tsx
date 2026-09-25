@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { nomeDoAssunto } from '@/domain/ata'
 import { cancelarVotacaoAcao } from '@/features/votacoes/acoes'
 import { BotoesDeVoto } from '@/features/votacoes/componentes/BotoesDeVoto'
+import { DiffRegulamento } from '@/features/votacoes/componentes/DiffRegulamento'
 import { PlacarVotacao } from '@/features/votacoes/componentes/PlacarVotacao'
 import { detalheVotacao } from '@/features/votacoes/consultas'
 import { formatarDataHora } from '@/lib/formato'
@@ -50,6 +51,18 @@ export default async function VotacaoPage({ params }: PageProps<'/votacoes/[id]'
           {v.efeitoNaoAplicavel && <p className="text-warning">Efeito {v.efeitoNaoAplicavel}.</p>}
         </CardContent>
       </Card>
+
+      {v.alteracao && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Mudanças propostas</CardTitle>
+            <CardDescription>Contra a versão {v.versao}, vigente na convocação.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DiffRegulamento {...v.alteracao} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

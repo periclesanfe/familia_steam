@@ -1,22 +1,33 @@
 import Link from 'next/link'
 
+import { BotaoEnviar } from '@/components/BotaoEnviar'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Dinheiro } from '@/components/Dinheiro'
+import { FormAcao } from '@/components/FormAcao'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { pendenciasFinanceiras } from '@/features/financeiro/consultas'
 import { nomeDoMes } from '@/features/grupo/textos'
 import { proximoSorteio } from '@/features/rodadas/consultas'
+import { revogarTranscricaoAcao } from '@/features/transcricao/acoes'
+import { transcritosParaMim } from '@/features/transcricao/servico'
 import { formatarDataHora } from '@/lib/formato'
 import { paginaExige } from '@/server/auth/guardas'
 import { agora } from '@/server/relogio'
+
+const TIPO_TRANSCRITO: Partial<Record<string, string>> = {
+  NAO_CONCORRER: 'Não vai concorrer',
+  CONFIRMA_PROXIMO_CICLO: 'Confirmou o próximo ciclo',
+  RECUSA_PROXIMO_CICLO: 'Não vai participar do próximo ciclo',
+}
 
 // 07 §3.3: Painel. "Agora" no M4; as pendências completas entram no M9.
 export default async function PainelPage() {
   const { perfil, pessoaId } = await paginaExige(['MEMBRO', 'EX_COM_PENDENCIA', 'EX_QUITADO'])
   const t = agora()
-  const [proximo, pend] = await Promise.all([
+  const [proximo, pend, transcritos] = await Promise.all([
     perfil === 'MEMBRO' ? proximoSorteio() : null,
     pendenciasFinanceiras(pessoaId, t),
+    transcritosParaMim(pessoaId),
   ])
   const venceAte = (d: Date) => formatarDataHora(new Date(d.getTime() - 60_000))
 
@@ -60,6 +71,38 @@ export default async function PainelPage() {
                   >
                     Confirmar ou contestar
                   </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+      {transcritos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Atos transcritos em seu nome</CardTitle>
+            <CardDescription>
+              Outro membro registrou estes atos a partir do GRUPO. Se não foi isso, revogue antes do
+              sorteio (RN-GER-05).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col divide-y text-sm">
+              {transcritos.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span>
+                    {TIPO_TRANSCRITO[d.tipo] ?? d.tipo} · mensagem de{' '}
+                    {formatarDataHora(d.efetivaEm)} · transcrito por {d.transcritoPor}
+                  </span>
+                  <FormAcao acao={revogarTranscricaoAcao} sucesso="Revogado">
+                    <input type="hidden" name="declaracaoId" value={d.id} />
+                    <BotaoEnviar size="sm" variant="outline">
+                      Revogar
+                    </BotaoEnviar>
+                  </FormAcao>
                 </li>
               ))}
             </ul>

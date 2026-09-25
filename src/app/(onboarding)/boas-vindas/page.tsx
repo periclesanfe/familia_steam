@@ -43,9 +43,11 @@ export default async function BoasVindasPage() {
         <Alert>
           <AlertTitle>Você assinou em {formatarDataHora(e.assinadaEm)}.</AlertTitle>
           <AlertDescription>
-            {e.inicioDoCiclo1
-              ? `O Regulamento está em vigor. O ciclo 1 começa em ${formatarDataCivil(e.inicioDoCiclo1)}.`
-              : `Aguardando os demais fundadores (${String(e.progresso?.assinaram ?? 0)}/${String(e.progresso?.total ?? 0)}).`}
+            {e.admitido
+              ? `Você entra no consórcio no 1º sorteio do próximo ciclo${e.proximoCiclo ? ` (${formatarDataCivil(e.proximoCiclo)})` : ''}, desde que o convite na Steam já tenha sido feito.`
+              : e.inicioDoCiclo1
+                ? `O Regulamento está em vigor. O ciclo 1 começa em ${formatarDataCivil(e.inicioDoCiclo1)}.`
+                : `Aguardando os demais fundadores (${String(e.progresso?.assinaram ?? 0)}/${String(e.progresso?.total ?? 0)}).`}
           </AlertDescription>
           {perfil === 'MEMBRO' && (
             <Link href="/" className="mt-2 text-sm font-medium underline underline-offset-4">

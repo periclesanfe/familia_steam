@@ -3,13 +3,18 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { BotaoEnviar } from '@/components/BotaoEnviar'
 import { CabecalhoPagina } from '@/components/CabecalhoPagina'
 import { Dinheiro } from '@/components/Dinheiro'
+import { FormAcao } from '@/components/FormAcao'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Situacao } from '@/domain/financeiro'
 import { gradeDoCiclo } from '@/features/financeiro/consultas'
 import { nomeDoMes } from '@/features/grupo/textos'
-import { formatarDataCivil } from '@/lib/formato'
+import { responderProximoCicloAcao } from '@/features/rodadas/acoes'
+import { janelaDeRevisao } from '@/features/rodadas/janela'
+import { formatarDataCivil, formatarDataHora } from '@/lib/formato'
 import { SITUACAO, STATUS_CICLO } from '@/lib/rotulos'
 import { paginaExige } from '@/server/auth/guardas'
 import { agora } from '@/server/relogio'
@@ -50,10 +55,15 @@ function Celula({ situacao }: { situacao: Situacao | undefined }) {
 }
 
 export default async function CicloPage({ params }: PageProps<'/ciclos/[numero]'>) {
-  await paginaExige(['MEMBRO'])
+  const { pessoaId } = await paginaExige(['MEMBRO'])
   const { numero } = await params
-  const g = await gradeDoCiclo(Number(numero), agora())
+  const t = agora()
+  const [g, janela] = await Promise.all([
+    gradeDoCiclo(Number(numero), t),
+    janelaDeRevisao(Number(numero), pessoaId, t),
+  ])
   if (!g) notFound()
+  const minha = janela?.membros.find((m) => m.eu)
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -62,6 +72,57 @@ export default async function CicloPage({ params }: PageProps<'/ciclos/[numero]'
         descricao={`Início em ${formatarDataCivil(g.ciclo.dataInicio)}.`}
         acoes={<StatusBadge {...STATUS_CICLO[g.ciclo.status]} />}
       />
+      {janela && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Janela de revisão · ciclo {janela.numero}</CardTitle>
+            <CardDescription>
+              O ciclo {janela.numero} começa em {formatarDataCivil(janela.dataInicio)}. Confirme até{' '}
+              {formatarDataHora(new Date(janela.prazo.getTime() - 60_000))}; dá para mudar de ideia
+              até lá. Quem não confirmar deixa de ser membro no 1º sorteio, mas continua na família
+              e com as dívidas (art. 44). Para valer já no 1º sorteio, uma alteração do Regulamento
+              precisa ser aprovada até o último dia do mês anterior.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 text-sm">
+            <ul className="flex flex-col divide-y rounded-lg border">
+              {janela.membros.map((m) => (
+                <li key={m.pessoaId} className="flex items-center justify-between px-3 py-2">
+                  <span className="font-medium">
+                    {m.apelido}
+                    {m.eu && <span className="text-muted-foreground"> (você)</span>}
+                  </span>
+                  <StatusBadge
+                    {...(m.resposta === 'CONFIRMA_PROXIMO_CICLO'
+                      ? { rotulo: 'Confirmou', tom: 'sucesso' as const }
+                      : m.resposta === 'RECUSA_PROXIMO_CICLO'
+                        ? { rotulo: 'Não vai participar', tom: 'inativo' as const }
+                        : { rotulo: 'Sem resposta', tom: 'atencao' as const })}
+                  />
+                </li>
+              ))}
+            </ul>
+            {minha && janela.aberta && (
+              <div className="flex flex-wrap gap-2">
+                {minha.resposta !== 'CONFIRMA_PROXIMO_CICLO' && (
+                  <FormAcao acao={responderProximoCicloAcao} sucesso="Participação confirmada">
+                    <input type="hidden" name="cicloId" value={janela.cicloId} />
+                    <input type="hidden" name="resposta" value="confirmo" />
+                    <BotaoEnviar>Confirmo</BotaoEnviar>
+                  </FormAcao>
+                )}
+                {minha.resposta !== 'RECUSA_PROXIMO_CICLO' && (
+                  <FormAcao acao={responderProximoCicloAcao} sucesso="Resposta registrada">
+                    <input type="hidden" name="cicloId" value={janela.cicloId} />
+                    <input type="hidden" name="resposta" value="recuso" />
+                    <BotaoEnviar variant="outline">Não vou participar</BotaoEnviar>
+                  </FormAcao>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <caption className="sr-only">Grade de contribuições: participantes × rodadas</caption>

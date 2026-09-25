@@ -9,6 +9,7 @@ import {
   primeiroDiaApos,
   somarDiasCorridos,
 } from '@/domain/tempo'
+import { ratearPendentesDoCiclo } from '@/features/compra/fechamento'
 import { type Contexto, registrarEvento } from '@/server/auditoria'
 import type { Tx } from '@/server/db'
 
@@ -78,7 +79,7 @@ export async function concluirCiclo(
       where: { id: ciclo.id },
       data: { status: 'ENCERRADO', concluidoEm: T, encerradoEm: T },
     })
-    // ponytail: rateio da SOBRA (RN-FIN-17) entra no M7/M8b
+    await ratearPendentesDoCiclo(tx, ctx, ciclo.id) // RN-FIN-17
   } else {
     await tx.ciclo.update({
       where: { id: ciclo.id },
@@ -123,7 +124,7 @@ export async function iniciarCiclo(
   tx: Tx,
   ctx: Contexto,
   ciclo: { id: string; numero: number },
-  rodadaId: string,
+  p: Parametros,
 ): Promise<boolean> {
   const T = ctx.agora
   const aptos = { status: { in: ['ATIVO' as const, 'IMPOSSIBILITADO' as const] } }
@@ -158,7 +159,7 @@ export async function iniciarCiclo(
         data: { status: 'ENCERRADO', encerradoEm: T, motivoEncerramento: 'NAO_CONFIRMOU_ART44' },
       })
     }
-    // ponytail: admitidos AGUARDANDO_CICLO (RN-CAD-12.4) entram no M8b
+    previstos = [...previstos, ...(await ativarAdmitidos(tx, T, previstos.length, p))]
   }
 
   const anterior = await tx.ciclo.findFirst({
@@ -166,21 +167,12 @@ export async function iniciarCiclo(
     select: { id: true },
   })
   if (previstos.length < 2) {
-    // RN-CIC-07: sem ciclo seguinte
-    await tx.rodada.update({ where: { id: rodadaId }, data: { status: 'CANCELADA' } })
-    await tx.ciclo.update({ where: { id: ciclo.id }, data: { status: 'CANCELADO' } })
-    if (anterior) {
-      await tx.ciclo.update({
-        where: { id: anterior.id },
-        data: { status: 'ENCERRADO', encerradoEm: T, semCicloSeguinte: true },
-      })
-    }
-    await registrarEvento(tx, ctx, {
-      acao: 'ciclo.cancelar',
-      entidade: 'ciclo',
-      entidadeId: ciclo.id,
-      dados: { motivo: `${String(previstos.length)} participante(s) no corte (RN-CIC-07)` },
-    })
+    await semCicloSeguinte(
+      tx,
+      ctx,
+      ciclo.id,
+      `${String(previstos.length)} participante(s) no corte (RN-CIC-07)`,
+    )
     return false
   }
 
@@ -201,4 +193,94 @@ export async function iniciarCiclo(
     dados: { depois: { participantes: previstos.length } },
   })
   return true
+}
+
+/**
+ * RN-CIC-07: o ciclo PLANEJADO é cancelado com a rodada 1; o anterior (EM_REVISAO) encerra sem
+ * ciclo seguinte e as SOBRAs pendentes são rateadas (RN-FIN-17).
+ */
+export async function semCicloSeguinte(
+  tx: Tx,
+  ctx: Contexto,
+  planejadoId: string,
+  motivo: string,
+  ataNumero?: number,
+): Promise<void> {
+  const planejado = await tx.ciclo.findUniqueOrThrow({
+    where: { id: planejadoId },
+    select: { numero: true },
+  })
+  await tx.rodada.updateMany({
+    where: { cicloId: planejadoId, status: 'AGENDADA' },
+    data: { status: 'CANCELADA' },
+  })
+  await tx.ciclo.update({ where: { id: planejadoId }, data: { status: 'CANCELADO' } })
+  const anterior = await tx.ciclo.findFirst({
+    where: { numero: planejado.numero - 1, status: 'EM_REVISAO' },
+    select: { id: true },
+  })
+  if (anterior) {
+    await tx.ciclo.update({
+      where: { id: anterior.id },
+      data: {
+        status: 'ENCERRADO',
+        encerradoEm: ctx.agora,
+        semCicloSeguinte: true,
+        ...(ataNumero ? { ataEncerramentoNumero: ataNumero } : {}),
+      },
+    })
+    await ratearPendentesDoCiclo(tx, ctx, anterior.id)
+  }
+  await registrarEvento(tx, ctx, {
+    acao: 'ciclo.cancelar',
+    entidade: 'ciclo',
+    entidadeId: planejadoId,
+    dados: { motivo },
+    ...(ataNumero ? { ataNumero } : {}),
+  })
+}
+
+/**
+ * RN-CAD-12.4/5/6 e RN-CAD-13, no corte da 1ª rodada: admitido que assinou e já está na família
+ * fica ATIVO, até `membrosPrevistos` (os demais ficam para o ciclo seguinte); quem não assinou
+ * caduca, com o convite da mesma ATA. Devolve os ativados, que viram participantes.
+ */
+async function ativarAdmitidos(tx: Tx, T: Date, confirmados: number, p: Parametros) {
+  const admitidos = await tx.membro.findMany({
+    where: { origem: 'ADMISSAO', status: { in: ['AGUARDANDO_ADESAO', 'AGUARDANDO_CICLO'] } },
+    orderBy: [{ ataAdmissaoNumero: 'asc' }, { criadoEm: 'asc' }],
+    select: {
+      id: true,
+      pessoaId: true,
+      status: true,
+      ataAdmissaoNumero: true,
+      pessoa: { select: { integrantes: { where: { status: 'ATIVO' }, select: { id: true } } } },
+    },
+  })
+  const caducos = admitidos.filter((a) => a.status === 'AGUARDANDO_ADESAO')
+  if (caducos.length > 0) {
+    await tx.membro.updateMany({
+      where: { id: { in: caducos.map((a) => a.id) } },
+      data: { status: 'ENCERRADO', encerradoEm: T, motivoEncerramento: 'ADMISSAO_CADUCOU' },
+    })
+    await tx.integranteFamilia.updateMany({
+      where: {
+        status: 'CONVITE_AUTORIZADO',
+        OR: caducos.map((a) => ({ pessoaId: a.pessoaId, ataConviteNumero: a.ataAdmissaoNumero })),
+      },
+      data: { status: 'CONVITE_CADUCOU' },
+    })
+  }
+  // RN-CAD-12.6: sem o convite executado na Steam, fica para o ciclo seguinte (pendência)
+  const prontos = admitidos.filter(
+    (a) => a.status === 'AGUARDANDO_CICLO' && a.pessoa.integrantes.length > 0,
+  )
+  const ativados = prontos.slice(0, Math.max(0, p.membrosPrevistos - confirmados)) // CA-94
+  if (ativados.length > 0) {
+    await tx.membro.updateMany({
+      where: { id: { in: ativados.map((a) => a.id) } },
+      data: { status: 'ATIVO', ativadoEm: T },
+    })
+  }
+  return ativados.map((a) => ({ id: a.id, pessoaId: a.pessoaId }))
 }
